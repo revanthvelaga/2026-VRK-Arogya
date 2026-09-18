@@ -8,6 +8,14 @@ files or extra tooling needed. (If you're reading this somewhere that
 doesn't render Mermaid, paste the code block into
 [mermaid.live](https://mermaid.live) to see it.)
 
+**Want to drag boxes around and edit the diagram yourself, draw.io-style?**
+See [`drawio/`](./drawio) — the same request-trace information (URI →
+guard → DTO → controller → service → DB table → response, one endpoint
+per row) plus a full infrastructure/deployment diagram (firewall, load
+balancer, servers, database, CI/CD), as actual editable `.drawio` files,
+each with an `.svg` preview sitting next to it so you can see it without
+opening anything.
+
 ## Index
 
 | File | What it shows |
