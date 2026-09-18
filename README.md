@@ -5,6 +5,12 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full system design.
 **New here?** Read [`docs/`](./docs) — one short write-up per delivered step,
 in plain language, with no coding background assumed.
 
+**Want to see how it fits together?** [`flows/`](./flows) has pictorial
+diagrams — the full database ER diagram, the module dependency graph, a
+class-level diagram, and a sequence diagram for every feature flow
+(auth, catalog, centers/pickup points, booking). All Mermaid, rendered
+inline by GitHub.
+
 ## Repo layout
 
 ```
@@ -16,6 +22,7 @@ arogya/
 ├── packages/
 │   └── shared-types/     # Shared TS interfaces (DTOs) — not started yet
 ├── docs/                  # Plain-language + technical write-up per step
+├── flows/                 # Pictorial diagrams: ERD, module graph, class diagram, feature flows
 ├── schema.sql             # PostGIS-enabled DB schema (reference / manual apply)
 ├── docker-compose.yml     # local Postgres+PostGIS
 └── .github/workflows/     # CI: lint, test, build on push — not started yet
