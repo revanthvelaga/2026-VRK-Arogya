@@ -21,7 +21,7 @@ arogya/
 
 - [x] Database schema (PostGIS-enabled) + ERD
 - [x] NestJS API skeleton: auth module + roles + users
-- [ ] Catalog module (tests, packages, admin CRUD)
+- [x] Catalog module (tests, packages, admin CRUD)
 - [ ] Diagnostic center + pickup-point module with radius search
 - [ ] Booking flow
 - [ ] Sample lifecycle + admin status updates
@@ -50,9 +50,15 @@ POST /auth/login      { "phone": "9999999999", "password": "..." }
 ```
 
 Both return `{ accessToken, refreshToken, role }`. Use `Authorization: Bearer <accessToken>`
-on protected routes (once `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(...)`
-are added to the modules coming next).
+on protected routes.
 
-### Next step
-Catalog module — Tests & Packages, with admin-only CRUD (`@Roles(Role.ADMIN)`) and
-public read endpoints for the customer app.
+```
+GET    /catalog/tests           # public
+GET    /catalog/packages        # public
+POST   /catalog/tests           # ADMIN only
+PATCH  /catalog/tests/:id       # ADMIN only
+DELETE /catalog/tests/:id       # ADMIN only
+POST   /catalog/packages        # ADMIN only
+PATCH  /catalog/packages/:id    # ADMIN only
+DELETE /catalog/packages/:id    # ADMIN only
+```
