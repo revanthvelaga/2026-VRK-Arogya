@@ -1,0 +1,59 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { BookingsService } from './bookings.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Role } from '../common/enums/role.enum';
+import { AuthenticatedUser } from '../common/types/authenticated-user';
+
+@Controller('bookings')
+@UseGuards(JwtAuthGuard)
+export class BookingsController {
+  constructor(private readonly bookingsService: BookingsService) {}
+
+  @Post()
+  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBookingDto) {
+    return this.bookingsService.create(user.userId, dto);
+  }
+
+  @Get('mine')
+  findMine(@CurrentUser() user: AuthenticatedUser) {
+    return this.bookingsService.findAllForCustomer(user.userId);
+  }
+
+  // Registered before ':id' so it isn't swallowed by that param route.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get()
+  findAll() {
+    return this.bookingsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.bookingsService.findOneForUser(id, user);
+  }
+
+  @Patch(':id/cancel')
+  cancel(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.bookingsService.cancel(id, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
+    return this.bookingsService.updateStatus(id, dto);
+  }
+}

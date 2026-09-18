@@ -27,7 +27,7 @@ arogya/
 - [x] NestJS API skeleton: auth module + roles + users — [`docs/step-01-auth-users.md`](./docs/step-01-auth-users.md)
 - [x] Catalog module (tests, packages, admin CRUD) — [`docs/step-02-catalog.md`](./docs/step-02-catalog.md)
 - [x] Diagnostic center + pickup-point module with radius search — [`docs/step-03-centers-pickup-points.md`](./docs/step-03-centers-pickup-points.md)
-- [ ] Booking flow
+- [x] Booking flow — [`docs/step-04-bookings.md`](./docs/step-04-bookings.md)
 - [ ] Sample lifecycle + admin status updates
 - [ ] Partner-lab routing + SLA tracking
 - [ ] Admin web dashboard
@@ -78,6 +78,13 @@ POST   /pickup-points                 # ADMIN only
 PATCH  /pickup-points/:id             # ADMIN only
 DELETE /pickup-points/:id             # ADMIN only
 POST   /pickup-points/:id/schedules   # ADMIN only
+
+POST   /bookings              # any authenticated user — books for themselves
+GET    /bookings/mine         # any authenticated user — their own bookings
+GET    /bookings              # ADMIN/STAFF only — all bookings
+GET    /bookings/:id          # owner, or ADMIN/STAFF
+PATCH  /bookings/:id/cancel   # owner, or ADMIN/STAFF
+PATCH  /bookings/:id/status   # ADMIN/STAFF only
 ```
 
 See [`docs/`](./docs) for detailed, step-by-step explanations of each module.
