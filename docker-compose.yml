@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: always
+    environment:
+      POSTGRES_USER: arogya
+      POSTGRES_PASSWORD: arogya_dev_pw
+      POSTGRES_DB: arogya
+    ports:
+      - "5432:5432"
+    volumes:
+      - arogya_pgdata:/var/lib/postgresql/data
+
+volumes:
+  arogya_pgdata:
