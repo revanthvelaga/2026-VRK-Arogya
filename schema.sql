@@ -26,6 +26,7 @@ CREATE TABLE diagnostic_centers (
     location GEOGRAPHY(POINT, 4326) NOT NULL,  -- lat/lng
     service_radius_km NUMERIC(5,2) NOT NULL DEFAULT 20,
     owner_id UUID REFERENCES users(id),
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_centers_location ON diagnostic_centers USING GIST (location);
