@@ -33,10 +33,30 @@ same filename) or regenerate everything from source — see
 ## Request-trace diagrams
 
 Each one answers exactly this: *"this URI → this guard → this DTO → this
-controller method → this service method → this DB table → this
-response."* One row per endpoint, same seven columns every time, colored
-by layer so you can scan down a column (e.g. every DTO) as easily as
-across a row (one endpoint's full path).
+controller method → this service method → this repository call → this
+entity/table → this response."* One row per endpoint, same eight columns
+every time, colored by layer so you can scan down a column (e.g. every
+DTO) as easily as across a row (one endpoint's full path).
+
+If you're coming from Spring Boot: this is the same
+`Controller → Service → DAO → POJO` layering you already know, just with
+two differences that are naming/timing, not structural —
+
+- **Request DTO gets its own column, before the Controller.** In Spring,
+  `@Valid @RequestBody SomeDto dto` in the controller method signature
+  means "bind + validate" happens *as* the controller method is called —
+  it reads like one step. NestJS pulls that same job out into its own
+  named pipeline stage (a `Pipe`), which runs and finishes *before* the
+  controller method executes — same job, same moment, just drawn as its
+  own box because NestJS's request pipeline
+  (`Guards → Interceptors → Pipes → Handler`) makes it an explicit stage.
+- **"Repository (DAO)" + "Entity (POJO)" are TypeORM's names for the same
+  two things Spring calls DAO and POJO.** `Repository<Entity>` (injected
+  via `@InjectRepository`) is the DAO; an `@Entity()`-decorated class
+  (`User`, `Test`, `Booking`, ...) is the POJO. The one real difference:
+  this codebase injects the Repository straight into the Service, with no
+  separate hand-written DAO class in between — which is the normal
+  NestJS/TypeORM idiom, not a shortcut specific to this project.
 
 | | |
 |---|---|
@@ -53,7 +73,8 @@ across a row (one endpoint's full path).
 
 **Column color key:** URI = blue · Guards = red (gray if the route is
 public) · Request DTO = yellow (gray if none) · Controller = green ·
-Service = purple · DB Table(s) = orange · Response = teal.
+Service = purple · Repository (DAO) = orange · Entity (POJO) = violet ·
+Response = teal.
 
 ## Infrastructure & deployment
 
@@ -75,9 +96,10 @@ deployment guide) happens.
 
 [`generate_diagrams.py`](./generate_diagrams.py) builds every `.drawio` +
 `.svg` pair in this folder from plain Python data (one dict per endpoint —
-method, URI, guard, DTO, controller call, service call, DB table(s),
-response). When an endpoint's route, guard, or DTO changes, or a new one
-is added, update the matching list in that script and re-run it:
+method, URI, guard, DTO, controller call, service call, repository call,
+entity/table, response). When an endpoint's route, guard, or DTO changes,
+or a new one is added, update the matching list in that script and
+re-run it:
 
 ```bash
 python3 flows/drawio/generate_diagrams.py

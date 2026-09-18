@@ -63,3 +63,30 @@ sequenceDiagram
 default: a route with **no** `@Roles(...)` decorator is open to any
 authenticated user once `JwtAuthGuard` has run. It only restricts a
 route once `@Roles(...)` is explicitly attached.
+
+## If you're coming from Spring Boot
+
+This is the same `Controller → Service → DAO → POJO` layering, not a
+different one — two things just look unfamiliar:
+
+- **DTO validation is its own step, before the Controller runs.** In
+  Spring, `@Valid @RequestBody SomeDto dto` in the controller method
+  signature means "bind + validate" happens *as* the method is invoked —
+  it reads like one step. NestJS pulls that identical job out into its
+  own named pipeline stage (a `Pipe`), which finishes *before* the
+  controller method is called. Same job, same moment — just an explicit,
+  separately-drawn stage because NestJS's pipeline
+  (`Guards → Interceptors → Pipes → Handler`) is built that way.
+- **The DAO and the POJO are there, just named differently.** TypeORM's
+  `Repository<Entity>` (`repo` in the diagram above, injected via
+  `@InjectRepository`) **is** the DAO — same role as Spring's
+  `JpaRepository<Entity, ID>`. An `@Entity()`-decorated class (`Test`,
+  `User`, `Booking`, ...) **is** the POJO — same role as Spring's
+  `@Entity` classes. This codebase injects the Repository straight into
+  the Service rather than through a separate hand-written DAO class,
+  which is the normal NestJS/TypeORM idiom, not a shortcut unique to this
+  project.
+
+See [`drawio/`](./drawio) for a version that draws Repository (DAO) and
+Entity (POJO) as two explicit boxes, one row per endpoint, if that 1:1
+mapping is easier to follow while you're still getting used to Nest.

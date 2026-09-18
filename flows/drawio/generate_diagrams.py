@@ -3,8 +3,13 @@
 Generates editable draw.io (.drawio, mxGraph XML) diagrams plus matching
 static .svg previews (same layout/colors, so the SVG is a faithful preview
 of what opening the .drawio file shows) for:
-  - one "request trace" diagram per API module (URI -> Guards -> DTO ->
-    Controller -> Service -> DB table(s) -> Response, one row per endpoint)
+  - one "request trace" diagram per API module: URI -> Guards -> Request
+    DTO -> Controller -> Service -> Repository (DAO) -> Entity (POJO) ->
+    Response, one row per endpoint. The DAO/POJO split mirrors a typical
+    Spring Boot Controller -> Service -> DAO -> POJO flow: TypeORM's
+    Repository<Entity> IS the DAO, and an @Entity()-decorated class IS
+    the POJO — this project just injects the Repository straight into
+    the Service instead of through a separate hand-written DAO class.
   - one infrastructure/deployment diagram (client -> firewall -> LB ->
     API -> DB/S3/FCM/SMS, plus the CI/CD path)
 
@@ -29,7 +34,8 @@ COLORS = {
     "dto_none":   ("#f5f5f5", "#999999", "#666666"),
     "controller": ("#d5e8d4", "#82b366", "#274d19"),
     "service":    ("#e1d5e7", "#9673a6", "#4a2f57"),
-    "db":         ("#ffe6cc", "#d79b00", "#7a4900"),
+    "repo":       ("#ffe6cc", "#d79b00", "#7a4900"),
+    "entity":     ("#f5deff", "#a366cc", "#5a1f80"),
     "response":   ("#d0e0e3", "#10739e", "#0b425a"),
     "header":     ("#f0f0f0", "#333333", "#111111"),
     "client":     ("#dae8fc", "#6c8ebf", "#1a3c6e"),
@@ -40,11 +46,14 @@ COLORS = {
     "cicd":       ("#fff2cc", "#d6b656", "#7a5b00"),
 }
 
-COLUMNS = ["URI", "Guards", "Request DTO", "Controller", "Service", "DB Table(s)", "Response"]
-COL_WIDTHS = [240, 200, 200, 230, 230, 210, 230]
-COL_GAP = 30
-ROW_HEIGHT = 78
-ROW_PITCH = 118
+COLUMNS = [
+    "URI", "Guards", "Request DTO", "Controller", "Service",
+    "Repository (DAO)", "Entity (POJO)", "Response",
+]
+COL_WIDTHS = [220, 190, 190, 210, 210, 210, 210, 210]
+COL_GAP = 26
+ROW_HEIGHT = 82
+ROW_PITCH = 122
 MARGIN_X = 40
 HEADER_Y = 60
 FIRST_ROW_Y = HEADER_Y + 40 + 30
@@ -225,7 +234,9 @@ class SvgDoc:
 
 
 def build_trace_diagram(module_title, endpoints, out_basename):
-    """endpoints: list of dicts with keys method, uri, guard, dto, controller, service, db, response"""
+    """endpoints: list of dicts with keys method, uri, guard, dto, controller,
+    service, repo, entity, response. `repo` = the Repository/DAO call,
+    `entity` = which Entity (POJO) it maps to and which table(s)."""
     height = FIRST_ROW_Y + len(endpoints) * ROW_PITCH + 40
     width = TOTAL_WIDTH
 
@@ -233,7 +244,6 @@ def build_trace_diagram(module_title, endpoints, out_basename):
         doc = DocClass(module_title) if DocClass is DrawioDoc else DocClass()
         doc.text(MARGIN_X, 10, width - 2 * MARGIN_X, 30, module_title, font_size=18, bold=True)
 
-        # column headers
         for i, colname in enumerate(COLUMNS):
             fill, stroke, font = COLORS["header"]
             doc.box(COL_X[i], HEADER_Y, COL_WIDTHS[i], 34, colname, fill, stroke, font, font_size=12, bold=True)
@@ -258,18 +268,22 @@ def build_trace_diagram(module_title, endpoints, out_basename):
             f5, s5, c5 = COLORS["service"]
             id_svc = doc.box(COL_X[4], y, COL_WIDTHS[4], ROW_HEIGHT, ep["service"], f5, s5, c5)
 
-            f6, s6, c6 = COLORS["db"]
-            id_db = doc.box(COL_X[5], y, COL_WIDTHS[5], ROW_HEIGHT, ep["db"], f6, s6, c6)
+            f6, s6, c6 = COLORS["repo"]
+            id_repo = doc.box(COL_X[5], y, COL_WIDTHS[5], ROW_HEIGHT, ep["repo"], f6, s6, c6)
 
-            f7, s7, c7 = COLORS["response"]
-            id_resp = doc.box(COL_X[6], y, COL_WIDTHS[6], ROW_HEIGHT, ep["response"], f7, s7, c7)
+            f7, s7, c7 = COLORS["entity"]
+            id_entity = doc.box(COL_X[6], y, COL_WIDTHS[6], ROW_HEIGHT, ep["entity"], f7, s7, c7)
+
+            f8, s8, c8 = COLORS["response"]
+            id_resp = doc.box(COL_X[7], y, COL_WIDTHS[7], ROW_HEIGHT, ep["response"], f8, s8, c8)
 
             doc.edge(id_uri, id_guard)
             doc.edge(id_guard, id_dto)
             doc.edge(id_dto, id_ctrl)
             doc.edge(id_ctrl, id_svc)
-            doc.edge(id_svc, id_db)
-            doc.edge(id_db, id_resp)
+            doc.edge(id_svc, id_repo)
+            doc.edge(id_repo, id_entity)
+            doc.edge(id_entity, id_resp)
 
         out_path = os.path.join(OUT_DIR, f"{out_basename}.{ext}")
         with open(out_path, "w") as f:
@@ -286,122 +300,167 @@ AUTH_ENDPOINTS = [
          dto="RegisterDto<br/>(class-validator)",
          controller="AuthController<br/>.register()",
          service="AuthService.register()<br/>→ UsersService.create()<br/>(bcrypt hash password)",
-         db="users<br/>INSERT (role forced<br/>to CUSTOMER)",
+         repo="usersRepo.findOne()<br/>usersRepo.create()<br/>usersRepo.save()",
+         entity="User (POJO)<br/>@Entity('users')<br/>→ users table",
          response="201 Created<br/>{accessToken,<br/>refreshToken, role}"),
     dict(method="POST", uri="/auth/login", guard="Public — no guard",
          dto="LoginDto",
          controller="AuthController<br/>.login()",
          service="AuthService.login()<br/>→ UsersService<br/>.findByPhone() +<br/>.validatePassword()",
-         db="users<br/>SELECT WHERE phone",
+         repo="usersRepo.findOne()",
+         entity="User (POJO)<br/>@Entity('users')<br/>→ users table",
          response="200 OK<br/>{accessToken,<br/>refreshToken, role}<br/>or 401"),
 ]
 
 CATALOG_ENDPOINTS = [
     dict(method="GET", uri="/catalog/tests", guard="Public — no guard", dto="none",
          controller="TestsController<br/>.findAll()", service="TestsService<br/>.findAllActive()",
-         db="tests<br/>SELECT WHERE<br/>is_active=true", response="200 OK<br/>Test[]"),
+         repo="testsRepo.find()<br/>{where: isActive}",
+         entity="Test (POJO)<br/>@Entity('tests')<br/>→ tests table",
+         response="200 OK<br/>Test[]"),
     dict(method="GET", uri="/catalog/tests/:id", guard="Public — no guard", dto="none (Param id)",
          controller="TestsController<br/>.findOne()", service="TestsService<br/>.findOne()",
-         db="tests<br/>SELECT WHERE id", response="200 OK Test<br/>or 404"),
+         repo="testsRepo.findOne()<br/>{where: id}",
+         entity="Test (POJO)<br/>→ tests table",
+         response="200 OK Test<br/>or 404"),
     dict(method="POST", uri="/catalog/tests", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="CreateTestDto", controller="TestsController<br/>.create()",
-         service="TestsService<br/>.create()", db="tests<br/>INSERT", response="201 Created<br/>Test"),
+         service="TestsService<br/>.create()",
+         repo="testsRepo.create(dto)<br/>testsRepo.save()",
+         entity="Test (POJO)<br/>→ tests table (INSERT)",
+         response="201 Created<br/>Test"),
     dict(method="PATCH", uri="/catalog/tests/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="UpdateTestDto<br/>(PartialType)", controller="TestsController<br/>.update()",
-         service="TestsService<br/>.update()", db="tests<br/>SELECT + UPDATE", response="200 OK Test"),
+         service="TestsService<br/>.update()",
+         repo="testsRepo.findOne()<br/>testsRepo.save()",
+         entity="Test (POJO)<br/>→ tests table (UPDATE)",
+         response="200 OK Test"),
     dict(method="DELETE", uri="/catalog/tests/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="none", controller="TestsController<br/>.remove()",
-         service="TestsService<br/>.remove()<br/>(soft delete)", db="tests<br/>UPDATE<br/>is_active=false",
+         service="TestsService<br/>.remove()<br/>(soft delete)",
+         repo="testsRepo.findOne()<br/>testsRepo.save()",
+         entity="Test (POJO)<br/>→ tests.is_active=false",
          response="200 OK"),
     dict(method="GET", uri="/catalog/packages", guard="Public — no guard", dto="none",
          controller="PackagesController<br/>.findAll()", service="PackagesService<br/>.findAllActive()",
-         db="packages JOIN<br/>package_tests<br/>JOIN tests", response="200 OK<br/>Package[]"),
+         repo="packagesRepo.find()<br/>{relations: ['tests']}",
+         entity="Package (POJO)<br/>@Entity('packages')<br/>→ packages,<br/>package_tests, tests",
+         response="200 OK<br/>Package[]"),
     dict(method="GET", uri="/catalog/packages/:id", guard="Public — no guard", dto="none",
          controller="PackagesController<br/>.findOne()", service="PackagesService<br/>.findOne()",
-         db="packages JOIN<br/>package_tests<br/>JOIN tests", response="200 OK Package<br/>or 404"),
+         repo="packagesRepo.findOne()<br/>{relations: ['tests']}",
+         entity="Package (POJO)<br/>→ packages,<br/>package_tests, tests",
+         response="200 OK Package<br/>or 404"),
     dict(method="POST", uri="/catalog/packages", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="CreatePackageDto<br/>(incl. testIds[])", controller="PackagesController<br/>.create()",
          service="PackagesService<br/>.create()<br/>(resolves testIds)",
-         db="tests SELECT id IN(..);<br/>packages INSERT;<br/>package_tests INSERT",
+         repo="testsRepo.findBy();<br/>packagesRepo.create()<br/>+save()",
+         entity="Test + Package<br/>(POJOs) → tests,<br/>packages, package_tests",
          response="201 Created<br/>Package"),
     dict(method="PATCH", uri="/catalog/packages/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="UpdatePackageDto", controller="PackagesController<br/>.update()",
          service="PackagesService<br/>.update()",
-         db="packages SELECT+<br/>UPDATE; package_tests<br/>replaced if testIds sent",
+         repo="packagesRepo.findOne()<br/>+save(); testsRepo<br/>.findBy() if testIds sent",
+         entity="Package (POJO)<br/>→ packages,<br/>package_tests",
          response="200 OK Package"),
     dict(method="DELETE", uri="/catalog/packages/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="none", controller="PackagesController<br/>.remove()",
          service="PackagesService<br/>.remove()<br/>(soft delete)",
-         db="packages UPDATE<br/>is_active=false", response="200 OK"),
+         repo="packagesRepo.findOne()<br/>+save()",
+         entity="Package (POJO)<br/>→ packages.is_active<br/>=false",
+         response="200 OK"),
 ]
 
 CENTERS_ENDPOINTS = [
     dict(method="GET", uri="/centers", guard="Public — no guard", dto="none",
          controller="CentersController<br/>.findAll()", service="CentersService<br/>.findAllActive()",
-         db="diagnostic_centers<br/>SELECT WHERE<br/>is_active=true", response="200 OK<br/>DiagnosticCenter[]"),
+         repo="centersRepo.find()<br/>{where: isActive}",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers table",
+         response="200 OK<br/>DiagnosticCenter[]"),
     dict(method="GET", uri="/centers/nearby<br/>?lat=&lng=", guard="Public — no guard",
          dto="NearbyQueryDto<br/>(lat, lng)", controller="CentersController<br/>.findNearby()",
          service="CentersService<br/>.findNearby()",
-         db="diagnostic_centers<br/>ST_DWithin +<br/>ST_Distance (PostGIS)",
+         repo="centersRepo<br/>.createQueryBuilder()<br/>ST_DWithin/ST_Distance",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers table",
          response="200 OK<br/>nearest-first"),
     dict(method="GET", uri="/centers/:id", guard="Public — no guard", dto="none",
          controller="CentersController<br/>.findOne()", service="CentersService<br/>.findOne()",
-         db="diagnostic_centers<br/>SELECT WHERE id", response="200 OK<br/>or 404"),
+         repo="centersRepo.findOne()<br/>{where: id}",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers table",
+         response="200 OK<br/>or 404"),
     dict(method="POST", uri="/centers", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="CreateCenterDto<br/>(lat/lng → GeoPoint)",
          controller="CentersController<br/>.create()", service="CentersService<br/>.create()",
-         db="diagnostic_centers<br/>INSERT (geography)", response="201 Created"),
+         repo="centersRepo.create()<br/>centersRepo.save()",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers (INSERT, geography)",
+         response="201 Created"),
     dict(method="PATCH", uri="/centers/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="UpdateCenterDto", controller="CentersController<br/>.update()",
-         service="CentersService<br/>.update()", db="diagnostic_centers<br/>SELECT + UPDATE",
+         service="CentersService<br/>.update()",
+         repo="centersRepo.findOne()<br/>centersRepo.save()",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers table",
          response="200 OK"),
     dict(method="DELETE", uri="/centers/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="none", controller="CentersController<br/>.remove()",
          service="CentersService<br/>.remove()<br/>(soft delete)",
-         db="diagnostic_centers<br/>UPDATE is_active=false", response="200 OK"),
+         repo="centersRepo.findOne()<br/>centersRepo.save()",
+         entity="DiagnosticCenter<br/>(POJO) → diagnostic_<br/>centers.is_active=false",
+         response="200 OK"),
 ]
 
 PICKUP_ENDPOINTS = [
     dict(method="GET", uri="/pickup-points/nearby<br/>?lat=&lng=&radiusKm=", guard="Public — no guard",
          dto="NearbyQueryDto", controller="PickupPointsController<br/>.findNearby()",
          service="PickupPointsService<br/>.findNearby()",
-         db="pickup_points<br/>ST_DWithin +<br/>ST_Distance (PostGIS)",
+         repo="pickupPointsRepo<br/>.createQueryBuilder()<br/>ST_DWithin/ST_Distance",
+         entity="PickupPoint (POJO)<br/>→ pickup_points table",
          response="200 OK<br/>nearest-first,<br/>+ distanceKm"),
     dict(method="GET", uri="/pickup-points<br/>?centerId=", guard="Public — no guard",
          dto="none (Query)", controller="PickupPointsController<br/>.findForCenter()",
          service="PickupPointsService<br/>.findAllForCenter()",
-         db="pickup_points<br/>SELECT WHERE<br/>center_id AND active",
+         repo="pickupPointsRepo<br/>.find() {where:<br/>centerId, isActive}",
+         entity="PickupPoint (POJO)<br/>→ pickup_points table",
          response="200 OK<br/>PickupPoint[]"),
     dict(method="GET", uri="/pickup-points/:id", guard="Public — no guard", dto="none",
          controller="PickupPointsController<br/>.findOne()", service="PickupPointsService<br/>.findOne()",
-         db="pickup_points<br/>SELECT WHERE id", response="200 OK<br/>or 404"),
+         repo="pickupPointsRepo<br/>.findOne() {where: id}",
+         entity="PickupPoint (POJO)<br/>→ pickup_points table",
+         response="200 OK<br/>or 404"),
     dict(method="GET", uri="/pickup-points/:id<br/>/schedules", guard="Public — no guard", dto="none",
          controller="PickupPointsController<br/>.getSchedules()",
          service="PickupPointsService<br/>.getSchedules()",
-         db="pickup_point_schedules<br/>SELECT WHERE<br/>pickup_point_id",
+         repo="schedulesRepo.find()<br/>{where: pickupPointId}",
+         entity="PickupPointSchedule<br/>(POJO) → pickup_point_<br/>schedules table",
          response="200 OK<br/>Schedule[]"),
     dict(method="POST", uri="/pickup-points", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="CreatePickupPointDto", controller="PickupPointsController<br/>.create()",
          service="PickupPointsService<br/>.create()<br/>(radius check via<br/>ST_Distance)",
-         db="diagnostic_centers<br/>SELECT; pickup_points<br/>INSERT if within radius",
+         repo="centersRepo.findOne();<br/>pickupPointsRepo<br/>.create()+save()",
+         entity="DiagnosticCenter +<br/>PickupPoint (POJOs)<br/>→ pickup_points table",
          response="201 Created<br/>or 400 (outside<br/>service radius)"),
     dict(method="PATCH", uri="/pickup-points/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="UpdatePickupPointDto", controller="PickupPointsController<br/>.update()",
          service="PickupPointsService<br/>.update()<br/>(re-checks radius<br/>if location changes)",
-         db="pickup_points SELECT<br/>+ UPDATE; diagnostic_<br/>centers SELECT",
+         repo="pickupPointsRepo<br/>.findOne()+save();<br/>centersRepo.findOne()",
+         entity="PickupPoint (POJO)<br/>→ pickup_points table",
          response="200 OK<br/>or 400"),
     dict(method="DELETE", uri="/pickup-points/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="none", controller="PickupPointsController<br/>.remove()",
          service="PickupPointsService<br/>.remove()<br/>(soft delete)",
-         db="pickup_points UPDATE<br/>is_active=false", response="200 OK"),
+         repo="pickupPointsRepo<br/>.findOne()+save()",
+         entity="PickupPoint (POJO)<br/>→ pickup_points<br/>.is_active=false",
+         response="200 OK"),
     dict(method="POST", uri="/pickup-points/:id<br/>/schedules", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="CreateScheduleDto", controller="PickupPointsController<br/>.addSchedule()",
          service="PickupPointsService<br/>.addSchedule()",
-         db="pickup_point_schedules<br/>INSERT", response="201 Created"),
+         repo="schedulesRepo<br/>.create()+save()",
+         entity="PickupPointSchedule<br/>(POJO) → pickup_point_<br/>schedules table",
+         response="201 Created"),
     dict(method="DELETE", uri="/pickup-points<br/>/schedules/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
          dto="none", controller="PickupPointsController<br/>.removeSchedule()",
          service="PickupPointsService<br/>.removeSchedule()",
-         db="pickup_point_schedules<br/>DELETE WHERE id",
+         repo="schedulesRepo<br/>.delete(id)",
+         entity="PickupPointSchedule<br/>(POJO) → pickup_point_<br/>schedules table",
          response="200 OK<br/>or 404"),
 ]
 
@@ -410,37 +469,43 @@ BOOKINGS_ENDPOINTS = [
          dto="CreateBookingDto<br/>(items[], centerId,<br/>collectionMode,<br/>scheduledAt)",
          controller="BookingsController<br/>.create()",
          service="BookingsService.create()<br/>→ Centers/PickupPoints/<br/>Tests/PackagesService<br/>(validate + price)",
-         db="bookings INSERT +<br/>booking_items INSERT<br/>(1 transaction)",
+         repo="manager.create()+save()<br/>(1 DB transaction)",
+         entity="Booking + BookingItem<br/>(POJOs) → bookings,<br/>booking_items tables",
          response="201 Created<br/>or 400/404"),
     dict(method="GET", uri="/bookings/mine", guard="JwtAuthGuard<br/>(any logged-in user)",
          dto="none", controller="BookingsController<br/>.findMine()",
          service="BookingsService<br/>.findAllForCustomer()",
-         db="bookings +<br/>booking_items<br/>WHERE customer_id",
+         repo="bookingsRepo.find()<br/>{where: customerId,<br/>relations: ['items']}",
+         entity="Booking + BookingItem<br/>(POJOs) → bookings,<br/>booking_items tables",
          response="200 OK<br/>Booking[]"),
     dict(method="GET", uri="/bookings", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
          dto="none", controller="BookingsController<br/>.findAll()",
          service="BookingsService<br/>.findAll()",
-         db="bookings +<br/>booking_items<br/>(all rows)",
+         repo="bookingsRepo.find()<br/>{relations: ['items']}",
+         entity="Booking + BookingItem<br/>(POJOs) → bookings,<br/>booking_items tables",
          response="200 OK<br/>Booking[]"),
     dict(method="GET", uri="/bookings/:id", guard="JwtAuthGuard<br/>(owner or ADMIN/STAFF)",
          dto="none", controller="BookingsController<br/>.findOne()",
          service="BookingsService<br/>.findOneForUser()",
-         db="bookings SELECT<br/>WHERE id",
+         repo="bookingsRepo.findOne()<br/>{where: id}",
+         entity="Booking (POJO)<br/>→ bookings table",
          response="200 OK, 403<br/>(not owner), or 404"),
     dict(method="PATCH", uri="/bookings/:id<br/>/cancel", guard="JwtAuthGuard<br/>(owner or ADMIN/STAFF)",
          dto="none", controller="BookingsController<br/>.cancel()",
          service="BookingsService<br/>.cancel()",
-         db="bookings SELECT +<br/>UPDATE status=<br/>CANCELLED",
+         repo="bookingsRepo.findOne()<br/>bookingsRepo.save()",
+         entity="Booking (POJO)<br/>→ bookings.status=<br/>CANCELLED",
          response="200 OK<br/>or 400 (bad state)"),
     dict(method="PATCH", uri="/bookings/:id<br/>/status", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
          dto="UpdateBookingStatusDto",
          controller="BookingsController<br/>.updateStatus()",
          service="BookingsService<br/>.updateStatus()",
-         db="bookings SELECT +<br/>UPDATE status",
+         repo="bookingsRepo.findOne()<br/>bookingsRepo.save()",
+         entity="Booking (POJO)<br/>→ bookings.status",
          response="200 OK"),
 ]
 
-build_trace_diagram("Auth module — request trace (URI → Guard → DTO → Controller → Service → DB → Response)", AUTH_ENDPOINTS, "01-auth-trace")
+build_trace_diagram("Auth module — request trace (URI → Guard → DTO → Controller → Service → Repository/DAO → Entity/POJO → Response)", AUTH_ENDPOINTS, "01-auth-trace")
 build_trace_diagram("Catalog module — request trace", CATALOG_ENDPOINTS, "02-catalog-trace")
 build_trace_diagram("Centers module — request trace", CENTERS_ENDPOINTS, "03-centers-trace")
 build_trace_diagram("Pickup-points module — request trace", PICKUP_ENDPOINTS, "04-pickup-points-trace")
@@ -467,12 +532,12 @@ def build_infra_diagram():
 
         f, s, c = COLORS["edge_sec"]
         fw = doc.box(420, 170, 460, 70,
-                     "Firewall / Security Group<br/>Inbound allowed: 443 (HTTPS) only<br/>80 &#8594; 443 redirect, everything else blocked"
-                     .replace("&#8594;", "→"), f, s, c, bold=True)
+                     "Firewall / Security Group<br/>Inbound allowed: 443 (HTTPS) only<br/>80 → 443 redirect, everything else blocked",
+                     f, s, c, bold=True)
 
         lb = doc.box(420, 290, 460, 70,
-                     "Load Balancer / Reverse Proxy<br/>(Nginx, or platform-managed LB)<br/>TLS termination &#8594; routes to API"
-                     .replace("&#8594;", "→"), f, s, c)
+                     "Load Balancer / Reverse Proxy<br/>(Nginx, or platform-managed LB)<br/>TLS termination → routes to API",
+                     f, s, c)
 
         f, s, c = COLORS["app"]
         api = doc.box(370, 410, 560, 90,
