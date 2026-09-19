@@ -5,9 +5,14 @@ import { SampleStatusHistory } from './entities/sample-status-history.entity';
 import { SamplesService } from './samples.service';
 import { SamplesController } from './samples.controller';
 import { BookingsModule } from '../bookings/bookings.module';
+import { PartnerLabsModule } from '../partner-labs/partner-labs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sample, SampleStatusHistory]), BookingsModule],
+  imports: [
+    TypeOrmModule.forFeature([Sample, SampleStatusHistory]),
+    BookingsModule,
+    PartnerLabsModule,
+  ],
   controllers: [SamplesController],
   providers: [SamplesService],
   exports: [SamplesService],

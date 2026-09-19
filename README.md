@@ -39,7 +39,7 @@ arogya/
 - [x] Diagnostic center + pickup-point module with radius search — [`docs/step-03-centers-pickup-points.md`](./docs/step-03-centers-pickup-points.md)
 - [x] Booking flow — [`docs/step-04-bookings.md`](./docs/step-04-bookings.md)
 - [x] Sample lifecycle + admin status updates — [`docs/step-05-sample-lifecycle.md`](./docs/step-05-sample-lifecycle.md)
-- [ ] Partner-lab routing + SLA tracking
+- [x] Partner-lab routing + SLA tracking — [`docs/step-06-partner-lab-routing.md`](./docs/step-06-partner-lab-routing.md)
 - [ ] Admin web dashboard
 - [ ] Customer mobile app
 - [ ] Notifications (push/SMS) + report PDF upload/download
@@ -100,6 +100,12 @@ POST   /bookings/:bookingId/samples   # ADMIN/STAFF only — seeds one sample pe
 GET    /bookings/:bookingId/samples   # owner, or ADMIN/STAFF
 PATCH  /samples/:id/status            # ADMIN/STAFF only — moves one sample forward
 GET    /samples/:id/history           # owner, or ADMIN/STAFF — full status audit trail
+GET    /partner-labs/:id/sla          # ADMIN/STAFF only — turnaround target vs. actual per sample
+
+GET    /partner-labs           # ADMIN/STAFF only
+GET    /partner-labs/:id       # ADMIN/STAFF only
+POST   /partner-labs           # ADMIN only
+PATCH  /partner-labs/:id       # ADMIN only
 ```
 
 See [`docs/`](./docs) for detailed, step-by-step explanations of each module.

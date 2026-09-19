@@ -7,6 +7,18 @@ import { UpdateSampleStatusDto } from './dto/update-sample-status.dto';
 import { SampleStatus } from '../common/enums/sample-status.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { BookingsService } from '../bookings/bookings.service';
+import { PartnerLabsService } from '../partner-labs/partner-labs.service';
+
+export type SlaStatus = 'NOT_TRACKED' | 'IN_PROGRESS' | 'AT_RISK' | 'ON_TIME' | 'BREACHED';
+
+export interface SampleSlaRow {
+  sampleId: string;
+  bookingId: string;
+  status: SampleStatus;
+  expectedResultAt: Date | null;
+  actualResultAt: Date | null;
+  slaStatus: SlaStatus;
+}
 
 // A sample can only move forward along the real specimen lifecycle — never
 // backward, never skip a stage. AT_CENTER is the one branch point: an
@@ -35,6 +47,7 @@ export class SamplesService {
     private readonly historyRepo: Repository<SampleStatusHistory>,
     private readonly dataSource: DataSource,
     private readonly bookingsService: BookingsService,
+    private readonly partnerLabsService: PartnerLabsService,
   ) {}
 
   // One sample per booking item, seeded once a booking is confirmed —
@@ -99,6 +112,25 @@ export class SamplesService {
       sample.collectedAt = new Date();
     }
 
+    if (dto.status === SampleStatus.ROUTED_TO_PARTNER_LAB) {
+      if (!dto.partnerLabId) {
+        throw new BadRequestException(
+          'partnerLabId is required when routing a sample to a partner lab',
+        );
+      }
+      const partnerLab = await this.partnerLabsService.findOne(dto.partnerLabId);
+      sample.routedToPartnerLabId = partnerLab.id;
+      const turnaroundHours = dto.turnaroundHoursOverride ?? partnerLab.defaultTurnaroundHours;
+      sample.expectedResultAt = new Date(Date.now() + turnaroundHours * 60 * 60 * 1000);
+    } else if (dto.status === SampleStatus.IN_HOUSE_PROCESSING && dto.turnaroundHoursOverride) {
+      // In-house SLA targets aren't looked up from the catalog automatically
+      // (a booking item may be a package, which has no single turnaround
+      // figure) — staff can set one explicitly when it matters.
+      sample.expectedResultAt = new Date(
+        Date.now() + dto.turnaroundHoursOverride * 60 * 60 * 1000,
+      );
+    }
+
     return this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(Sample, sample);
       await manager.save(
@@ -118,5 +150,54 @@ export class SamplesService {
     const sample = await this.findOne(id);
     await this.bookingsService.findOneForUser(sample.bookingId, user);
     return this.historyRepo.find({ where: { sampleId: id }, order: { changedAt: 'ASC' } });
+  }
+
+  // Turnaround time, target vs. actual, for every sample ever routed to one
+  // partner lab — the "SLA tracking" half of this step.
+  async getSlaSummaryForPartnerLab(partnerLabId: string) {
+    await this.partnerLabsService.findOne(partnerLabId); // 404s if the id is bad
+
+    const samples = await this.samplesRepo.find({ where: { routedToPartnerLabId: partnerLabId } });
+
+    const rows: SampleSlaRow[] = await Promise.all(
+      samples.map(async (sample) => {
+        const resultEntry = await this.historyRepo.findOne({
+          where: { sampleId: sample.id, status: SampleStatus.RESULT_READY },
+          order: { changedAt: 'ASC' },
+        });
+        const actualResultAt = resultEntry?.changedAt ?? null;
+
+        let slaStatus: SlaStatus;
+        if (!sample.expectedResultAt) {
+          slaStatus = 'NOT_TRACKED';
+        } else if (actualResultAt) {
+          slaStatus = actualResultAt <= sample.expectedResultAt ? 'ON_TIME' : 'BREACHED';
+        } else {
+          slaStatus = new Date() > sample.expectedResultAt ? 'AT_RISK' : 'IN_PROGRESS';
+        }
+
+        return {
+          sampleId: sample.id,
+          bookingId: sample.bookingId,
+          status: sample.status,
+          expectedResultAt: sample.expectedResultAt ?? null,
+          actualResultAt,
+          slaStatus,
+        };
+      }),
+    );
+
+    const count = (s: SlaStatus) => rows.filter((r) => r.slaStatus === s).length;
+    return {
+      summary: {
+        total: rows.length,
+        onTime: count('ON_TIME'),
+        breached: count('BREACHED'),
+        atRisk: count('AT_RISK'),
+        inProgress: count('IN_PROGRESS'),
+        notTracked: count('NOT_TRACKED'),
+      },
+      samples: rows,
+    };
   }
 }

@@ -46,4 +46,11 @@ export class SamplesController {
   history(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.samplesService.getHistory(id, user);
   }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('partner-labs/:partnerLabId/sla')
+  slaSummary(@Param('partnerLabId') partnerLabId: string) {
+    return this.samplesService.getSlaSummaryForPartnerLab(partnerLabId);
+  }
 }

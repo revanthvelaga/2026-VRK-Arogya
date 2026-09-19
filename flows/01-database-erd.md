@@ -21,8 +21,8 @@ erDiagram
     PICKUP_POINTS ||--o{ PICKUP_POINT_SCHEDULES : "recurring visit times"
     PICKUP_POINTS ||--o{ BOOKINGS : "pickup_point_id (nullable)"
 
-    PARTNER_LABS ||--o{ TESTS : "routes out-of-scope tests (schema-only)"
-    PARTNER_LABS ||--o{ SAMPLES : "processes (schema-only — no PartnerLab entity yet)"
+    PARTNER_LABS ||--o{ TESTS : "routes out-of-scope tests"
+    PARTNER_LABS ||--o{ SAMPLES : processes
 
     TESTS ||--o{ PACKAGE_TESTS : "included in"
     PACKAGES ||--o{ PACKAGE_TESTS : includes
@@ -91,7 +91,7 @@ erDiagram
         varchar sample_type
         numeric price
         boolean is_in_house
-        uuid partner_lab_id "plain id, no FK relation yet"
+        uuid partner_lab_id FK
         int turnaround_hours
         boolean is_active
     }
@@ -136,8 +136,8 @@ erDiagram
         uuid collected_by FK
         enum status "BOOKED..DELIVERED, 8 stages"
         timestamptz collected_at
-        uuid routed_to_partner_lab_id FK
-        timestamptz expected_result_at
+        uuid routed_to_partner_lab_id FK "set + expected_result_at computed on ROUTED_TO_PARTNER_LAB"
+        timestamptz expected_result_at "SLA target — partner lab default, or an explicit override"
     }
 
     SAMPLE_STATUS_HISTORY {
@@ -172,6 +172,3 @@ erDiagram
 - `booking_items` enforces "exactly one of `test_id`/`package_id`" with a
   DB-level `CHECK` constraint in `schema.sql`; the same rule is also
   validated in `BookingsService` before the row is even built.
-- `samples.routed_to_partner_lab_id` is a plain UUID column, not a
-  relation — same situation as `tests.partner_lab_id`, resolved once the
-  `PartnerLab` entity is built in the partner-lab-routing step.

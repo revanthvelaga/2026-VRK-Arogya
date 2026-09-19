@@ -10,6 +10,7 @@ import {
 import { SampleStatus } from '../../common/enums/sample-status.enum';
 import { Booking } from '../../bookings/entities/booking.entity';
 import { BookingItem } from '../../bookings/entities/booking-item.entity';
+import { PartnerLab } from '../../partner-labs/entities/partner-lab.entity';
 import { SampleStatusHistory } from './sample-status-history.entity';
 
 @Entity('samples')
@@ -40,10 +41,12 @@ export class Sample {
   @Column({ name: 'collected_at', type: 'timestamptz', nullable: true })
   collectedAt?: Date;
 
-  // Plain id, not a relation — the PartnerLab entity doesn't exist yet
-  // (that's step 7, partner-lab routing).
   @Column({ name: 'routed_to_partner_lab_id', nullable: true })
   routedToPartnerLabId?: string;
+
+  @ManyToOne(() => PartnerLab, { nullable: true })
+  @JoinColumn({ name: 'routed_to_partner_lab_id' })
+  routedToPartnerLab?: PartnerLab;
 
   @Column({ name: 'expected_result_at', type: 'timestamptz', nullable: true })
   expectedResultAt?: Date;

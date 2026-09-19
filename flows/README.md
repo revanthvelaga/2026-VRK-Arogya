@@ -29,6 +29,7 @@ opening anything.
 | [`07-centers-pickup-points-flow.md`](./07-centers-pickup-points-flow.md) | "Find near me" radius search, and the check that rejects a pickup point placed outside its center's service area |
 | [`08-booking-flow.md`](./08-booking-flow.md) | The full booking-creation flow — every validation step, in order, across every module it touches |
 | [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md) | The physical specimen's own status chain — `BOOKED → ... → DELIVERED`, the `AT_CENTER` fork, and how initializing/advancing a sample actually runs |
+| [`10-partner-lab-routing-flow.md`](./10-partner-lab-routing-flow.md) | Routing a sample to a partner lab (setting its SLA target), and how the on-time/at-risk/breached SLA summary gets computed from data that already exists |
 
 ## How to read these
 

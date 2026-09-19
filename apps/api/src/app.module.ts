@@ -7,6 +7,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { CentersModule } from './centers/centers.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { SamplesModule } from './samples/samples.module';
+import { PartnerLabsModule } from './partner-labs/partner-labs.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SamplesModule } from './samples/samples.module';
     CatalogModule,
     CentersModule,
     BookingsModule,
+    PartnerLabsModule,
     SamplesModule,
   ],
 })

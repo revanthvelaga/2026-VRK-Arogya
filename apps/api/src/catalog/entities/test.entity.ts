@@ -3,7 +3,10 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { PartnerLab } from '../../partner-labs/entities/partner-lab.entity';
 
 @Entity('tests')
 export class Test {
@@ -28,10 +31,13 @@ export class Test {
   @Column({ name: 'is_in_house', default: true })
   isInHouse: boolean;
 
-  // Set when isInHouse = false; PartnerLab entity arrives with the
-  // partner-lab-routing module, so this stays a plain id until then.
+  // Set when isInHouse = false.
   @Column({ name: 'partner_lab_id', nullable: true })
   partnerLabId?: string;
+
+  @ManyToOne(() => PartnerLab, { nullable: true })
+  @JoinColumn({ name: 'partner_lab_id' })
+  partnerLab?: PartnerLab;
 
   @Column({ name: 'turnaround_hours', default: 24 })
   turnaroundHours: number;
