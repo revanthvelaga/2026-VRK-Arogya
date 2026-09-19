@@ -1,0 +1,79 @@
+import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus } from './Icons';
+
+const NAV_ITEMS = [
+  { to: '/', label: 'Home', end: true, icon: IconHome },
+  { to: '/catalog', label: 'Catalog', icon: IconBox },
+  { to: '/centers', label: 'Centers', icon: IconMapPin },
+];
+
+export function TopNav() {
+  const { user, logout } = useAuth();
+
+  return (
+    <header className="site-header">
+      <div className="site-header-inner">
+        <Link to="/" className="site-brand">
+          <div className="brand-mark">
+            <IconPlus size={17} />
+          </div>
+          <span className="site-brand-text">Arogya</span>
+        </Link>
+
+        <nav className="site-nav">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              <item.icon size={16} />
+              {item.label}
+            </NavLink>
+          ))}
+          {user && (
+            <NavLink
+              to="/bookings"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              <IconCalendar size={16} />
+              My Bookings
+            </NavLink>
+          )}
+        </nav>
+
+        <div className="site-header-actions">
+          {user ? (
+            <>
+              <Link to="/book" className="btn btn-primary btn-small">
+                Book a test
+              </Link>
+              <div className="user-chip">
+                {user.phone}
+                <button
+                  className="btn btn-small"
+                  style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}
+                  onClick={logout}
+                  aria-label="Log out"
+                >
+                  <IconLogout size={14} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-small">
+                Log in
+              </Link>
+              <Link to="/register" className="btn btn-primary btn-small">
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

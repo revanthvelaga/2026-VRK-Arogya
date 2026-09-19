@@ -20,6 +20,7 @@ response, plus a server/firewall/deployment diagram — see
 arogya/
 ├── apps/
 │   ├── mobile/          # React Native (Expo) customer + staff app — not started yet
+│   ├── customer-web/     # React customer site — browse, book, track a sample
 │   ├── admin-web/        # React admin dashboard
 │   └── api/              # NestJS backend
 ├── packages/
@@ -41,6 +42,7 @@ arogya/
 - [x] Sample lifecycle + admin status updates — [`docs/step-05-sample-lifecycle.md`](./docs/step-05-sample-lifecycle.md)
 - [x] Partner-lab routing + SLA tracking — [`docs/step-06-partner-lab-routing.md`](./docs/step-06-partner-lab-routing.md)
 - [x] Admin web dashboard — [`docs/step-07-admin-web-dashboard.md`](./docs/step-07-admin-web-dashboard.md)
+- [x] Customer web app (added ahead of the mobile app, same endpoints) — [`docs/step-08-customer-web.md`](./docs/step-08-customer-web.md)
 - [ ] Customer mobile app
 - [ ] Notifications (push/SMS) + report PDF upload/download
 - [ ] Dockerize + GitHub Actions CI, deployment guide
@@ -121,3 +123,15 @@ With the API already running (above):
 See [`apps/admin-web/README.md`](./apps/admin-web/README.md) — including
 how to get an `ADMIN` account to sign in with, since public registration
 always creates a `CUSTOMER`.
+
+## Running the customer web app locally
+
+With the API already running (above):
+
+1. `cd apps/customer-web && npm install`
+2. `cp .env.example .env`
+3. `npm run dev` — site on http://localhost:5174 (a different port from
+   `admin-web`'s 5173, so both can run side by side)
+
+Anyone can register here — public sign-up is always a `CUSTOMER` account.
+See [`apps/customer-web/README.md`](./apps/customer-web/README.md).
