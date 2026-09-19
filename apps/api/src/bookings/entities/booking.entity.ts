@@ -9,6 +9,7 @@ import { CollectionMode } from '../../common/enums/collection-mode.enum';
 import { BookingStatus } from '../../common/enums/booking-status.enum';
 import { PaymentStatus } from '../../common/enums/payment-status.enum';
 import { BookingItem } from './booking-item.entity';
+import { GeoPoint } from '../../common/types/geo-point';
 
 @Entity('bookings')
 export class Booking {
@@ -26,6 +27,24 @@ export class Booking {
 
   @Column({ name: 'collection_mode', type: 'enum', enum: CollectionMode })
   collectionMode: CollectionMode;
+
+  // Set only when collectionMode is HOME_VISIT — where staff should go to
+  // collect the sample. Validated against the center's serviceRadiusKm at
+  // booking time (see BookingsService.create), not re-checked afterward.
+  @Column({ name: 'home_address_line', type: 'text', nullable: true })
+  homeAddressLine?: string;
+
+  @Column({ name: 'home_address_pincode', length: 10, nullable: true })
+  homeAddressPincode?: string;
+
+  @Column({
+    name: 'home_location',
+    type: 'geography',
+    spatialFeatureType: 'Point',
+    srid: 4326,
+    nullable: true,
+  })
+  homeLocation?: GeoPoint;
 
   @Column({ name: 'scheduled_at', type: 'timestamptz' })
   scheduledAt: Date;

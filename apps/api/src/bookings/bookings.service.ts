@@ -15,11 +15,13 @@ import { BookingStatus } from '../common/enums/booking-status.enum';
 import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { CentersService } from '../centers/centers.service';
+import { DiagnosticCenter } from '../centers/entities/diagnostic-center.entity';
 import { PickupPointsService } from '../centers/pickup-points.service';
 import { TestsService } from '../catalog/tests.service';
 import { PackagesService } from '../catalog/packages.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
+import { toGeoPoint } from '../common/utils/geo.util';
 
 interface PricedItem {
   testId?: string;
@@ -62,6 +64,28 @@ export class BookingsService {
       );
     }
 
+    let homeDistanceKm: number | undefined;
+    if (dto.collectionMode === CollectionMode.HOME_VISIT) {
+      if (
+        !dto.homeAddressLine ||
+        !dto.homeAddressPincode ||
+        dto.homeLatitude == null ||
+        dto.homeLongitude == null
+      ) {
+        throw new BadRequestException(
+          'homeAddressLine, homeAddressPincode, homeLatitude and homeLongitude are required for HOME_VISIT collection mode',
+        );
+      }
+      homeDistanceKm = await this.distanceKmToCenter(dto.homeLatitude, dto.homeLongitude, center);
+      if (homeDistanceKm > center.serviceRadiusKm) {
+        throw new BadRequestException(
+          `This address is ${homeDistanceKm.toFixed(1)}km from "${center.name}", outside its ${center.serviceRadiusKm}km home-collection radius. Choose a pickup point instead.`,
+        );
+      }
+    } else if (dto.homeAddressLine || dto.homeAddressPincode || dto.homeLatitude != null || dto.homeLongitude != null) {
+      throw new BadRequestException('Home address fields are only valid for HOME_VISIT collection mode');
+    }
+
     const scheduledAt = new Date(dto.scheduledAt);
     if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now()) {
       throw new BadRequestException('scheduledAt must be a valid future date/time');
@@ -71,12 +95,16 @@ export class BookingsService {
     const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
 
     const savedBooking = await this.dataSource.transaction(async (manager) => {
+      const isHomeVisit = dto.collectionMode === CollectionMode.HOME_VISIT;
       const booking = manager.create(Booking, {
         customerId,
         centerId: dto.centerId,
         pickupPointId:
           dto.collectionMode === CollectionMode.PICKUP_POINT ? dto.pickupPointId : undefined,
         collectionMode: dto.collectionMode,
+        homeAddressLine: isHomeVisit ? dto.homeAddressLine : undefined,
+        homeAddressPincode: isHomeVisit ? dto.homeAddressPincode : undefined,
+        homeLocation: isHomeVisit ? toGeoPoint(dto.homeLatitude as number, dto.homeLongitude as number) : undefined,
         scheduledAt,
         status: BookingStatus.PENDING,
         totalAmount,
@@ -177,5 +205,19 @@ export class BookingsService {
     const booking = await this.findOne(id);
     booking.paymentStatus = status;
     return this.bookingsRepo.save(booking);
+  }
+
+  // Same PostGIS geography distance calculation PickupPointsService uses
+  // for its own radius check, against an already-loaded center rather than
+  // one looked up by id.
+  private async distanceKmToCenter(lat: number, lng: number, center: DiagnosticCenter): Promise<number> {
+    const result = await this.dataSource.query(
+      `SELECT ST_Distance(
+         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+         ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
+       ) / 1000 AS distance_km`,
+      [center.location.coordinates[0], center.location.coordinates[1], lng, lat],
+    );
+    return parseFloat(result[0].distance_km);
   }
 }

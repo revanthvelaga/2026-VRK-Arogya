@@ -3,7 +3,10 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
+  IsString,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
@@ -23,6 +26,25 @@ export class CreateBookingDto {
   @IsOptional()
   @IsUUID()
   pickupPointId?: string;
+
+  // The following four are required together when collectionMode is
+  // HOME_VISIT, disallowed otherwise — enforced in BookingsService, which
+  // also rejects an address outside the center's serviceRadiusKm.
+  @IsOptional()
+  @IsString()
+  homeAddressLine?: string;
+
+  @IsOptional()
+  @IsString()
+  homeAddressPincode?: string;
+
+  @IsOptional()
+  @IsLatitude()
+  homeLatitude?: number;
+
+  @IsOptional()
+  @IsLongitude()
+  homeLongitude?: number;
 
   @IsDateString()
   scheduledAt: string;

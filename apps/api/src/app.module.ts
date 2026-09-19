@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { PaymentsModule } from './payments/payments.module';
 import { IssuesModule } from './issues/issues.module';
+import { GeocodeModule } from './geocode/geocode.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -53,6 +54,7 @@ import { HealthController } from './health.controller';
     ReportsModule,
     PaymentsModule,
     IssuesModule,
+    GeocodeModule,
   ],
   controllers: [HealthController],
 })

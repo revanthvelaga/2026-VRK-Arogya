@@ -325,6 +325,16 @@ export async function seedDatabase(dataSource: DataSource) {
       serviceRadiusKm: 30,
       isActive: true,
     },
+    {
+      name: 'Arogya Diagnostics - Narsipatnam',
+      address: 'Door No. 4-112, Near Government Hospital, Kothavalasa Road, Narsipatnam, Visakhapatnam District, Andhra Pradesh - 531116',
+      location: {
+        type: 'Point',
+        coordinates: [82.6156, 17.6673], // Narsipatnam, Visakhapatnam district, AP
+      },
+      serviceRadiusKm: 20,
+      isActive: true,
+    },
   ]);
 
   console.log(`✅ Created ${centers.length} diagnostic centers`);
@@ -399,6 +409,29 @@ export async function seedDatabase(dataSource: DataSource) {
       },
       villageName: 'Koramangala',
       distanceKm: 1.8,
+      isActive: true,
+    },
+    // For Narsipatnam Center — both within its 20km home-collection radius
+    {
+      centerId: centers[3].id,
+      name: 'Ravikamatham Pickup Point',
+      location: {
+        type: 'Point',
+        coordinates: [82.6656, 17.7473],
+      },
+      villageName: 'Ravikamatham',
+      distanceKm: 10.6,
+      isActive: true,
+    },
+    {
+      centerId: centers[3].id,
+      name: 'Rolugunta Pickup Point',
+      location: {
+        type: 'Point',
+        coordinates: [82.7056, 17.5973],
+      },
+      villageName: 'Rolugunta',
+      distanceKm: 12.9,
       isActive: true,
     },
   ]);
