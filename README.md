@@ -20,7 +20,7 @@ response, plus a server/firewall/deployment diagram — see
 arogya/
 ├── apps/
 │   ├── mobile/          # React Native (Expo) customer + staff app — not started yet
-│   ├── admin-web/        # React admin dashboard — not started yet
+│   ├── admin-web/        # React admin dashboard
 │   └── api/              # NestJS backend
 ├── packages/
 │   └── shared-types/     # Shared TS interfaces (DTOs) — not started yet
@@ -40,7 +40,7 @@ arogya/
 - [x] Booking flow — [`docs/step-04-bookings.md`](./docs/step-04-bookings.md)
 - [x] Sample lifecycle + admin status updates — [`docs/step-05-sample-lifecycle.md`](./docs/step-05-sample-lifecycle.md)
 - [x] Partner-lab routing + SLA tracking — [`docs/step-06-partner-lab-routing.md`](./docs/step-06-partner-lab-routing.md)
-- [ ] Admin web dashboard
+- [x] Admin web dashboard — [`docs/step-07-admin-web-dashboard.md`](./docs/step-07-admin-web-dashboard.md)
 - [ ] Customer mobile app
 - [ ] Notifications (push/SMS) + report PDF upload/download
 - [ ] Dockerize + GitHub Actions CI, deployment guide
@@ -109,3 +109,15 @@ PATCH  /partner-labs/:id       # ADMIN only
 ```
 
 See [`docs/`](./docs) for detailed, step-by-step explanations of each module.
+
+## Running the admin web console locally
+
+With the API already running (above):
+
+1. `cd apps/admin-web && npm install`
+2. `cp .env.example .env`
+3. `npm run dev` — console on http://localhost:5173
+
+See [`apps/admin-web/README.md`](./apps/admin-web/README.md) — including
+how to get an `ADMIN` account to sign in with, since public registration
+always creates a `CUSTOMER`.
