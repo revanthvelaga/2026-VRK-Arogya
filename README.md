@@ -7,12 +7,13 @@ in plain language, with no coding background assumed.
 
 **Want to see how it fits together?** [`flows/`](./flows) has pictorial
 diagrams — the full database ER diagram, the module dependency graph, a
-class-level diagram, and a sequence diagram for every feature flow
-(auth, catalog, centers/pickup points, booking, sample lifecycle,
-partner-lab routing), rendered inline by GitHub. For editable,
-draw.io-style boxes-and-arrows versions — every API endpoint traced URI →
-guard → DTO → controller → service → DB table → response, plus a
-server/firewall/deployment diagram — see [`flows/drawio/`](./flows/drawio).
+class-level diagram, and a start-to-end flowchart plus sequence diagram
+for every feature flow (auth, catalog, centers/pickup points, booking,
+sample lifecycle, partner-lab routing, notifications + reports),
+rendered inline by GitHub. For editable, draw.io-style boxes-and-arrows
+versions — every API endpoint traced URI → guard → DTO → controller →
+service → DB table → response, plus a server/firewall/deployment diagram
+— see [`flows/drawio/`](./flows/drawio).
 
 ## Repo layout
 
@@ -44,7 +45,7 @@ arogya/
 - [x] Admin web dashboard — [`docs/step-07-admin-web-dashboard.md`](./docs/step-07-admin-web-dashboard.md)
 - [x] Customer web app (added ahead of the mobile app, same endpoints) — [`docs/step-08-customer-web.md`](./docs/step-08-customer-web.md)
 - [x] Customer mobile app — [`docs/step-09-customer-mobile.md`](./docs/step-09-customer-mobile.md)
-- [ ] Notifications (push/SMS) + report PDF upload/download
+- [x] Notifications (in-app + real email; push/SMS documented as an extension point, not built — see the doc) + report PDF upload/download — [`docs/step-10-notifications-reports.md`](./docs/step-10-notifications-reports.md)
 - [ ] Dockerize + GitHub Actions CI, deployment guide
 
 ## Running the API locally
@@ -108,6 +109,13 @@ GET    /partner-labs           # ADMIN/STAFF only
 GET    /partner-labs/:id       # ADMIN/STAFF only
 POST   /partner-labs           # ADMIN only
 PATCH  /partner-labs/:id       # ADMIN only
+
+GET    /notifications/mine            # any authenticated user — their own notifications
+PATCH  /notifications/:id/read        # owner only
+
+POST   /bookings/:bookingId/reports   # ADMIN/STAFF only — multipart PDF upload, max 10MB
+GET    /bookings/:bookingId/reports   # owner, or ADMIN/STAFF
+GET    /reports/:id/download          # owner, or ADMIN/STAFF — streams the file
 ```
 
 See [`docs/`](./docs) for detailed, step-by-step explanations of each module.

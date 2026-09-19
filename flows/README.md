@@ -18,15 +18,16 @@ opening anything.
 
 ## Index
 
-**Note on numbering:** these files are numbered 01–10, but the request-trace
+**Note on numbering:** these files are numbered 01–11, but the request-trace
 diagrams under [`drawio/`](./drawio) are numbered separately (01–08) and
 don't line up 1:1 with these — e.g. this folder's `05-auth-flow.md` pairs
 with `drawio/01-auth-trace.drawio`, not `drawio/05-*`. The "Pairs with"
 column below is the actual mapping; each `.md` file also links its match
 at the top. If you're looking for "the diagram for step N," use this
-table, not matching numbers.
+table, not matching numbers. `11-notifications-reports-flow.md` has no
+drawio trace yet — see its own "What's missing" section.
 
-Every step-flow file (05–10) opens with a short **Objective / Classes &
+Every step-flow file (05–11) opens with a short **Objective / Classes &
 entities used / Tables used / Conditions checked** block, so you don't
 have to read a diagram just to find out what tables or classes are
 involved. "How it flows" is then a plain top-to-bottom **flowchart**
@@ -37,8 +38,8 @@ the logic.
 
 | File | Pairs with (drawio) | What it shows |
 |---|---|---|
-| [`01-database-erd.md`](./01-database-erd.md) | — | Full database entity-relationship diagram — every table in `schema.sql`, how they connect, and which ones already have a matching NestJS entity vs. are still schema-only |
-| [`02-module-dependency-graph.md`](./02-module-dependency-graph.md) | — | Which NestJS module imports which — the "who depends on whom" map of the whole API |
+| [`01-database-erd.md`](./01-database-erd.md) | — | Full database entity-relationship diagram — every table in `schema.sql` plus `notifications` (step 10, not in the original SQL), and which ones have a matching NestJS entity (as of step 10: all of them) |
+| [`02-module-dependency-graph.md`](./02-module-dependency-graph.md) | — | Which NestJS module imports which — the "who depends on whom" map of the whole API (as of step 10: nothing left planned) |
 | [`03-request-lifecycle.md`](./03-request-lifecycle.md) | — | The generic path **every** request takes: guard → guard → validation → controller → service → repository → database, shown concretely for one real endpoint |
 | [`04-class-diagram-bookings.md`](./04-class-diagram-bookings.md) | — | Class-level diagram of the Bookings module (controller, service, entities, and the other modules' services it calls into) — every other module follows the same Controller → Service → Entity shape, this one's shown because it's the only one that also reaches across modules |
 | [`05-auth-flow.md`](./05-auth-flow.md) | `01-auth-trace` | Objective, classes/tables/conditions, then register + login, step by step |
@@ -47,6 +48,7 @@ the logic.
 | [`08-booking-flow.md`](./08-booking-flow.md) | `05-bookings-trace` | Objective, classes/tables/conditions, then the full booking-creation flow — every validation step, in order |
 | [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md) | `07-samples-trace` | Objective, classes/tables/conditions, then the sample status chain and the `AT_CENTER` fork |
 | [`10-partner-lab-routing-flow.md`](./10-partner-lab-routing-flow.md) | `08-partner-labs-trace` | Objective, classes/tables/conditions, then routing + the SLA classification decision tree |
+| [`11-notifications-reports-flow.md`](./11-notifications-reports-flow.md) | *(none yet)* | Objective, classes/tables/conditions, then sending a notification, uploading a report, and downloading one — plus a real bug (a ~2 minute request hang) this step found and fixed |
 
 ## How to read these
 

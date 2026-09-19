@@ -1,8 +1,7 @@
 # Module dependency graph
 
-Which NestJS module imports which. Solid boxes/arrows are built; dashed
-ones are planned (from `ARCHITECTURE.md`'s build order) and not written
-yet.
+Which NestJS module imports which. As of step 10, every module in
+`ARCHITECTURE.md`'s build order is built — there's nothing left dashed.
 
 ```mermaid
 graph TD
@@ -18,9 +17,8 @@ graph TD
     Bookings[BookingsModule]
     PartnerLabs[PartnerLabsModule]
     Samples[SamplesModule]
-
-    Notifications[["NotificationsModule<br/>(planned)"]]
-    Reports[["ReportsModule<br/>(planned)"]]
+    Notifications[NotificationsModule]
+    Reports[ReportsModule]
 
     App --> Config
     App --> TypeOrm
@@ -31,19 +29,19 @@ graph TD
     App --> Bookings
     App --> PartnerLabs
     App --> Samples
+    App --> Notifications
+    App --> Reports
 
     Auth --> Users
     Bookings --> Catalog
     Bookings --> Centers
     Samples --> Bookings
     Samples --> PartnerLabs
-
-    Reports -.-> Bookings
-    Notifications -.-> Bookings
-    Notifications -.-> Samples
-
-    classDef planned stroke-dasharray: 5 5;
-    class Notifications,Reports planned;
+    Notifications --> Users
+    Bookings --> Notifications
+    Samples --> Notifications
+    Reports --> Bookings
+    Reports --> Notifications
 ```
 
 ## Why this matters
@@ -72,3 +70,16 @@ graph TD
   entities' repositories — that's omitted from this diagram to keep it
   readable; see [`04-class-diagram-bookings.md`](./04-class-diagram-bookings.md)
   for how that looks at the class level for one module.
+- **`NotificationsModule` only imports `UsersModule`** (to look up a
+  recipient's email) — it never imports `BookingsModule` or
+  `SamplesModule`. That's the opposite direction from what was originally
+  sketched for this step (a dashed "planned" arrow pointing the other
+  way): a shared, generic service like notifications sits *below* the
+  domain modules that call into it, not above them. `BookingsModule` and
+  `SamplesModule` import `NotificationsModule` and call
+  `NotificationsService.notify()` at the couple of points that matter
+  (booking created; sample collected; result ready) — same "import the
+  module, call its exported service" pattern as everything else here.
+- **`ReportsModule` imports both `BookingsModule` (for the
+  owner-or-staff ownership check, same as `SamplesModule`) and
+  `NotificationsModule`** (to notify the customer once a report lands).

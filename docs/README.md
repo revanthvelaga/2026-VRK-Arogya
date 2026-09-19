@@ -15,6 +15,7 @@ for developers, then what to try and what comes next.
 | [step-07-admin-web-dashboard.md](./step-07-admin-web-dashboard.md) | The React admin/staff console, wired to every module above |
 | [step-08-customer-web.md](./step-08-customer-web.md) | The customer-facing site — browse, cart, book, track, call/WhatsApp, audience-based suggestions |
 | [step-09-customer-mobile.md](./step-09-customer-mobile.md) | The React Native (Expo) customer app — same endpoints as the web app, from a phone |
+| [step-10-notifications-reports.md](./step-10-notifications-reports.md) | Real in-app + email notifications, and PDF report upload/download |
 
 New write-ups are added as each step ships — see the root
 [`README.md`](../README.md) for overall project status.

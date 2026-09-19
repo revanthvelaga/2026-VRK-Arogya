@@ -1,9 +1,12 @@
 # Database ER diagram
 
-Every table defined in [`schema.sql`](../schema.sql). Tables marked
-**(entity)** already have a matching TypeORM entity in `apps/api/src`;
-tables marked **(schema-only)** exist in the reference SQL but no module
-has been built against them yet.
+Every table defined in [`schema.sql`](../schema.sql), plus `notifications`
+(added in step 10, not part of the original reference SQL — see the note
+at the bottom). Tables marked **(entity)** already have a matching
+TypeORM entity in `apps/api/src`; tables marked **(schema-only)** exist
+in the reference SQL but no module has been built against them yet. As
+of step 10, every table in this diagram is an entity — `reports` was the
+last schema-only one.
 
 ```mermaid
 erDiagram
@@ -11,7 +14,8 @@ erDiagram
     USERS ||--o{ BOOKINGS : places
     USERS ||--o{ SAMPLES : "collected_by"
     USERS ||--o{ SAMPLE_STATUS_HISTORY : "changed_by"
-    USERS ||--o{ REPORTS : "reviewed_by (schema-only)"
+    USERS ||--o{ REPORTS : "uploaded_by / reviewed_by"
+    USERS ||--o{ NOTIFICATIONS : "user_id"
 
     DIAGNOSTIC_CENTERS ||--o{ PICKUP_POINTS : has
     DIAGNOSTIC_CENTERS ||--o{ TESTS : offers
@@ -32,7 +36,7 @@ erDiagram
 
     BOOKINGS ||--o{ BOOKING_ITEMS : contains
     BOOKINGS ||--o{ SAMPLES : produces
-    BOOKINGS ||--o{ REPORTS : "results in (schema-only)"
+    BOOKINGS ||--o{ REPORTS : "results in"
 
     BOOKING_ITEMS ||--o| SAMPLES : "tracked by"
     SAMPLES ||--o{ SAMPLE_STATUS_HISTORY : logs
@@ -154,9 +158,24 @@ erDiagram
     REPORTS {
         uuid id PK
         uuid booking_id FK
-        text file_url "S3 URL"
+        text file_url "local disk path today; a real S3 URL once that lands"
+        varchar file_name "original uploaded filename"
+        varchar mime_type "always application/pdf, enforced on upload"
+        integer size_bytes
+        uuid uploaded_by FK "staff/admin who uploaded it"
         timestamptz generated_at
-        uuid reviewed_by FK
+        uuid reviewed_by FK "column exists, no review workflow built yet"
+    }
+
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        enum type "BOOKING_CREATED | SAMPLE_COLLECTED | RESULT_READY | REPORT_READY"
+        varchar message
+        timestamptz read_at "nullable"
+        boolean email_sent
+        text email_preview_url "Ethereal preview link in dev, nullable"
+        timestamptz created_at
     }
 ```
 
@@ -180,3 +199,12 @@ erDiagram
   to `EVERYONE` so untagged items keep showing up regardless of which
   category a customer browsed in from. Added after the initial catalog
   module shipped, not part of the original step-02 schema.
+- `reports` finally got a real entity in step 10, extended past
+  `schema.sql`'s original four columns with `file_name`/`mime_type`/
+  `size_bytes`/`uploaded_by` — what an actual upload/download flow needs.
+  `reviewed_by` is still just a column; no review workflow was built
+  around it.
+- `notifications` is entirely new in step 10 — not in `schema.sql` at
+  all. See [`flows/11-notifications-reports-flow.md`](./11-notifications-reports-flow.md)
+  for what writes to it and how email delivery (or its absence) is
+  tracked on each row.

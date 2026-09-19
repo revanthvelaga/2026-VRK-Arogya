@@ -6,9 +6,15 @@ import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { CatalogModule } from '../catalog/catalog.module';
 import { CentersModule } from '../centers/centers.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking, BookingItem]), CatalogModule, CentersModule],
+  imports: [
+    TypeOrmModule.forFeature([Booking, BookingItem]),
+    CatalogModule,
+    CentersModule,
+    NotificationsModule,
+  ],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

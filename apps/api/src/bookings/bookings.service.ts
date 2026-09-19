@@ -18,6 +18,8 @@ import { CentersService } from '../centers/centers.service';
 import { PickupPointsService } from '../centers/pickup-points.service';
 import { TestsService } from '../catalog/tests.service';
 import { PackagesService } from '../catalog/packages.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../common/enums/notification-type.enum';
 
 interface PricedItem {
   testId?: string;
@@ -35,6 +37,7 @@ export class BookingsService {
     private readonly pickupPointsService: PickupPointsService,
     private readonly testsService: TestsService,
     private readonly packagesService: PackagesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -67,7 +70,7 @@ export class BookingsService {
     const items = await this.priceItems(dto.items);
     const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
 
-    return this.dataSource.transaction(async (manager) => {
+    const savedBooking = await this.dataSource.transaction(async (manager) => {
       const booking = manager.create(Booking, {
         customerId,
         centerId: dto.centerId,
@@ -78,14 +81,24 @@ export class BookingsService {
         status: BookingStatus.PENDING,
         totalAmount,
       });
-      const savedBooking = await manager.save(booking);
+      const inserted = await manager.save(booking);
 
       const bookingItems = items.map((item) =>
-        manager.create(BookingItem, { bookingId: savedBooking.id, ...item }),
+        manager.create(BookingItem, { bookingId: inserted.id, ...item }),
       );
-      savedBooking.items = await manager.save(BookingItem, bookingItems);
-      return savedBooking;
+      inserted.items = await manager.save(BookingItem, bookingItems);
+      return inserted;
     });
+
+    // Notified after the transaction commits — an SMTP round-trip has no
+    // business holding a database transaction (and its row locks) open.
+    await this.notificationsService.notify(
+      customerId,
+      NotificationType.BOOKING_CREATED,
+      `Your booking for ${savedBooking.scheduledAt.toLocaleString('en-IN')} is confirmed. Total: ₹${totalAmount}.`,
+    );
+
+    return savedBooking;
   }
 
   // Prices are always looked up server-side from the current catalog —

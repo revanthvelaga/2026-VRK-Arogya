@@ -8,6 +8,8 @@ import { SampleStatus } from '../common/enums/sample-status.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { BookingsService } from '../bookings/bookings.service';
 import { PartnerLabsService } from '../partner-labs/partner-labs.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../common/enums/notification-type.enum';
 
 export type SlaStatus = 'NOT_TRACKED' | 'IN_PROGRESS' | 'AT_RISK' | 'ON_TIME' | 'BREACHED';
 
@@ -48,6 +50,7 @@ export class SamplesService {
     private readonly dataSource: DataSource,
     private readonly bookingsService: BookingsService,
     private readonly partnerLabsService: PartnerLabsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // One sample per booking item, seeded once a booking is confirmed —
@@ -131,8 +134,8 @@ export class SamplesService {
       );
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const saved = await manager.save(Sample, sample);
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const savedSample = await manager.save(Sample, sample);
       await manager.save(
         SampleStatusHistory,
         manager.create(SampleStatusHistory, {
@@ -142,8 +145,25 @@ export class SamplesService {
           notes: dto.notes,
         }),
       );
-      return saved;
+      return savedSample;
     });
+
+    // Only the two milestones a customer actually cares about — not every
+    // intermediate transit/at-center step.
+    if (dto.status === SampleStatus.COLLECTED || dto.status === SampleStatus.RESULT_READY) {
+      const booking = await this.bookingsService.findOne(saved.bookingId);
+      const type =
+        dto.status === SampleStatus.COLLECTED
+          ? NotificationType.SAMPLE_COLLECTED
+          : NotificationType.RESULT_READY;
+      const message =
+        dto.status === SampleStatus.COLLECTED
+          ? 'Your sample has been collected and is on its way to the lab.'
+          : 'Your results are ready — open your booking to view or download the report.';
+      await this.notificationsService.notify(booking.customerId, type, message);
+    }
+
+    return saved;
   }
 
   async getHistory(id: string, user: AuthenticatedUser): Promise<SampleStatusHistory[]> {
