@@ -22,6 +22,30 @@ export class CreateTestDto {
   @IsString()
   sampleType?: string;
 
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  preparationInstructions?: string;
+
+  @IsOptional()
+  @IsString()
+  reportInfo?: string;
+
+  @IsOptional()
+  @IsNumber()
+  normalRangeLow?: number;
+
+  @IsOptional()
+  @IsNumber()
+  normalRangeHigh?: number;
+
+  @IsOptional()
+  @IsString()
+  normalRangeUnit?: string;
+
   @IsNumber()
   @Min(0)
   price: number;

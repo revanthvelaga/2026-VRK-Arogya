@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { CollectionMode } from '../../common/enums/collection-mode.enum';
 import { BookingStatus } from '../../common/enums/booking-status.enum';
+import { PaymentStatus } from '../../common/enums/payment-status.enum';
 import { BookingItem } from './booking-item.entity';
 
 @Entity('bookings')
@@ -34,6 +35,14 @@ export class Booking {
 
   @Column({ name: 'total_amount', type: 'numeric', precision: 10, scale: 2 })
   totalAmount: number;
+
+  @Column({
+    name: 'payment_status',
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
+  paymentStatus: PaymentStatus;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
