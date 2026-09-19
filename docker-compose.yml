@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - arogya_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arogya -d arogya"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
   arogya_pgdata:
