@@ -15,6 +15,12 @@ export class ReportValueEntryDto {
   @IsOptional()
   @IsString()
   unit?: string;
+
+  // Only needed for a free-form entry (no testId) — a testId entry always
+  // inherits its Test's category, same as normalLow/normalHigh.
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
 
 export class AddReportValuesDto {

@@ -26,6 +26,11 @@ export class ReportValue {
   @Column({ name: 'test_name', length: 150 })
   testName: string;
 
+  // Copied from the Test at write time (see normalLow/normalHigh above) so
+  // the report's parameter list can be grouped/tagged without a join.
+  @Column({ length: 50, nullable: true })
+  category?: string;
+
   @Column({ type: 'numeric', precision: 12, scale: 3 })
   value: number;
 

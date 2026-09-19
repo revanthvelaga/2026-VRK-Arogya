@@ -13,6 +13,12 @@ import { TestsService } from '../catalog/tests.service';
 
 export type PublicReport = Omit<Report, 'fileUrl' | 'booking'>;
 
+export interface ReportValueWithTrend extends ReportValue {
+  previousValue?: number;
+  previousUnit?: string;
+  previousRecordedAt?: Date;
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -91,12 +97,14 @@ export class ReportsService {
       let normalLow: number | undefined;
       let normalHigh: number | undefined;
       let unit = entry.unit;
+      let category = entry.category;
 
       if (entry.testId) {
         const test = await this.testsService.findOne(entry.testId);
         normalLow = test.normalRangeLow != null ? Number(test.normalRangeLow) : undefined;
         normalHigh = test.normalRangeHigh != null ? Number(test.normalRangeHigh) : undefined;
         unit = unit ?? test.normalRangeUnit;
+        category = category ?? test.category;
       }
 
       const isAbnormal =
@@ -108,6 +116,7 @@ export class ReportsService {
           reportId: id,
           testId: entry.testId,
           testName: entry.testName,
+          category,
           value: entry.value,
           unit,
           normalLow,
@@ -120,10 +129,54 @@ export class ReportsService {
     return this.reportValuesRepo.save(rows);
   }
 
-  async findValues(id: string, user: AuthenticatedUser): Promise<ReportValue[]> {
+  // Same parameter from an earlier report for the same customer — powers the
+  // "107 -> 108" trend display. Matched by testId when there is one (a
+  // free-form entry has none, so those fall back to matching on testName).
+  // One query per value rather than a single batched query: report result
+  // sets are small (a handful to a few dozen parameters), so the simplicity
+  // is worth more here than the extra round trips.
+  private async findPreviousValue(
+    value: ReportValue,
+    customerId: string,
+    beforeGeneratedAt: Date,
+    currentReportId: string,
+  ): Promise<ReportValue | null> {
+    const qb = this.reportValuesRepo
+      .createQueryBuilder('rv')
+      .innerJoin('reports', 'r', 'r.id = rv.report_id')
+      .innerJoin('bookings', 'b', 'b.id = r.booking_id')
+      .where('b.customer_id = :customerId', { customerId })
+      .andWhere('r.generated_at < :before', { before: beforeGeneratedAt })
+      .andWhere('rv.report_id != :currentReportId', { currentReportId })
+      .orderBy('r.generated_at', 'DESC')
+      .limit(1);
+
+    if (value.testId) {
+      qb.andWhere('rv.test_id = :testId', { testId: value.testId });
+    } else {
+      qb.andWhere('rv.test_id IS NULL').andWhere('rv.test_name = :testName', { testName: value.testName });
+    }
+
+    return qb.getOne();
+  }
+
+  async findValues(id: string, user: AuthenticatedUser): Promise<ReportValueWithTrend[]> {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');
-    await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
-    return this.reportValuesRepo.find({ where: { reportId: id }, order: { createdAt: 'ASC' } });
+    const booking = await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
+
+    const values = await this.reportValuesRepo.find({ where: { reportId: id }, order: { createdAt: 'ASC' } });
+
+    return Promise.all(
+      values.map(async (v) => {
+        const previous = await this.findPreviousValue(v, booking.customerId, report.generatedAt, id);
+        return {
+          ...v,
+          previousValue: previous ? Number(previous.value) : undefined,
+          previousUnit: previous?.unit,
+          previousRecordedAt: previous?.createdAt,
+        };
+      }),
+    );
   }
 }

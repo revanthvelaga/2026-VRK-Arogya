@@ -22,6 +22,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Complete Blood Count (CBC)',
       code: 'CBC',
+      category: 'Blood Health',
       sampleType: 'Blood',
       description: 'Measures red cells, white cells, hemoglobin and platelets to screen for anemia, infection and other blood disorders.',
       preparationInstructions: 'No fasting required. Inform the technician of any current medications.',
@@ -38,6 +39,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Thyroid Stimulating Hormone (TSH)',
       code: 'TSH',
+      category: 'Thyroid',
       sampleType: 'Blood',
       description: 'Screens thyroid gland function — checks for hypothyroidism or hyperthyroidism.',
       preparationInstructions: 'No fasting required. Best taken in the morning; avoid biotin supplements for 48 hours before the test.',
@@ -54,6 +56,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Liver Function Test (LFT)',
       code: 'LFT',
+      category: 'Liver Health',
       sampleType: 'Blood',
       description: 'A panel checking liver enzymes and proteins (ALT, AST, bilirubin, albumin) for liver damage or disease.',
       preparationInstructions: '8-10 hours fasting recommended. Avoid alcohol for 24 hours before the test.',
@@ -70,6 +73,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Kidney Function Test (KFT)',
       code: 'KFT',
+      category: 'Kidney Health',
       sampleType: 'Blood',
       description: 'A panel checking creatinine, urea and electrolytes to assess how well the kidneys are filtering waste.',
       preparationInstructions: '6-8 hours fasting recommended. Stay hydrated before the test.',
@@ -86,6 +90,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Fasting Blood Sugar (FBS)',
       code: 'FBS',
+      category: 'Diabetes',
       sampleType: 'Blood',
       description: 'Measures blood glucose after fasting — the standard first check for diabetes.',
       preparationInstructions: '8-10 hours fasting required — water is fine, no food or sugary drinks.',
@@ -102,6 +107,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Lipid Profile',
       code: 'LIPID',
+      category: 'Heart Health',
       sampleType: 'Blood',
       description: 'Measures total cholesterol, HDL, LDL and triglycerides to assess heart disease risk.',
       preparationInstructions: '9-12 hours fasting required. Avoid fatty food and alcohol the night before.',
@@ -118,6 +124,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Vitamin D (25-OH)',
       code: 'VITD',
+      category: 'Nutrition',
       sampleType: 'Blood',
       description: 'Measures Vitamin D levels to check for deficiency, common in low sun-exposure lifestyles.',
       preparationInstructions: 'No fasting required.',
@@ -134,6 +141,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Vitamin B12',
       code: 'VITB12',
+      category: 'Nutrition',
       sampleType: 'Blood',
       description: 'Measures Vitamin B12 levels — important for nerve function and red blood cell formation.',
       preparationInstructions: 'No fasting required.',
@@ -150,6 +158,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'COVID-19 RT-PCR',
       code: 'COVID_RTPCR',
+      category: 'Infection Screening',
       sampleType: 'Nasopharyngeal Swab',
       description: 'Detects active SARS-CoV-2 infection via a nasal/throat swab.',
       preparationInstructions: 'Avoid eating, drinking or smoking 30 minutes before the swab.',
@@ -163,6 +172,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Hemoglobin A1C',
       code: 'HBA1C',
+      category: 'Diabetes',
       sampleType: 'Blood',
       description: 'Shows average blood sugar over the past 2-3 months — used to diagnose and monitor diabetes.',
       preparationInstructions: 'No fasting required.',
@@ -180,6 +190,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Thyroid Profile (Women)',
       code: 'THYROID_PROFILE_F',
+      category: 'Thyroid',
       sampleType: 'Blood',
       description: 'A fuller thyroid panel (TSH, T3, T4) — thyroid disorders are notably more common in women.',
       preparationInstructions: 'No fasting required. Best taken in the morning.',
@@ -196,6 +207,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Pap Smear Test',
       code: 'PAP_SMEAR',
+      category: "Women's Health",
       sampleType: 'Cervical Swab',
       description: 'Screens for abnormal cervical cells — early detection of cervical cancer.',
       preparationInstructions: 'Avoid scheduling during your period. No intercourse, douching or vaginal medication for 48 hours before.',
@@ -210,6 +222,7 @@ export async function seedDatabase(dataSource: DataSource) {
     {
       name: 'Bone Density Test (DEXA)',
       code: 'DEXA',
+      category: 'Bone Health',
       sampleType: 'Non-invasive',
       description: 'Measures bone mineral density to screen for osteoporosis — recommended for seniors.',
       preparationInstructions: 'Avoid calcium supplements for 24 hours before the scan. Wear clothing without metal fasteners.',

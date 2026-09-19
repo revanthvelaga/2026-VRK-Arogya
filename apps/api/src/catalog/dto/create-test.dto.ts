@@ -24,6 +24,10 @@ export class CreateTestDto {
 
   @IsOptional()
   @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @IsOptional()

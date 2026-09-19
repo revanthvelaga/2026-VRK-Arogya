@@ -26,6 +26,12 @@ export class Test {
   @Column({ name: 'sample_type', length: 50, nullable: true })
   sampleType?: string;
 
+  // Groups related tests for display — "Heart Health", "Thyroid", etc.
+  // Report values inherit this from their Test so out-of-range results
+  // can be tagged the same way without duplicating it per value.
+  @Column({ length: 50, nullable: true })
+  category?: string;
+
   // What the test checks for — shown on the catalog/test detail page.
   @Column({ type: 'text', nullable: true })
   description?: string;
