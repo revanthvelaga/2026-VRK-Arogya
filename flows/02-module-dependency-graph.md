@@ -16,9 +16,9 @@ graph TD
     Catalog[CatalogModule]
     Centers[CentersModule]
     Bookings[BookingsModule]
+    PartnerLabs[PartnerLabsModule]
+    Samples[SamplesModule]
 
-    Samples[["SamplesModule<br/>(planned)"]]
-    PartnerLabs[["PartnerLabsModule<br/>(planned)"]]
     Notifications[["NotificationsModule<br/>(planned)"]]
     Reports[["ReportsModule<br/>(planned)"]]
 
@@ -29,22 +29,21 @@ graph TD
     App --> Catalog
     App --> Centers
     App --> Bookings
-    App -.-> Samples
+    App --> PartnerLabs
+    App --> Samples
 
     Auth --> Users
     Bookings --> Catalog
     Bookings --> Centers
-    Bookings -.-> Samples
+    Samples --> Bookings
+    Samples --> PartnerLabs
 
-    Samples -.-> Bookings
-    Samples -.-> PartnerLabs
-    PartnerLabs -.-> Catalog
     Reports -.-> Bookings
     Notifications -.-> Bookings
     Notifications -.-> Samples
 
     classDef planned stroke-dasharray: 5 5;
-    class Samples,PartnerLabs,Notifications,Reports planned;
+    class Notifications,Reports planned;
 ```
 
 ## Why this matters
@@ -55,9 +54,19 @@ graph TD
   never talks to their database tables directly. It calls
   `TestsService`, `PackagesService`, `CentersService`, and
   `PickupPointsService` (each module's exported providers) to validate
-  IDs and fetch current prices. This is the pattern every future
-  cross-module dependency should follow: import the module, use its
+  IDs and fetch current prices. This is the pattern every cross-module
+  dependency in this codebase follows: import the module, use its
   exported service, don't reach into its entities/repositories directly.
+- **`SamplesModule` imports `BookingsModule`** (reuses
+  `BookingsService.findOne()`/`findOneForUser()` rather than
+  re-implementing "does this booking exist, does this user own it") **and
+  `PartnerLabsModule`** (reuses `PartnerLabsService.findOne()` when
+  routing a sample, and to compute the SLA target).
+- **`Test.partnerLab` and `Sample.routedToPartnerLab` are `@ManyToOne`
+  relations to `PartnerLab`, not module imports** — `CatalogModule`
+  itself never imports `PartnerLabsModule`. TypeORM resolves the entity
+  reference through `autoLoadEntities: true` in `app.module.ts`, no
+  service dependency needed for that.
 - Every module except `AppModule` itself also does
   `TypeOrmModule.forFeature([...])` internally to register its own
   entities' repositories — that's omitted from this diagram to keep it

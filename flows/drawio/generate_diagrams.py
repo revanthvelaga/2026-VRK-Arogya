@@ -124,7 +124,9 @@ class DrawioDoc:
         return cid
 
     def render(self, width, height):
-        doc_id = str(uuid.uuid4())
+        # Deterministic, not random — so re-running the generator with no
+        # real changes doesn't produce a diff full of nothing but a new id.
+        doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"arogya-diagram:{self.name}"))
         body = "\n        ".join(self.cells)
         return f'''<mxfile host="app.diagrams.net" agent="arogya-diagram-generator" version="24.0.0">
   <diagram name="{esc(self.name)}" id="{doc_id}">
@@ -505,11 +507,82 @@ BOOKINGS_ENDPOINTS = [
          response="200 OK"),
 ]
 
+SAMPLES_ENDPOINTS = [
+    dict(method="POST", uri="/bookings/:bookingId<br/>/samples", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
+         dto="none",
+         controller="SamplesController<br/>.initialize()",
+         service="SamplesService<br/>.initializeForBooking()<br/>→ BookingsService<br/>.findOne()",
+         repo="manager.create()+save()<br/>(1 DB transaction)",
+         entity="Sample + SampleStatus-<br/>History (POJOs) → samples,<br/>sample_status_history",
+         response="201 Created<br/>or 400 (already exists)"),
+    dict(method="GET", uri="/bookings/:bookingId<br/>/samples", guard="JwtAuthGuard<br/>(owner or ADMIN/STAFF)",
+         dto="none",
+         controller="SamplesController<br/>.findForBooking()",
+         service="SamplesService<br/>.findForBooking()<br/>→ BookingsService<br/>.findOneForUser()",
+         repo="samplesRepo.find()<br/>{where: bookingId}",
+         entity="Sample (POJO)<br/>→ samples table",
+         response="200 OK<br/>Sample[]"),
+    dict(method="PATCH", uri="/samples/:id<br/>/status", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
+         dto="UpdateSampleStatusDto<br/>(status, notes?,<br/>partnerLabId?,<br/>turnaroundHoursOverride?)",
+         controller="SamplesController<br/>.updateStatus()",
+         service="SamplesService<br/>.updateStatus()<br/>→ PartnerLabsService<br/>.findOne() if routing",
+         repo="manager.save(Sample)<br/>+save(History)<br/>(1 DB transaction)",
+         entity="Sample + SampleStatus-<br/>History (POJOs) → samples,<br/>sample_status_history",
+         response="200 OK or 400<br/>(illegal transition)"),
+    dict(method="GET", uri="/samples/:id<br/>/history", guard="JwtAuthGuard<br/>(owner or ADMIN/STAFF)",
+         dto="none",
+         controller="SamplesController<br/>.history()",
+         service="SamplesService<br/>.getHistory()<br/>→ BookingsService<br/>.findOneForUser()",
+         repo="historyRepo.find()<br/>{where: sampleId}",
+         entity="SampleStatusHistory<br/>(POJO) → sample_status_<br/>history table",
+         response="200 OK<br/>SampleStatusHistory[]"),
+    dict(method="GET", uri="/partner-labs<br/>/:partnerLabId/sla", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
+         dto="none",
+         controller="SamplesController<br/>.slaSummary()",
+         service="SamplesService.getSla-<br/>SummaryForPartnerLab()<br/>→ PartnerLabsService<br/>.findOne()",
+         repo="samplesRepo.find() +<br/>historyRepo.findOne()<br/>per sample (read-only)",
+         entity="Sample + SampleStatus-<br/>History (POJOs), classified<br/>not persisted",
+         response="200 OK<br/>{summary, samples[]}"),
+]
+
+PARTNER_LABS_ENDPOINTS = [
+    dict(method="GET", uri="/partner-labs", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
+         dto="none",
+         controller="PartnerLabsController<br/>.findAll()",
+         service="PartnerLabsService<br/>.findAll()",
+         repo="partnerLabsRepo.find()",
+         entity="PartnerLab (POJO)<br/>→ partner_labs table",
+         response="200 OK<br/>PartnerLab[]"),
+    dict(method="GET", uri="/partner-labs/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN,STAFF)",
+         dto="none",
+         controller="PartnerLabsController<br/>.findOne()",
+         service="PartnerLabsService<br/>.findOne()",
+         repo="partnerLabsRepo<br/>.findOne()",
+         entity="PartnerLab (POJO)<br/>→ partner_labs table",
+         response="200 OK<br/>or 404"),
+    dict(method="POST", uri="/partner-labs", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
+         dto="CreatePartnerLabDto<br/>(name, city?,<br/>contactPhone?,<br/>defaultTurnaroundHours?)",
+         controller="PartnerLabsController<br/>.create()",
+         service="PartnerLabsService<br/>.create()",
+         repo="partnerLabsRepo<br/>.create()+save()",
+         entity="PartnerLab (POJO)<br/>→ partner_labs table",
+         response="201 Created"),
+    dict(method="PATCH", uri="/partner-labs/:id", guard="JwtAuthGuard +<br/>RolesGuard(ADMIN)",
+         dto="UpdatePartnerLabDto<br/>(all fields optional)",
+         controller="PartnerLabsController<br/>.update()",
+         service="PartnerLabsService<br/>.update()",
+         repo="partnerLabsRepo<br/>.findOne()+save()",
+         entity="PartnerLab (POJO)<br/>→ partner_labs table",
+         response="200 OK<br/>or 404"),
+]
+
 build_trace_diagram("Auth module — request trace (URI → Guard → DTO → Controller → Service → Repository/DAO → Entity/POJO → Response)", AUTH_ENDPOINTS, "01-auth-trace")
 build_trace_diagram("Catalog module — request trace", CATALOG_ENDPOINTS, "02-catalog-trace")
 build_trace_diagram("Centers module — request trace", CENTERS_ENDPOINTS, "03-centers-trace")
 build_trace_diagram("Pickup-points module — request trace", PICKUP_ENDPOINTS, "04-pickup-points-trace")
 build_trace_diagram("Bookings module — request trace", BOOKINGS_ENDPOINTS, "05-bookings-trace")
+build_trace_diagram("Samples module — request trace", SAMPLES_ENDPOINTS, "07-samples-trace")
+build_trace_diagram("Partner-labs module — request trace", PARTNER_LABS_ENDPOINTS, "08-partner-labs-trace")
 
 print("all trace diagrams written")
 

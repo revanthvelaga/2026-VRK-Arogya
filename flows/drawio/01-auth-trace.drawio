@@ -1,5 +1,5 @@
 <mxfile host="app.diagrams.net" agent="arogya-diagram-generator" version="24.0.0">
-  <diagram name="Auth module — request trace (URI → Guard → DTO → Controller → Service → Repository/DAO → Entity/POJO → Response)" id="c3b0c915-437f-477b-ba58-87d820fecda3">
+  <diagram name="Auth module — request trace (URI → Guard → DTO → Controller → Service → Repository/DAO → Entity/POJO → Response)" id="6ce22896-9a78-523c-bd8a-147c952afd30">
     <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1912" pageHeight="414" math="0" shadow="0">
       <root>
         <mxCell id="0" />

@@ -70,6 +70,10 @@ two differences that are naming/timing, not structural —
 | ![Pickup points trace](./04-pickup-points-trace.svg) | |
 | **Bookings** | [`05-bookings-trace.drawio`](./05-bookings-trace.drawio) |
 | ![Bookings trace](./05-bookings-trace.svg) | |
+| **Samples** (lifecycle + status history) | [`07-samples-trace.drawio`](./07-samples-trace.drawio) |
+| ![Samples trace](./07-samples-trace.svg) | |
+| **Partner labs** (+ SLA summary) | [`08-partner-labs-trace.drawio`](./08-partner-labs-trace.drawio) |
+| ![Partner labs trace](./08-partner-labs-trace.svg) | |
 
 **Column color key:** URI = blue · Guards = red (gray if the route is
 public) · Request DTO = yellow (gray if none) · Controller = green ·
