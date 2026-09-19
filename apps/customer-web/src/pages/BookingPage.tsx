@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CollectionMode, DiagnosticCenter, Package, PickupPoint, Test } from '../api/types';
+import type { CollectionMode, DiagnosticCenter, GeocodeResult, Package, PickupPoint, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
-import { IconPlus, IconX } from '../components/Icons';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { PickupPointPicker } from '../components/PickupPointPicker';
+import { IconAlertTriangle, IconCheckCircle, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
+import { formatSlotLabel, haversineDistanceKm, suggestedSlots } from '../lib/geo';
 
 interface NavState {
   testId?: string;
@@ -55,7 +58,11 @@ export function BookingPage() {
   const [centerId, setCenterId] = useState(navState.centerId ?? '');
   const [collectionMode, setCollectionMode] = useState<CollectionMode>('WALK_IN');
   const [pickupPointId, setPickupPointId] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [homeAddressText, setHomeAddressText] = useState('');
+  const [homeAddress, setHomeAddress] = useState<GeocodeResult | null>(null);
+  const [homeAddressPincode, setHomeAddressPincode] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledSlot, setScheduledSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,9 +71,53 @@ export function BookingPage() {
     [centerId],
   );
 
+  const selectedCenter = (centers ?? []).find((c) => c.id === centerId);
+
+  // Distance from the chosen home address to the chosen center — recomputed
+  // client-side (Haversine) whenever either changes, purely for instant
+  // feedback. The backend runs the real PostGIS check at submit time.
+  const homeAddressDistanceKm =
+    homeAddress && selectedCenter
+      ? haversineDistanceKm(
+          homeAddress.lat,
+          homeAddress.lng,
+          selectedCenter.location.coordinates[1],
+          selectedCenter.location.coordinates[0],
+        )
+      : null;
+  const homeAddressWithinRadius =
+    homeAddressDistanceKm != null && selectedCenter
+      ? homeAddressDistanceKm <= Number(selectedCenter.serviceRadiusKm)
+      : false;
+
+  const locationReady =
+    collectionMode === 'WALK_IN' ||
+    (collectionMode === 'PICKUP_POINT' && !!pickupPointId) ||
+    (collectionMode === 'HOME_VISIT' && homeAddressWithinRadius && !!homeAddressPincode.trim());
+
   useEffect(() => {
     if (collectionMode !== 'PICKUP_POINT') setPickupPointId('');
+    if (collectionMode !== 'HOME_VISIT') {
+      setHomeAddressText('');
+      setHomeAddress(null);
+      setHomeAddressPincode('');
+    }
   }, [collectionMode]);
+
+  // Center changed after an address was already picked — re-validate
+  // against the new center rather than silently keeping a stale result.
+  useEffect(() => {
+    setHomeAddress(null);
+    setHomeAddressText('');
+    setHomeAddressPincode('');
+  }, [centerId]);
+
+  useEffect(() => {
+    if (!locationReady) {
+      setScheduledDate('');
+      setScheduledSlot(null);
+    }
+  }, [locationReady]);
 
   useEffect(() => {
     if (!centerId && centers && centers.length > 0) {
@@ -74,6 +125,15 @@ export function BookingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centers]);
+
+  const handleAddressSelect = (result: GeocodeResult) => {
+    setHomeAddress(result);
+    setHomeAddressText(result.displayName);
+    setHomeAddressPincode(result.pincode ?? '');
+  };
+
+  const slots = scheduledDate ? suggestedSlots(scheduledDate) : [];
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const items: SelectableItem[] = useMemo(() => {
     const t = (tests ?? []).map((x) => ({
@@ -168,17 +228,29 @@ export function BookingPage() {
       setError('Choose a pickup point.');
       return;
     }
-    if (!scheduledAt) {
-      setError('Choose a date and time.');
+    if (collectionMode === 'HOME_VISIT' && !homeAddressWithinRadius) {
+      setError('Choose a home address within the service radius, or switch to a pickup point.');
       return;
     }
-    const iso = new Date(scheduledAt).toISOString();
+    if (collectionMode === 'HOME_VISIT' && !homeAddressPincode.trim()) {
+      setError('Enter a pincode for the collection address.');
+      return;
+    }
+    if (!scheduledDate || !scheduledSlot) {
+      setError('Choose a date and a time slot.');
+      return;
+    }
+    const iso = new Date(`${scheduledDate}T${scheduledSlot}:00`).toISOString();
     setSubmitting(true);
     try {
       const booking = await api.post<{ id: string }>('/bookings', {
         centerId,
         collectionMode,
         pickupPointId: collectionMode === 'PICKUP_POINT' ? pickupPointId : undefined,
+        homeAddressLine: collectionMode === 'HOME_VISIT' ? homeAddress?.displayName : undefined,
+        homeAddressPincode: collectionMode === 'HOME_VISIT' ? homeAddressPincode.trim() : undefined,
+        homeLatitude: collectionMode === 'HOME_VISIT' ? homeAddress?.lat : undefined,
+        homeLongitude: collectionMode === 'HOME_VISIT' ? homeAddress?.lng : undefined,
         scheduledAt: iso,
         items: selected.map((i) => (i.kind === 'test' ? { testId: i.id } : { packageId: i.id })),
       });
@@ -190,8 +262,6 @@ export function BookingPage() {
       setSubmitting(false);
     }
   };
-
-  const minDateTime = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16);
 
   return (
     <>
@@ -306,30 +376,135 @@ export function BookingPage() {
               {collectionMode === 'PICKUP_POINT' && (
                 <div className="field" style={{ marginTop: 4 }}>
                   <label>Pickup point</label>
-                  <select value={pickupPointId} onChange={(e) => setPickupPointId(e.target.value)} required>
-                    <option value="">Select a pickup point…</option>
-                    {(pickupPoints ?? []).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                        {p.villageName ? ` — ${p.villageName}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <PickupPointPicker
+                    points={pickupPoints ?? []}
+                    selectedId={pickupPointId}
+                    onSelect={setPickupPointId}
+                  />
                   {(pickupPoints ?? []).length === 0 && (
                     <span className="field-hint">No pickup points registered for this center yet.</span>
                   )}
                 </div>
               )}
 
+              {collectionMode === 'HOME_VISIT' && (
+                <div className="field" style={{ marginTop: 4 }}>
+                  <label>Collection address</label>
+                  <AddressAutocomplete
+                    value={homeAddressText}
+                    onChange={setHomeAddressText}
+                    onSelect={handleAddressSelect}
+                    placeholder="Start typing your address — house no., street, area…"
+                  />
+
+                  {homeAddress && homeAddressDistanceKm != null && selectedCenter && (
+                    <>
+                      {homeAddressWithinRadius ? (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 12.5,
+                            color: 'var(--green)',
+                          }}
+                        >
+                          <IconCheckCircle size={14} />
+                          {homeAddressDistanceKm.toFixed(1)}km from {selectedCenter.name} — within its{' '}
+                          {Number(selectedCenter.serviceRadiusKm)}km home-collection radius
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            background: 'var(--red-soft)',
+                            fontSize: 12.5,
+                            color: 'var(--red)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                            <IconAlertTriangle size={14} />
+                            Out of radius
+                          </div>
+                          <p style={{ margin: '4px 0 8px' }}>
+                            This address is {homeAddressDistanceKm.toFixed(1)}km from {selectedCenter.name},
+                            outside its {Number(selectedCenter.serviceRadiusKm)}km home-collection radius.
+                          </p>
+                          <button
+                            type="button"
+                            className="btn btn-small"
+                            onClick={() => setCollectionMode('PICKUP_POINT')}
+                          >
+                            Choose a pickup point instead
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {homeAddress && (
+                    <div className="field" style={{ marginTop: 10, marginBottom: 0 }}>
+                      <label>Pincode</label>
+                      <input
+                        value={homeAddressPincode}
+                        onChange={(e) => setHomeAddressPincode(e.target.value)}
+                        placeholder="6-digit pincode"
+                        maxLength={6}
+                        required
+                      />
+                      {!homeAddress.pincode && (
+                        <span className="field-hint">Couldn't detect a pincode for this address — enter it manually.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
                 <label>Date &amp; time</label>
-                <input
-                  type="datetime-local"
-                  value={scheduledAt}
-                  min={minDateTime}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  required
-                />
+                {!locationReady ? (
+                  <p className="field-hint" style={{ margin: 0 }}>
+                    {collectionMode === 'PICKUP_POINT'
+                      ? 'Select a pickup point above to see available slots.'
+                      : collectionMode === 'HOME_VISIT'
+                        ? 'Select an address within the service radius above to see available slots.'
+                        : 'Select a date to see available slots.'}
+                  </p>
+                ) : (
+                  <>
+                    <input
+                      type="date"
+                      value={scheduledDate}
+                      min={todayStr}
+                      onChange={(e) => {
+                        setScheduledDate(e.target.value);
+                        setScheduledSlot(null);
+                      }}
+                      required
+                    />
+                    {scheduledDate && (
+                      <div className="chip-row" style={{ marginTop: 10 }}>
+                        {slots.length === 0 ? (
+                          <span className="field-hint">No slots left for this date — try another day.</span>
+                        ) : (
+                          slots.map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              className={`filter-chip${scheduledSlot === s ? ' active' : ' outline'}`}
+                              onClick={() => setScheduledSlot(s)}
+                            >
+                              {formatSlotLabel(s)}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -380,7 +555,7 @@ export function BookingPage() {
             <button
               className="btn btn-primary"
               type="submit"
-              disabled={submitting || selected.length === 0}
+              disabled={submitting || selected.length === 0 || !locationReady || !scheduledDate || !scheduledSlot}
               style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
             >
               {submitting ? 'Booking…' : 'Confirm booking'}

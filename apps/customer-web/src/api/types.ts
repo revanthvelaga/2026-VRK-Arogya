@@ -66,6 +66,9 @@ export interface Booking {
   centerId: string;
   pickupPointId?: string;
   collectionMode: CollectionMode;
+  homeAddressLine?: string;
+  homeAddressPincode?: string;
+  homeLocation?: GeoPoint;
   scheduledAt: string;
   status: BookingStatus;
   totalAmount: string | number;
@@ -134,6 +137,13 @@ export interface Package {
 export interface GeoPoint {
   type: 'Point';
   coordinates: [number, number]; // [longitude, latitude]
+}
+
+export interface GeocodeResult {
+  displayName: string;
+  lat: number;
+  lng: number;
+  pincode?: string;
 }
 
 export interface DiagnosticCenter {
