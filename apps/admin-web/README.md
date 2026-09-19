@@ -3,7 +3,16 @@
 A React + TypeScript + Vite console for `ADMIN`/`STAFF` accounts — bookings,
 sample tracking, the catalog, centers/pickup points, and partner labs. No
 UI kit or CSS framework: a small hand-rolled design system (tokens in
-`src/index.css`) shared visually with the [build tracker](../../README.md).
+`src/index.css`).
+
+**Design direction:** a clean, light, trustworthy "premium healthcare"
+look — closer to Tata 1mg/Practo than a dark fintech app. Soft off-white
+background, white cards with a subtle shadow (not glass/blur), a
+teal→blue gradient used sparingly (primary buttons, stat numbers, the
+wordmark) rather than everywhere, `Sora` for headings and big numbers,
+`Plus Jakarta Sans` for body text, `JetBrains Mono` for ids/codes/data.
+Status badges are a soft-tinted pill with a colored dot, not a loud
+solid fill — meant to read as calm and clinical, not flashy.
 
 ## Running it
 
