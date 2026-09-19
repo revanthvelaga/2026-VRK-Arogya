@@ -42,7 +42,9 @@ function TestCard({ test, index }: { test: Test; index: number }) {
         <IconFlask size={30} />
       </div>
       <div className="rich-card-body">
-        <h3>{test.name}</h3>
+        <Link to={`/catalog/tests/${test.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+          <h3>{test.name}</h3>
+        </Link>
         <div className="rich-card-meta">
           {test.sampleType && <span>{test.sampleType}</span>}
           {test.sampleType && <span className="dot" />}
@@ -137,7 +139,9 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
         <IconBox size={30} />
       </div>
       <div className="rich-card-body">
-        <h3>{pkg.name}</h3>
+        <Link to={`/catalog/packages/${pkg.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+          <h3>{pkg.name}</h3>
+        </Link>
         <div className="rich-card-meta">
           <span>Contains {testCount} test{testCount === 1 ? '' : 's'}</span>
           {maxTurnaround != null && (

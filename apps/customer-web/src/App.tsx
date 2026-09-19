@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { CatalogPage } from './pages/CatalogPage';
+import { PackageDetailPage, TestDetailPage } from './pages/CatalogDetailPage';
 import { CentersPage } from './pages/CentersPage';
 import { BookingPage } from './pages/BookingPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
@@ -24,6 +25,8 @@ export function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/catalog/tests/:id" element={<TestDetailPage />} />
+              <Route path="/catalog/packages/:id" element={<PackageDetailPage />} />
               <Route path="/centers" element={<CentersPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="/book" element={<BookingPage />} />
