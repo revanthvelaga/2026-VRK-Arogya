@@ -94,7 +94,11 @@ export function CatalogScreen({ navigation, route }: Props) {
                 </View>
                 <View style={styles.rowRight}>
                   <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
-                  <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('Booking', { testId: item.id })}>
+                  <TouchableOpacity
+                    testID={`catalog-book-test-${item.id}`}
+                    style={styles.bookBtn}
+                    onPress={() => navigation.navigate('Booking', { testId: item.id })}
+                  >
                     <Text style={styles.bookBtnText}>Book</Text>
                   </TouchableOpacity>
                 </View>
@@ -123,7 +127,11 @@ export function CatalogScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.rowRight}>
                 <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
-                <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('Booking', { packageId: item.id })}>
+                <TouchableOpacity
+                  testID={`catalog-book-package-${item.id}`}
+                  style={styles.bookBtn}
+                  onPress={() => navigation.navigate('Booking', { packageId: item.id })}
+                >
                   <Text style={styles.bookBtnText}>Book</Text>
                 </TouchableOpacity>
               </View>

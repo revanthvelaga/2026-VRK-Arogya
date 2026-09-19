@@ -86,8 +86,20 @@ content while logged out, with buttons straight to Login/Register.
 - **No package detail view.** Matches `customer-web`'s same gap — a
   package card shows price/test-count/turnaround, not the full list of
   included tests.
-- **Not tested on a physical device or simulator in this environment**
-  (no emulator/device available here) — verified instead via a clean
-  `tsc --noEmit` and a successful Metro bundle export
-  (`npx expo export --platform android`, 888 modules, no errors). Run it
-  through Expo Go or a simulator before treating it as field-ready.
+- **Not run on a real device or simulator/emulator** — this environment
+  has neither (no `/dev/kvm` for a hardware-accelerated Android emulator,
+  no macOS for an iOS simulator). It was instead verified with a clean
+  `tsc --noEmit`, a successful Metro bundle export
+  (`npx expo export --platform android`, 888 modules, no errors), and —
+  the closest thing to an interactive check available here — driving the
+  real app through Expo's web target (`npm run web`, `react-native-web`)
+  in a headless browser against the live API: registered a real account,
+  browsed live catalog/center data, and confirmed the booking screen
+  correctly preselects a tapped item, computes the running total, and
+  lets you pick a center and collection mode. One real gap this surfaced:
+  `@react-native-community/datetimepicker` has no web implementation, so
+  the date/time step (and therefore full booking submission) couldn't be
+  exercised this way — that's a web-preview-only limitation of that
+  library, not evidence of a native bug, but it does mean the booking
+  flow's last step is still unverified end-to-end. Run it through Expo Go
+  or a simulator before treating it as field-ready.

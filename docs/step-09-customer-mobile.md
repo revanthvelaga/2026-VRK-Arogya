@@ -96,13 +96,20 @@ cp .env.example .env
 npm start            # scan the QR with Expo Go, or press a/i for a simulator
 ```
 
-No physical device or simulator was available to run this app end-to-end
-in the environment it was built in — it was instead verified with a
-clean `tsc --noEmit` and a successful Metro bundle export
-(`npx expo export --platform android`, 888 modules, no errors), which
-catches type errors and unresolvable imports/native-module linking but
-not runtime/rendering issues. Run it through Expo Go or a simulator
-before treating it as field-ready.
+No physical device or simulator/emulator was available in the
+environment this was built in (no `/dev/kvm`, no macOS). It was verified
+three ways instead: a clean `tsc --noEmit`; a successful Metro bundle
+export (`npx expo export --platform android`, 888 modules, no errors);
+and, closest to an actual interactive run, driving the real app through
+Expo's web target (`react-native-web`) in a headless browser against the
+live API — registered a real account, browsed real catalog/center data,
+and confirmed the booking screen correctly preselects a tapped item,
+runs a live total, and lets you pick a center and collection mode. The
+one thing that couldn't be exercised this way is the date/time step:
+`@react-native-community/datetimepicker` has no web implementation, so
+full booking submission is still unverified end-to-end — that's a gap in
+this verification, not a known bug, but it means a real Expo Go/simulator
+run is still needed before treating this as field-ready.
 
 ## What's next
 
