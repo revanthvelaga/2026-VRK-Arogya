@@ -4,6 +4,9 @@ import { api } from '../api/client';
 import type { DiagnosticCenter, PickupPoint, PickupPointSchedule } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { Modal } from '../components/Modal';
+import { LoadingLine } from '../components/Spinner';
+import { EmptyState } from '../components/EmptyState';
+import { IconMapPin, IconPlus } from '../components/Icons';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -277,7 +280,8 @@ function ScheduleList({ pickupPointId }: { pickupPointId: string }) {
           <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         </div>
         <button className="btn btn-small" type="submit">
-          + Add
+          <IconPlus size={13} />
+          Add
         </button>
       </form>
     </div>
@@ -314,13 +318,14 @@ function PickupPointsPanel({ centerId }: { centerId: string }) {
             setModalOpen(true);
           }}
         >
-          + Add
+          <IconPlus size={13} />
+          Add
         </button>
       </div>
       {error && <div className="error-banner">{error}</div>}
-      {loading && <p className="page-sub">Loading…</p>}
+      {loading && <LoadingLine label="Loading…" />}
       {!loading && (points ?? []).length === 0 && (
-        <p className="page-sub">No pickup points for this center yet.</p>
+        <EmptyState icon={<IconMapPin size={18} />} title="No pickup points for this center yet" />
       )}
       {(points ?? []).map((p) => (
         <div key={p.id} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
@@ -401,13 +406,14 @@ export function CentersPage() {
             setModalOpen(true);
           }}
         >
-          + Add center
+          <IconPlus size={14} />
+          Add center
         </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <p className="page-sub">Loading centers…</p>
+        <LoadingLine label="Loading centers…" />
       ) : (
         <div className="table-wrap">
           <table>
@@ -449,8 +455,12 @@ export function CentersPage() {
               ))}
               {(centers ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={4} className="empty-state">
-                    No centers yet — add the first one.
+                  <td colSpan={4}>
+                    <EmptyState
+                      icon={<IconMapPin size={20} />}
+                      title="No centers yet"
+                      subtitle="Add a diagnostic center to start covering an area."
+                    />
                   </td>
                 </tr>
               )}

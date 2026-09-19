@@ -4,6 +4,9 @@ import { api } from '../api/client';
 import type { DiagnosticCenter, PartnerLab, Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { Modal } from '../components/Modal';
+import { LoadingLine } from '../components/Spinner';
+import { EmptyState } from '../components/EmptyState';
+import { IconBox, IconPlus } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 
 function TestFormModal({
@@ -300,12 +303,13 @@ function TestsPanel({ centers, partnerLabs }: { centers: DiagnosticCenter[]; par
             setModalOpen(true);
           }}
         >
-          + Add test
+          <IconPlus size={14} />
+          Add test
         </button>
       </div>
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <p className="page-sub">Loading tests…</p>
+        <LoadingLine label="Loading tests…" />
       ) : (
         <div className="table-wrap">
           <table>
@@ -352,8 +356,12 @@ function TestsPanel({ centers, partnerLabs }: { centers: DiagnosticCenter[]; par
               ))}
               {(tests ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-state">
-                    No tests yet — add the first one.
+                  <td colSpan={6}>
+                    <EmptyState
+                      icon={<IconBox size={20} />}
+                      title="No tests yet"
+                      subtitle="Add the first one to start building the catalog."
+                    />
                   </td>
                 </tr>
               )}
@@ -401,12 +409,13 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
             setModalOpen(true);
           }}
         >
-          + Add package
+          <IconPlus size={14} />
+          Add package
         </button>
       </div>
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <p className="page-sub">Loading packages…</p>
+        <LoadingLine label="Loading packages…" />
       ) : (
         <div className="table-wrap">
           <table>
@@ -449,8 +458,12 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
               ))}
               {(packages ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={4} className="empty-state">
-                    No packages yet — add the first one.
+                  <td colSpan={4}>
+                    <EmptyState
+                      icon={<IconBox size={20} />}
+                      title="No packages yet"
+                      subtitle="Bundle a few tests together at a combined price."
+                    />
                   </td>
                 </tr>
               )}

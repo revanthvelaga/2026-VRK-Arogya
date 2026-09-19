@@ -4,6 +4,9 @@ import { api } from '../api/client';
 import type { Booking, BookingStatus } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
+import { LoadingLine } from '../components/Spinner';
+import { EmptyState } from '../components/EmptyState';
+import { IconInbox } from '../components/Icons';
 import { bookingStatusVariant, formatCurrency, formatDateTime, statusLabel } from '../lib/format';
 
 const STATUS_FILTERS: Array<BookingStatus | 'ALL'> = [
@@ -53,7 +56,7 @@ export function BookingsPage() {
 
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <p className="page-sub">Loading bookings…</p>
+        <LoadingLine label="Loading bookings…" />
       ) : (
         <div className="table-wrap">
           <table>
@@ -86,8 +89,8 @@ export function BookingsPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-state">
-                    No bookings match this filter.
+                  <td colSpan={6}>
+                    <EmptyState icon={<IconInbox size={20} />} title="No bookings match this filter" />
                   </td>
                 </tr>
               )}

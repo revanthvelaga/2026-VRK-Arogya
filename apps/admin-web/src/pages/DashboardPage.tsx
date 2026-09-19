@@ -3,6 +3,9 @@ import { api } from '../api/client';
 import type { Booking, DiagnosticCenter, PartnerLab, Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
+import { LoadingLine } from '../components/Spinner';
+import { EmptyState } from '../components/EmptyState';
+import { IconBox, IconCalendar, IconClock, IconFlask, IconMapPin, IconCheckCircle, IconInbox } from '../components/Icons';
 import { bookingStatusVariant, formatCurrency, formatDateTime, statusLabel } from '../lib/format';
 
 interface Overview {
@@ -25,7 +28,7 @@ export function DashboardPage() {
     return { bookings, centers, tests, packages, partnerLabs };
   }, []);
 
-  if (loading) return <p className="page-sub">Loading overview…</p>;
+  if (loading) return <LoadingLine label="Loading overview…" />;
   if (error) return <div className="error-banner">{error}</div>;
   if (!data) return null;
 
@@ -46,26 +49,44 @@ export function DashboardPage() {
 
       <div className="stat-row">
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconCalendar size={16} />
+          </div>
           <div className="n">{data.bookings.length}</div>
           <div className="l">Bookings</div>
         </div>
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconClock size={16} />
+          </div>
           <div className="n">{pending}</div>
           <div className="l">Pending</div>
         </div>
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconCheckCircle size={16} />
+          </div>
           <div className="n">{confirmed}</div>
           <div className="l">Confirmed</div>
         </div>
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconMapPin size={16} />
+          </div>
           <div className="n">{data.centers.length}</div>
           <div className="l">Centers</div>
         </div>
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconBox size={16} />
+          </div>
           <div className="n">{data.tests.length + data.packages.length}</div>
           <div className="l">Catalog items</div>
         </div>
         <div className="stat-tile">
+          <div className="stat-icon">
+            <IconFlask size={16} />
+          </div>
           <div className="n">{data.partnerLabs.length}</div>
           <div className="l">Partner labs</div>
         </div>
@@ -101,8 +122,8 @@ export function DashboardPage() {
             ))}
             {recent.length === 0 && (
               <tr>
-                <td colSpan={5} className="empty-state">
-                  No bookings yet.
+                <td colSpan={5}>
+                  <EmptyState icon={<IconInbox size={20} />} title="No bookings yet" />
                 </td>
               </tr>
             )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { IconPlus } from '../components/Icons';
 
 interface LocationState {
   from?: { pathname: string };
@@ -42,6 +43,9 @@ export function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
+        <div className="brand-mark" style={{ marginBottom: 18 }}>
+          <IconPlus size={18} />
+        </div>
         <div className="login-eyebrow">Arogya · Staff Access</div>
         <h1>Admin Console</h1>
         <p>

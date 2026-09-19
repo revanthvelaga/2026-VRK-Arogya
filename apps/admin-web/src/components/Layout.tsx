@@ -1,12 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { IconBox, IconCalendar, IconDashboard, IconFlask, IconLogout, IconMapPin, IconPlus } from './Icons';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/bookings', label: 'Bookings' },
-  { to: '/catalog', label: 'Catalog' },
-  { to: '/centers', label: 'Centers' },
-  { to: '/partner-labs', label: 'Partner Labs' },
+  { to: '/', label: 'Dashboard', end: true, icon: IconDashboard },
+  { to: '/bookings', label: 'Bookings', icon: IconCalendar },
+  { to: '/catalog', label: 'Catalog', icon: IconBox },
+  { to: '/centers', label: 'Centers', icon: IconMapPin },
+  { to: '/partner-labs', label: 'Partner Labs', icon: IconFlask },
 ];
 
 export function Layout() {
@@ -16,8 +17,13 @@ export function Layout() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          Arogya
-          <span>Admin Console</span>
+          <div className="brand-mark">
+            <IconPlus size={17} />
+          </div>
+          <div className="sidebar-brand-text">
+            Arogya
+            <span>Admin Console</span>
+          </div>
         </div>
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -26,6 +32,7 @@ export function Layout() {
             end={item.end}
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
           >
+            <item.icon size={17} />
             {item.label}
           </NavLink>
         ))}
@@ -35,6 +42,7 @@ export function Layout() {
             {user?.role}
           </div>
           <button className="btn btn-small" style={{ width: '100%' }} onClick={logout}>
+            <IconLogout size={14} />
             Log out
           </button>
         </div>

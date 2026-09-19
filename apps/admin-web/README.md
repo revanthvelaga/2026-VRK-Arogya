@@ -14,6 +14,14 @@ wordmark) rather than everywhere, `Sora` for headings and big numbers,
 Status badges are a soft-tinted pill with a colored dot, not a loud
 solid fill — meant to read as calm and clinical, not flashy.
 
+A small hand-drawn icon set (`src/components/Icons.tsx`, one factory
+function producing consistent 1.8px-stroke line icons — no icon package
+dependency) runs through the sidebar nav, stat tiles, buttons, and empty
+states. The one deliberate "hero" piece is `SampleProgress.tsx` — a
+courier-tracking-style stepper (Booked → Collected → In transit → At
+center → In-house/Partner lab → Result ready → Delivered) shown on every
+sample in a booking, in the same spirit as an order-tracking screen.
+
 ## Running it
 
 1. Have the API running first (see [`../api/README`](../api) /

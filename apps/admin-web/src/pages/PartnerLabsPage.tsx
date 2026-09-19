@@ -5,6 +5,9 @@ import type { PartnerLab, SlaSummary } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
+import { LoadingLine } from '../components/Spinner';
+import { EmptyState } from '../components/EmptyState';
+import { IconFlask, IconPlus } from '../components/Icons';
 import { formatDateTime, slaStatusVariant } from '../lib/format';
 
 function PartnerLabFormModal({
@@ -96,7 +99,7 @@ function SlaPanel({ labId }: { labId: string }) {
     [labId],
   );
 
-  if (loading) return <p className="page-sub">Loading SLA data…</p>;
+  if (loading) return <LoadingLine label="Loading SLA data…" />;
   if (error) return <div className="error-banner">{error}</div>;
   if (!data) return null;
 
@@ -190,13 +193,14 @@ export function PartnerLabsPage() {
             setModalOpen(true);
           }}
         >
-          + Add partner lab
+          <IconPlus size={14} />
+          Add partner lab
         </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <p className="page-sub">Loading partner labs…</p>
+        <LoadingLine label="Loading partner labs…" />
       ) : (
         <div className="table-wrap">
           <table>
@@ -237,8 +241,12 @@ export function PartnerLabsPage() {
               ))}
               {(labs ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="empty-state">
-                    No partner labs yet — add the first one.
+                  <td colSpan={5}>
+                    <EmptyState
+                      icon={<IconFlask size={20} />}
+                      title="No partner labs yet"
+                      subtitle="Add one to start routing out-of-scope tests."
+                    />
                   </td>
                 </tr>
               )}

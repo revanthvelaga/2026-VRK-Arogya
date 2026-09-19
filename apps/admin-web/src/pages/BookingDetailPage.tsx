@@ -14,6 +14,9 @@ import type {
 import { SAMPLE_TRANSITIONS } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
+import { SampleProgress } from '../components/SampleProgress';
+import { LoadingLine } from '../components/Spinner';
+import { IconArrowLeft, IconClock, IconFlask, IconPlus } from '../components/Icons';
 import {
   bookingStatusVariant,
   formatCurrency,
@@ -113,7 +116,17 @@ function SampleRow({
             </div>
           )}
           {sample.expectedResultAt && (
-            <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 12.5,
+                color: 'var(--ink-soft)',
+                marginTop: 5,
+              }}
+            >
+              <IconClock size={13} />
               SLA target: {formatDateTime(sample.expectedResultAt)}
             </div>
           )}
@@ -123,9 +136,13 @@ function SampleRow({
         </button>
       </div>
 
+      <div style={{ marginTop: 18 }}>
+        <SampleProgress sample={sample} />
+      </div>
+
       {historyOpen && (
         <div style={{ marginTop: 10, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-          {historyLoading && <p className="page-sub">Loading history…</p>}
+          {historyLoading && <LoadingLine label="Loading history…" />}
           {!historyLoading && history && history.length > 0 && (
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, lineHeight: 1.9 }}>
               {history.map((h) => (
@@ -261,14 +278,15 @@ export function BookingDetailPage() {
     }
   };
 
-  if (bookingApi.loading) return <p className="page-sub">Loading booking…</p>;
+  if (bookingApi.loading) return <LoadingLine label="Loading booking…" />;
   if (bookingApi.error) return <div className="error-banner">{bookingApi.error}</div>;
   if (!booking) return null;
 
   return (
     <>
       <Link to="/bookings" className="back-link">
-        ← Back to bookings
+        <IconArrowLeft size={14} />
+        Back to bookings
       </Link>
       <div className="page-header">
         <div>
@@ -324,13 +342,19 @@ export function BookingDetailPage() {
       </div>
 
       <div className="section-title">Samples</div>
-      {samplesApi.loading && <p className="page-sub">Loading samples…</p>}
+      {samplesApi.loading && <LoadingLine label="Loading samples…" />}
       {!samplesApi.loading && samples.length === 0 && (
         <div className="card">
-          <p className="page-sub" style={{ marginBottom: 12 }}>
-            No samples tracked yet for this booking.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div className="stat-icon" style={{ margin: 0 }}>
+              <IconFlask size={16} />
+            </div>
+            <p className="page-sub" style={{ margin: 0 }}>
+              No samples tracked yet for this booking.
+            </p>
+          </div>
           <button className="btn btn-primary btn-small" onClick={initializeSamples} disabled={initializing}>
+            <IconPlus size={14} />
             {initializing ? 'Initializing…' : 'Initialize samples'}
           </button>
         </div>
