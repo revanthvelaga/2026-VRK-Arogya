@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as fs from 'fs';
-import type { File } from 'multer';
 import { ReportsService } from './reports.service';
 import { reportMulterOptions } from './reports.multer-options';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -37,7 +36,7 @@ export class ReportsController {
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @Param('bookingId') bookingId: string,
-    @UploadedFile() file?: File,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('file is required');
     return this.reportsService.upload(bookingId, user.userId, file);

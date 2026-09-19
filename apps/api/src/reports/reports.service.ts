@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
-import type { File } from 'multer';
 import { Report } from './entities/report.entity';
 import { BookingsService } from '../bookings/bookings.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -23,7 +22,7 @@ export class ReportsService {
   async upload(
     bookingId: string,
     uploadedBy: string,
-    file: File,
+    file: Express.Multer.File,
   ): Promise<PublicReport> {
     const booking = await this.bookingsService.findOne(bookingId); // 404s if the booking doesn't exist
 
