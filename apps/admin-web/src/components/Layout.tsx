@@ -1,6 +1,15 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconBox, IconCalendar, IconDashboard, IconFlask, IconLogout, IconMapPin, IconPlus } from './Icons';
+import {
+  IconBox,
+  IconCalendar,
+  IconDashboard,
+  IconFlask,
+  IconLogout,
+  IconMapPin,
+  IconMessage,
+  IconPlus,
+} from './Icons';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: IconDashboard },
@@ -8,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/catalog', label: 'Catalog', icon: IconBox },
   { to: '/centers', label: 'Centers', icon: IconMapPin },
   { to: '/partner-labs', label: 'Partner Labs', icon: IconFlask },
+  { to: '/issues', label: 'Issues', icon: IconMessage },
 ];
 
 export function Layout() {

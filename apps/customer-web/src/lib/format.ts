@@ -1,4 +1,4 @@
-import type { BookingStatus, SampleStatus, SlaStatus } from '../api/types';
+import type { BookingStatus, IssueStatus, PaymentStatus, SampleStatus, SlaStatus } from '../api/types';
 
 export function formatCurrency(value: string | number): string {
   const n = typeof value === 'string' ? parseFloat(value) : value;
@@ -45,6 +45,28 @@ export function slaStatusVariant(status: SlaStatus): BadgeVariant {
     case 'BREACHED':
       return 'red';
     case 'AT_RISK':
+      return 'amber';
+    default:
+      return 'neutral';
+  }
+}
+
+export function paymentStatusVariant(status: PaymentStatus): BadgeVariant {
+  switch (status) {
+    case 'PAID':
+      return 'accent';
+    case 'FAILED':
+      return 'red';
+    default:
+      return 'amber';
+  }
+}
+
+export function issueStatusVariant(status: IssueStatus): BadgeVariant {
+  switch (status) {
+    case 'RESOLVED':
+      return 'accent';
+    case 'IN_PROGRESS':
       return 'amber';
     default:
       return 'neutral';

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -13,6 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import * as fs from 'fs';
 import { ReportsService } from './reports.service';
 import { reportMulterOptions } from './reports.multer-options';
+import { AddReportValuesDto } from './dto/add-report-values.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -57,5 +59,21 @@ export class ReportsController {
       type: report.mimeType,
       disposition: `attachment; filename="${report.fileName}"`,
     });
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Post('reports/:id/values')
+  addValues(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: AddReportValuesDto,
+  ) {
+    return this.reportsService.addValues(id, user, dto);
+  }
+
+  @Get('reports/:id/values')
+  findValues(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.reportsService.findValues(id, user);
   }
 }

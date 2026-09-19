@@ -169,4 +169,13 @@ export class BookingsService {
     booking.status = dto.status;
     return this.bookingsRepo.save(booking);
   }
+
+  // Called by PaymentsService once Razorpay confirms (or rejects) payment.
+  // Not exposed as its own HTTP endpoint — payment status only ever moves
+  // as a side effect of a verified payment event.
+  async setPaymentStatus(id: string, status: Booking['paymentStatus']): Promise<Booking> {
+    const booking = await this.findOne(id);
+    booking.paymentStatus = status;
+    return this.bookingsRepo.save(booking);
+  }
 }

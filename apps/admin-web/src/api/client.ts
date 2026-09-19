@@ -98,3 +98,59 @@ export const api = {
     }),
   delete: <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' }),
 };
+
+// Multipart upload (report PDFs) — bypasses apiRequest's default JSON
+// Content-Type so the browser can set its own multipart boundary.
+export async function uploadFile<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+  const session = getSession();
+  const headers: Record<string, string> = {};
+  if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
+
+  const form = new FormData();
+  form.append(fieldName, file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: form });
+  } catch {
+    throw new ApiError(0, `Couldn't reach the API at ${BASE_URL} — is it running?`);
+  }
+  if (res.status === 401) {
+    setSession(null);
+    onUnauthorized?.();
+    throw new ApiError(401, 'Session expired — please log in again');
+  }
+  if (!res.ok) {
+    let message = `Upload failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (typeof body.message === 'string') message = body.message;
+    } catch {
+      // keep default
+    }
+    throw new ApiError(res.status, message);
+  }
+  return (await res.json()) as T;
+}
+
+// Report downloads need the same Bearer token as any other request, so a
+// plain <a href> won't work — fetch the bytes with auth, then hand the
+// browser a local blob URL to save.
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const session = getSession();
+  const headers: Record<string, string> = {};
+  if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+  if (!res.ok) throw new ApiError(res.status, `Download failed (${res.status})`);
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

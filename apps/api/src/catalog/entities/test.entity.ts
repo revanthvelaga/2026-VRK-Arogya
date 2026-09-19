@@ -26,6 +26,33 @@ export class Test {
   @Column({ name: 'sample_type', length: 50, nullable: true })
   sampleType?: string;
 
+  // What the test checks for — shown on the catalog/test detail page.
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  // "Things to do before the test" — fasting requirements, medication
+  // pauses, etc. Shown to the customer at booking time.
+  @Column({ name: 'preparation_instructions', type: 'text', nullable: true })
+  preparationInstructions?: string;
+
+  // What the report will contain / how to read it — shown alongside the
+  // downloaded report, not just at booking time.
+  @Column({ name: 'report_info', type: 'text', nullable: true })
+  reportInfo?: string;
+
+  // Normal reference range for this test's result value — drives the
+  // automatic red-flagging of out-of-range report values (see
+  // ReportValue). Left null for tests with no single numeric range
+  // (e.g. imaging, qualitative results).
+  @Column({ name: 'normal_range_low', type: 'numeric', precision: 10, scale: 2, nullable: true })
+  normalRangeLow?: number;
+
+  @Column({ name: 'normal_range_high', type: 'numeric', precision: 10, scale: 2, nullable: true })
+  normalRangeHigh?: number;
+
+  @Column({ name: 'normal_range_unit', length: 30, nullable: true })
+  normalRangeUnit?: string;
+
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: number;
 

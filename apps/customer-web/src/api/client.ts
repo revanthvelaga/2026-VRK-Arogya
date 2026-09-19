@@ -98,3 +98,25 @@ export const api = {
     }),
   delete: <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' }),
 };
+
+// Report downloads need the same Bearer token as any other request, so a
+// plain <a href> won't work — fetch the bytes with auth, then hand the
+// browser a local blob URL to save.
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const session = getSession();
+  const headers: Record<string, string> = {};
+  if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+  if (!res.ok) throw new ApiError(res.status, `Download failed (${res.status})`);
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

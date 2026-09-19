@@ -16,6 +16,8 @@ export interface JwtPayload {
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 export type CollectionMode = 'WALK_IN' | 'PICKUP_POINT' | 'HOME_VISIT';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
+export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
 
 export type SampleStatus =
   | 'BOOKED'
@@ -67,6 +69,7 @@ export interface Booking {
   scheduledAt: string;
   status: BookingStatus;
   totalAmount: string | number;
+  paymentStatus: PaymentStatus;
   createdAt: string;
   items: BookingItem[];
 }
@@ -100,6 +103,12 @@ export interface Test {
   name: string;
   code?: string;
   sampleType?: string;
+  description?: string;
+  preparationInstructions?: string;
+  reportInfo?: string;
+  normalRangeLow?: string | number;
+  normalRangeHigh?: string | number;
+  normalRangeUnit?: string;
   price: string | number;
   isInHouse: boolean;
   partnerLabId?: string;
@@ -186,4 +195,59 @@ export interface SlaSummary {
     notTracked: number;
   };
   samples: SampleSlaRow[];
+}
+
+export interface Report {
+  id: string;
+  bookingId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  generatedAt: string;
+  reviewedBy?: string;
+}
+
+export interface ReportValue {
+  id: string;
+  reportId: string;
+  testId?: string;
+  testName: string;
+  value: string | number;
+  unit?: string;
+  normalLow?: string | number;
+  normalHigh?: string | number;
+  isAbnormal: boolean;
+  createdAt: string;
+}
+
+export interface Issue {
+  id: string;
+  bookingId: string;
+  raisedBy: string;
+  subject: string;
+  description: string;
+  status: IssueStatus;
+  resolvedBy?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payment {
+  id: string;
+  bookingId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId?: string;
+  amount: string | number;
+  currency: string;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
+export interface RazorpayOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
 }

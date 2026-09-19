@@ -11,6 +11,7 @@ const SUBJECTS: Record<NotificationType, string> = {
   [NotificationType.SAMPLE_COLLECTED]: 'Your sample has been collected',
   [NotificationType.RESULT_READY]: 'Your results are ready',
   [NotificationType.REPORT_READY]: 'Your report is ready to download',
+  [NotificationType.ISSUE_UPDATED]: 'Update on the issue you raised',
 };
 
 @Injectable()

@@ -206,3 +206,29 @@ export const IconLayers = icon(
     <polyline points="2.5 17.5 12 22.5 21.5 17.5" />
   </>,
 );
+
+export const IconChevronDown = icon(<polyline points="5.5 8.5 12 15 18.5 8.5" />);
+
+export const IconAlertTriangle = icon(
+  <>
+    <path d="M12 3.5L2 20.5h20L12 3.5z" />
+    <line x1="12" y1="9.5" x2="12" y2="14" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </>,
+);
+
+export const IconFileText = icon(
+  <>
+    <path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z" />
+    <polyline points="15 3 15 8 20 8" />
+    <line x1="8.5" y1="13" x2="15.5" y2="13" />
+    <line x1="8.5" y1="17" x2="15.5" y2="17" />
+  </>,
+);
+
+export const IconCreditCard = icon(
+  <>
+    <rect x="2.5" y="5" width="19" height="14" rx="2" />
+    <line x1="2.5" y1="10" x2="21.5" y2="10" />
+  </>,
+);

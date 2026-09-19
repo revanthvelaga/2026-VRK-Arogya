@@ -6,7 +6,15 @@ import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
-import { IconBox, IconCheckCircle, IconFlask, IconPlus, IconSearch, IconX } from '../components/Icons';
+import {
+  IconBox,
+  IconCheckCircle,
+  IconChevronDown,
+  IconFlask,
+  IconPlus,
+  IconSearch,
+  IconX,
+} from '../components/Icons';
 import { audienceLabel } from '../lib/segments';
 import { formatCurrency } from '../lib/format';
 
@@ -25,6 +33,8 @@ function matchesAudience(itemAudience: Audience, filter: Audience | null): boole
 function TestCard({ test, index }: { test: Test; index: number }) {
   const { add, has } = useCart();
   const added = has('test', test.id);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const hasDetails = test.description || test.preparationInstructions || test.reportInfo;
 
   return (
     <div className="rich-card carousel-card">
@@ -44,6 +54,50 @@ function TestCard({ test, index }: { test: Test; index: number }) {
             </>
           )}
         </div>
+
+        {hasDetails && (
+          <>
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((v) => !v)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                border: 'none',
+                background: 'none',
+                padding: 0,
+                margin: '6px 0 0',
+                font: 'inherit',
+                fontSize: 12.5,
+                color: 'var(--teal)',
+                cursor: 'pointer',
+              }}
+            >
+              {detailsOpen ? 'Hide details' : 'What is this test?'}
+              <IconChevronDown
+                size={12}
+                style={{ transform: detailsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
+              />
+            </button>
+            {detailsOpen && (
+              <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
+                {test.description && <p style={{ margin: '0 0 6px' }}>{test.description}</p>}
+                {test.preparationInstructions && (
+                  <p style={{ margin: '0 0 6px' }}>
+                    <strong>Before your test:</strong> {test.preparationInstructions}
+                  </p>
+                )}
+                {test.reportInfo && (
+                  <p style={{ margin: 0 }}>
+                    <strong>Your report:</strong> {test.reportInfo}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         <div className="rich-card-footer">
           <div className="rich-card-price">{formatCurrency(test.price)}</div>
           <button
