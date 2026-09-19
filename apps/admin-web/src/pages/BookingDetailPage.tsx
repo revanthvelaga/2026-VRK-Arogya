@@ -247,17 +247,18 @@ interface ValueRow {
   testName: string;
   value: string;
   unit: string;
+  category: string;
 }
 
 function ReportValuesForm({ report, onSaved }: { report: Report; onSaved: () => void }) {
-  const [rows, setRows] = useState<ValueRow[]>([{ testName: '', value: '', unit: '' }]);
+  const [rows, setRows] = useState<ValueRow[]>([{ testName: '', value: '', unit: '', category: '' }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const updateRow = (i: number, patch: Partial<ValueRow>) => {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   };
-  const addRow = () => setRows((prev) => [...prev, { testName: '', value: '', unit: '' }]);
+  const addRow = () => setRows((prev) => [...prev, { testName: '', value: '', unit: '', category: '' }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
   const submit = async (e: FormEvent) => {
@@ -265,7 +266,12 @@ function ReportValuesForm({ report, onSaved }: { report: Report; onSaved: () => 
     setError(null);
     const values = rows
       .filter((r) => r.testName.trim() && r.value.trim())
-      .map((r) => ({ testName: r.testName.trim(), value: Number(r.value), unit: r.unit.trim() || undefined }));
+      .map((r) => ({
+        testName: r.testName.trim(),
+        value: Number(r.value),
+        unit: r.unit.trim() || undefined,
+        category: r.category.trim() || undefined,
+      }));
     if (values.length === 0) {
       setError('Enter at least one result value');
       return;
@@ -273,7 +279,7 @@ function ReportValuesForm({ report, onSaved }: { report: Report; onSaved: () => 
     setSubmitting(true);
     try {
       await api.post(`/reports/${report.id}/values`, { values });
-      setRows([{ testName: '', value: '', unit: '' }]);
+      setRows([{ testName: '', value: '', unit: '', category: '' }]);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save values');
@@ -308,6 +314,12 @@ function ReportValuesForm({ report, onSaved }: { report: Report; onSaved: () => 
             placeholder="Unit"
             value={row.unit}
             onChange={(e) => updateRow(i, { unit: e.target.value })}
+            style={{ flex: 1 }}
+          />
+          <input
+            placeholder="Category (optional)"
+            value={row.category}
+            onChange={(e) => updateRow(i, { category: e.target.value })}
             style={{ flex: 1 }}
           />
           {rows.length > 1 && (
@@ -379,8 +391,16 @@ function ReportCard({ report }: { report: Report }) {
                 <tr key={v.id} style={v.isAbnormal ? { color: '#dc2626', fontWeight: 600 } : undefined}>
                   <td style={{ padding: '3px 8px 3px 0' }}>
                     {v.isAbnormal && <IconAlertTriangle size={12} />} {v.testName}
+                    {v.category && (
+                      <span style={{ marginLeft: 6, fontWeight: 400, color: 'var(--ink-faint)' }}>
+                        · {v.category}
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '3px 8px' }}>
+                    {v.previousValue != null && Number(v.previousValue) !== Number(v.value) && (
+                      <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>{v.previousValue} → </span>
+                    )}
                     {v.value} {v.unit ?? ''}
                   </td>
                   <td style={{ padding: '3px 0', color: v.isAbnormal ? undefined : 'var(--ink-faint)' }}>

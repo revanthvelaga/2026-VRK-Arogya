@@ -26,6 +26,7 @@ function TestFormModal({
   const [name, setName] = useState(initial?.name ?? '');
   const [code, setCode] = useState(initial?.code ?? '');
   const [sampleType, setSampleType] = useState(initial?.sampleType ?? '');
+  const [category, setCategory] = useState(initial?.category ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [preparationInstructions, setPreparationInstructions] = useState(
     initial?.preparationInstructions ?? '',
@@ -55,6 +56,7 @@ function TestFormModal({
         name: name.trim(),
         code: code.trim() || undefined,
         sampleType: sampleType.trim() || undefined,
+        category: category.trim() || undefined,
         description: description.trim() || undefined,
         preparationInstructions: preparationInstructions.trim() || undefined,
         reportInfo: reportInfo.trim() || undefined,
@@ -98,6 +100,14 @@ function TestFormModal({
               value={sampleType}
               onChange={(e) => setSampleType(e.target.value)}
               placeholder="Blood, Urine…"
+            />
+          </div>
+          <div className="field">
+            <label>Category</label>
+            <input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Heart Health, Thyroid, Diabetes…"
             />
           </div>
           <div className="field">
