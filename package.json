@@ -1,0 +1,19 @@
+{
+  "name": "arogya",
+  "version": "0.1.0",
+  "description": "Arogya - Diagnostic Lab Booking Platform (monorepo)",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:db\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:web\"",
+    "dev:db": "docker compose up",
+    "dev:api": "cd apps/api && npm run start:dev",
+    "dev:admin": "cd apps/admin-web && npm run dev",
+    "dev:web": "cd apps/customer-web && npm run dev",
+    "dev:mobile": "cd apps/mobile && npm run start",
+    "seed": "cd apps/api && npm run seed",
+    "stop": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
