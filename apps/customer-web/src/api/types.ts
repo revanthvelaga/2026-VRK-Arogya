@@ -103,6 +103,7 @@ export interface Test {
   name: string;
   code?: string;
   sampleType?: string;
+  category?: string;
   description?: string;
   preparationInstructions?: string;
   reportInfo?: string;
@@ -213,12 +214,16 @@ export interface ReportValue {
   reportId: string;
   testId?: string;
   testName: string;
+  category?: string;
   value: string | number;
   unit?: string;
   normalLow?: string | number;
   normalHigh?: string | number;
   isAbnormal: boolean;
   createdAt: string;
+  previousValue?: string | number;
+  previousUnit?: string;
+  previousRecordedAt?: string;
 }
 
 export interface Issue {

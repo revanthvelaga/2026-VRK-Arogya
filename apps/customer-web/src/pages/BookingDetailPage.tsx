@@ -12,6 +12,7 @@ import { LoadingLine } from '../components/Spinner';
 import {
   IconAlertTriangle,
   IconArrowLeft,
+  IconArrowRight,
   IconClock,
   IconCreditCard,
   IconFileText,
@@ -21,6 +22,7 @@ import {
   bookingStatusVariant,
   formatCurrency,
   formatDateTime,
+  formatNumber,
   issueStatusVariant,
   paymentStatusVariant,
   sampleStatusVariant,
@@ -169,7 +171,11 @@ function ReportCard({ report }: { report: Report }) {
     }
   };
 
-  const abnormalCount = values.filter((v) => v.isAbnormal).length;
+  const outOfRange = values.filter((v) => v.isAbnormal);
+  const withinRange = values.filter((v) => !v.isAbnormal);
+  // Abnormal parameters first — that's what a customer opening a report
+  // actually wants to see, not alphabetical or entry order.
+  const ordered = [...outOfRange, ...withinRange];
 
   return (
     <div className="card">
@@ -192,37 +198,67 @@ function ReportCard({ report }: { report: Report }) {
       {valuesApi.loading && <LoadingLine label="Loading insights…" />}
       {values.length > 0 && (
         <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
-            AI insights
-            {abnormalCount > 0 && (
-              <span className="badge badge-red" style={{ fontWeight: 600 }}>
-                {abnormalCount} out of range
-              </span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>
+            Clinician insights
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-            <tbody>
-              {values.map((v) => (
-                <tr
-                  key={v.id}
-                  style={v.isAbnormal ? { color: '#dc2626', fontWeight: 600 } : undefined}
-                >
-                  <td style={{ padding: '4px 8px 4px 0' }}>
-                    {v.isAbnormal && <IconAlertTriangle size={12} style={{ marginRight: 4, verticalAlign: -1 }} />}
-                    {v.testName}
-                  </td>
-                  <td style={{ padding: '4px 8px' }}>
-                    {v.value} {v.unit ?? ''}
-                  </td>
-                  <td style={{ padding: '4px 0', color: v.isAbnormal ? undefined : 'var(--ink-faint)' }}>
-                    {v.normalLow != null && v.normalHigh != null
-                      ? `Normal: ${v.normalLow}–${v.normalHigh} ${v.unit ?? ''}`
-                      : ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+          <div className="insight-summary">
+            <div className="insight-summary-card out">
+              <div className="label">Out of range</div>
+              <div className="count">
+                {outOfRange.length}
+                <span>parameter{outOfRange.length === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+            <div className="insight-summary-card within">
+              <div className="label">Within range</div>
+              <div className="count">
+                {withinRange.length}
+                <span>parameter{withinRange.length === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="insight-param-list">
+            {ordered.map((v) => {
+              const hasRange = v.normalLow != null && v.normalHigh != null;
+              const hasTrend = v.previousValue != null && Number(v.previousValue) !== Number(v.value);
+              return (
+                <div className="insight-param-row" key={v.id}>
+                  <div>
+                    <div className="insight-param-name">
+                      {v.isAbnormal && (
+                        <IconAlertTriangle
+                          size={12}
+                          style={{ marginRight: 5, verticalAlign: -1, color: 'var(--red)' }}
+                        />
+                      )}
+                      {v.testName}
+                    </div>
+                    {hasRange && (
+                      <div className="insight-param-range">
+                        Range: {formatNumber(v.normalLow!)} – {formatNumber(v.normalHigh!)} {v.unit ?? ''}
+                      </div>
+                    )}
+                    {v.category && <div className="insight-param-category">{v.category}</div>}
+                  </div>
+                  <div className="insight-value-trend">
+                    {hasTrend && (
+                      <>
+                        <span className="value-pill normal-ghost">
+                          {formatNumber(v.previousValue!)}
+                        </span>
+                        <IconArrowRight size={11} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+                      </>
+                    )}
+                    <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within'}`}>
+                      {formatNumber(v.value)} {v.unit ?? ''}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

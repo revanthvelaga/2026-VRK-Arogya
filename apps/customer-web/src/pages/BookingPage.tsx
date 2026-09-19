@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { CollectionMode, DiagnosticCenter, Package, PickupPoint, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
-import { IconX } from '../components/Icons';
+import { IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 
 interface NavState {
@@ -107,6 +107,50 @@ export function BookingPage() {
       (i.kind === 'test' && selectedTestIds.includes(i.id)) ||
       (i.kind === 'package' && selectedPackageIds.includes(i.id)),
   );
+
+  // "You might also like" — tests/packages that share package membership
+  // with what's already selected, not the entire catalog. A selected test
+  // pulls in the other tests bundled with it in any package; a selected
+  // package pulls in other packages that overlap it on at least one test.
+  const relatedItems: SelectableItem[] = useMemo(() => {
+    const selectedTestSet = new Set(selectedTestIds);
+    const relatedTestIds = new Set<string>();
+
+    for (const pkg of packages ?? []) {
+      const pkgTestIds = (pkg.tests ?? []).map((t) => t.id);
+      const overlapsSelection =
+        pkgTestIds.some((tid) => selectedTestSet.has(tid)) || selectedPackageIds.includes(pkg.id);
+      if (!overlapsSelection) continue;
+      for (const tid of pkgTestIds) {
+        if (!selectedTestSet.has(tid)) relatedTestIds.add(tid);
+      }
+    }
+
+    const relatedPackages = (packages ?? []).filter(
+      (p) => !selectedPackageIds.includes(p.id) && (p.tests ?? []).some((t) => selectedTestSet.has(t.id)),
+    );
+
+    const packageItems: SelectableItem[] = relatedPackages.map((p) => ({
+      key: `package:${p.id}`,
+      kind: 'package',
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      meta: `Package · ${p.tests?.length ?? 0} tests`,
+    }));
+    const testItems: SelectableItem[] = (tests ?? [])
+      .filter((t) => relatedTestIds.has(t.id))
+      .map((t) => ({
+        key: `test:${t.id}`,
+        kind: 'test',
+        id: t.id,
+        name: t.name,
+        price: Number(t.price),
+        meta: t.sampleType,
+      }));
+
+    return [...packageItems, ...testItems].slice(0, 4);
+  }, [tests, packages, selectedTestIds, selectedPackageIds]);
   const total = selected.reduce((sum, i) => sum + i.price, 0);
 
   const submit = async (e: FormEvent) => {
@@ -164,28 +208,57 @@ export function BookingPage() {
             {error && <div className="error-banner">{error}</div>}
 
             <div className="card">
-              <div className="card-title">1. Select tests &amp; packages</div>
+              <div className="card-title">1. Your selection</div>
               {items.length === 0 ? (
                 <LoadingLine label="Loading catalog…" />
+              ) : selected.length === 0 ? (
+                <div style={{ marginBottom: 4 }}>
+                  <p className="page-sub" style={{ margin: '0 0 10px' }}>
+                    Nothing selected yet — pick a test or package from the catalog.
+                  </p>
+                  <Link className="btn btn-small" to="/catalog">
+                    Browse catalog
+                  </Link>
+                </div>
               ) : (
-                items.map((i) => {
-                  const isSelected =
-                    i.kind === 'test' ? selectedTestIds.includes(i.id) : selectedPackageIds.includes(i.id);
-                  return (
-                    <label key={i.key} className={`select-row${isSelected ? ' selected' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
-                      />
+                selected.map((i) => (
+                  <label key={i.key} className="select-row selected">
+                    <input
+                      type="checkbox"
+                      checked
+                      onChange={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
+                    />
+                    <div className="select-row-label">
+                      <div className="name">{i.name}</div>
+                      {i.meta && <div className="meta">{i.meta}</div>}
+                    </div>
+                    <div className="select-row-price">{formatCurrency(i.price)}</div>
+                  </label>
+                ))
+              )}
+
+              {relatedItems.length > 0 && (
+                <>
+                  <div className="section-title" style={{ marginTop: selected.length ? 18 : 6 }}>
+                    You might also add
+                  </div>
+                  {relatedItems.map((i) => (
+                    <div className="select-row" style={{ cursor: 'default' }} key={i.key}>
                       <div className="select-row-label">
                         <div className="name">{i.name}</div>
                         {i.meta && <div className="meta">{i.meta}</div>}
                       </div>
                       <div className="select-row-price">{formatCurrency(i.price)}</div>
-                    </label>
-                  );
-                })
+                      <button
+                        type="button"
+                        className="btn btn-small"
+                        onClick={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
+                      >
+                        <IconPlus size={12} /> Add
+                      </button>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
 

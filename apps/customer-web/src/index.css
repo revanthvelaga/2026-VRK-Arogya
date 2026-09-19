@@ -24,6 +24,8 @@
   --amber-soft: #fdf1e0;
   --red: #d0342c;
   --red-soft: #fbe9e8;
+  --green: #1a8a4a;
+  --green-soft: #e7f6ec;
   --grey: #838aa0;
   --grey-soft: #f1f3f8;
 
@@ -1708,4 +1710,127 @@ tbody tr:hover {
   .catalog-grid {
     grid-template-columns: 1fr;
   }
+  .insight-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Report insights ---------- */
+.insight-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+
+.insight-summary-card {
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border: 1px solid;
+}
+
+.insight-summary-card.out {
+  background: var(--red-soft);
+  border-color: #f3c9c7;
+}
+
+.insight-summary-card.within {
+  background: var(--green-soft);
+  border-color: #bfe6cd;
+}
+
+.insight-summary-card .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.insight-summary-card.out .label {
+  color: var(--red);
+}
+
+.insight-summary-card.within .label {
+  color: var(--green);
+}
+
+.insight-summary-card .count {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+.insight-summary-card .count span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-left: 4px;
+}
+
+.insight-param-list {
+  border-top: 1px solid var(--line);
+}
+
+.insight-param-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.insight-param-row:last-child {
+  border-bottom: none;
+}
+
+.insight-param-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.insight-param-range {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+.insight-param-category {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.insight-value-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.value-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.value-pill.abnormal {
+  background: var(--red);
+  color: #fff;
+}
+
+.value-pill.normal-ghost {
+  background: var(--grey-soft);
+  color: var(--ink-soft);
+}
+
+.value-pill.within {
+  background: var(--green-soft);
+  color: var(--green);
 }

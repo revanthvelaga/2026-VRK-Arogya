@@ -6,6 +6,14 @@ export function formatCurrency(value: string | number): string {
   return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Postgres numeric columns round-trip as fixed-scale strings ("9.200",
+// "7200.000") — this strips the trailing zeros a report value shouldn't show.
+export function formatNumber(value: string | number): string {
+  const n = typeof value === 'string' ? parseFloat(value) : value;
+  if (Number.isNaN(n)) return String(value);
+  return n.toLocaleString('en-IN', { maximumFractionDigits: 3 });
+}
+
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
