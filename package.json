@@ -4,7 +4,7 @@
   "description": "Arogya - Diagnostic Lab Booking Platform (monorepo)",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:db\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:web\"",
+    "dev": "npx concurrently \"npm run dev:db\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:web\"",
     "dev:db": "docker compose up",
     "dev:api": "cd apps/api && npm run start:dev",
     "dev:admin": "cd apps/admin-web && npm run dev",
