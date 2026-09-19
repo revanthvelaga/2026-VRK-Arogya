@@ -18,18 +18,31 @@ opening anything.
 
 ## Index
 
-| File | What it shows |
-|---|---|
-| [`01-database-erd.md`](./01-database-erd.md) | Full database entity-relationship diagram — every table in `schema.sql`, how they connect, and which ones already have a matching NestJS entity vs. are still schema-only |
-| [`02-module-dependency-graph.md`](./02-module-dependency-graph.md) | Which NestJS module imports which — the "who depends on whom" map of the whole API |
-| [`03-request-lifecycle.md`](./03-request-lifecycle.md) | The generic path **every** request takes: guard → guard → validation → controller → service → repository → database, shown concretely for one real endpoint |
-| [`04-class-diagram-bookings.md`](./04-class-diagram-bookings.md) | Class-level diagram of the Bookings module (controller, service, entities, and the other modules' services it calls into) — every other module follows the same Controller → Service → Entity shape, this one's shown because it's the only one that also reaches across modules |
-| [`05-auth-flow.md`](./05-auth-flow.md) | Register + login, step by step |
-| [`06-catalog-flow.md`](./06-catalog-flow.md) | Browsing the test/package catalog, and an admin adding a new one |
-| [`07-centers-pickup-points-flow.md`](./07-centers-pickup-points-flow.md) | "Find near me" radius search, and the check that rejects a pickup point placed outside its center's service area |
-| [`08-booking-flow.md`](./08-booking-flow.md) | The full booking-creation flow — every validation step, in order, across every module it touches |
-| [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md) | The physical specimen's own status chain — `BOOKED → ... → DELIVERED`, the `AT_CENTER` fork, and how initializing/advancing a sample actually runs |
-| [`10-partner-lab-routing-flow.md`](./10-partner-lab-routing-flow.md) | Routing a sample to a partner lab (setting its SLA target), and how the on-time/at-risk/breached SLA summary gets computed from data that already exists |
+**Note on numbering:** these files are numbered 01–10, but the request-trace
+diagrams under [`drawio/`](./drawio) are numbered separately (01–08) and
+don't line up 1:1 with these — e.g. this folder's `05-auth-flow.md` pairs
+with `drawio/01-auth-trace.drawio`, not `drawio/05-*`. The "Pairs with"
+column below is the actual mapping; each `.md` file also links its match
+at the top. If you're looking for "the diagram for step N," use this
+table, not matching numbers.
+
+As of this pass, every step-flow file (05–10) also opens with a short
+**Objective / Classes & entities used / Tables used / Conditions
+checked** block before its diagrams, so you don't have to read the
+sequence diagram just to find out what tables or classes are involved.
+
+| File | Pairs with (drawio) | What it shows |
+|---|---|---|
+| [`01-database-erd.md`](./01-database-erd.md) | — | Full database entity-relationship diagram — every table in `schema.sql`, how they connect, and which ones already have a matching NestJS entity vs. are still schema-only |
+| [`02-module-dependency-graph.md`](./02-module-dependency-graph.md) | — | Which NestJS module imports which — the "who depends on whom" map of the whole API |
+| [`03-request-lifecycle.md`](./03-request-lifecycle.md) | — | The generic path **every** request takes: guard → guard → validation → controller → service → repository → database, shown concretely for one real endpoint |
+| [`04-class-diagram-bookings.md`](./04-class-diagram-bookings.md) | — | Class-level diagram of the Bookings module (controller, service, entities, and the other modules' services it calls into) — every other module follows the same Controller → Service → Entity shape, this one's shown because it's the only one that also reaches across modules |
+| [`05-auth-flow.md`](./05-auth-flow.md) | `01-auth-trace` | Objective, classes/tables/conditions, then register + login, step by step |
+| [`06-catalog-flow.md`](./06-catalog-flow.md) | `02-catalog-trace` | Objective, classes/tables/conditions, then browsing the catalog and an admin managing it |
+| [`07-centers-pickup-points-flow.md`](./07-centers-pickup-points-flow.md) | `03-centers-trace` + `04-pickup-points-trace` | Objective, classes/tables/conditions, then "find near me" and the radius-validation check |
+| [`08-booking-flow.md`](./08-booking-flow.md) | `05-bookings-trace` | Objective, classes/tables/conditions, then the full booking-creation flow — every validation step, in order |
+| [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md) | `07-samples-trace` | Objective, classes/tables/conditions, then the sample status chain and the `AT_CENTER` fork |
+| [`10-partner-lab-routing-flow.md`](./10-partner-lab-routing-flow.md) | `08-partner-labs-trace` | Objective, classes/tables/conditions, then routing + the SLA classification decision tree |
 
 ## How to read these
 

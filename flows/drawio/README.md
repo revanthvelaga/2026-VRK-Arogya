@@ -58,21 +58,27 @@ two differences that are naming/timing, not structural —
   separate hand-written DAO class in between — which is the normal
   NestJS/TypeORM idiom, not a shortcut specific to this project.
 
+Each one's matching `flows/*.md` write-up (objective, classes/entities
+used, tables used, every condition checked, in plain prose) is linked
+right under its preview — note the numbers don't match (this folder is
+numbered by build order 01–08, `flows/` is numbered 01–10) — start from
+whichever one you already have open.
+
 | | |
 |---|---|
-| **Auth** | [`01-auth-trace.drawio`](./01-auth-trace.drawio) |
+| **Auth** | [`01-auth-trace.drawio`](./01-auth-trace.drawio) · see [`../05-auth-flow.md`](../05-auth-flow.md) |
 | ![Auth trace](./01-auth-trace.svg) | |
-| **Catalog** (tests + packages) | [`02-catalog-trace.drawio`](./02-catalog-trace.drawio) |
+| **Catalog** (tests + packages) | [`02-catalog-trace.drawio`](./02-catalog-trace.drawio) · see [`../06-catalog-flow.md`](../06-catalog-flow.md) |
 | ![Catalog trace](./02-catalog-trace.svg) | |
-| **Centers** | [`03-centers-trace.drawio`](./03-centers-trace.drawio) |
+| **Centers** | [`03-centers-trace.drawio`](./03-centers-trace.drawio) · see [`../07-centers-pickup-points-flow.md`](../07-centers-pickup-points-flow.md) |
 | ![Centers trace](./03-centers-trace.svg) | |
-| **Pickup points** | [`04-pickup-points-trace.drawio`](./04-pickup-points-trace.drawio) |
+| **Pickup points** | [`04-pickup-points-trace.drawio`](./04-pickup-points-trace.drawio) · see [`../07-centers-pickup-points-flow.md`](../07-centers-pickup-points-flow.md) |
 | ![Pickup points trace](./04-pickup-points-trace.svg) | |
-| **Bookings** | [`05-bookings-trace.drawio`](./05-bookings-trace.drawio) |
+| **Bookings** | [`05-bookings-trace.drawio`](./05-bookings-trace.drawio) · see [`../08-booking-flow.md`](../08-booking-flow.md) |
 | ![Bookings trace](./05-bookings-trace.svg) | |
-| **Samples** (lifecycle + status history) | [`07-samples-trace.drawio`](./07-samples-trace.drawio) |
+| **Samples** (lifecycle + status history) | [`07-samples-trace.drawio`](./07-samples-trace.drawio) · see [`../09-sample-lifecycle-flow.md`](../09-sample-lifecycle-flow.md) |
 | ![Samples trace](./07-samples-trace.svg) | |
-| **Partner labs** (+ SLA summary) | [`08-partner-labs-trace.drawio`](./08-partner-labs-trace.drawio) |
+| **Partner labs** (+ SLA summary) | [`08-partner-labs-trace.drawio`](./08-partner-labs-trace.drawio) · see [`../10-partner-lab-routing-flow.md`](../10-partner-lab-routing-flow.md) |
 | ![Partner labs trace](./08-partner-labs-trace.svg) | |
 
 **Column color key:** URI = blue · Guards = red (gray if the route is
