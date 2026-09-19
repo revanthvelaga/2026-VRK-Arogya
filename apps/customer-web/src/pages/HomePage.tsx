@@ -1,144 +1,209 @@
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
+import type { Package, Test } from '../api/types';
+import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
+import { useCart } from '../context/CartContext';
+import { LoadingLine } from '../components/Spinner';
 import {
-  IconActivity,
-  IconArrowRight,
+  IconBag,
+  IconBox,
   IconCalendar,
   IconCheckCircle,
-  IconClock,
   IconFlask,
+  IconLayers,
   IconMapPin,
+  IconPlus,
+  IconSearch,
   IconShieldCheck,
-  IconTruck,
 } from '../components/Icons';
+import { formatCurrency } from '../lib/format';
 
-const STEPS = [
-  {
-    n: 1,
-    title: 'Pick your tests',
-    body: 'Browse individual tests or bundled packages, priced up front — no surprises at collection.',
-  },
-  {
-    n: 2,
-    title: 'Choose how to collect',
-    body: 'Walk in to the center, get picked up at a nearby village pickup point, or a home visit.',
-  },
-  {
-    n: 3,
-    title: 'Track your sample',
-    body: 'See exactly where your sample is — collected, in transit, at the lab, result ready.',
-  },
+const ART_CLASSES = ['art-1', 'art-2', 'art-3', 'art-4', 'art-5', 'art-6'];
+function artFor(id: string) {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return ART_CLASSES[h % ART_CLASSES.length];
+}
+
+const QUICK_ACTIONS = [
+  { to: '/catalog', label: 'Full body packages', icon: IconLayers, art: 'art-5' },
+  { to: '/centers', label: 'Centers near me', icon: IconMapPin, art: 'art-2' },
+  { to: '/bookings', label: 'Track a sample', icon: IconCheckCircle, art: 'art-3' },
+  { to: '/catalog', label: 'Browse all tests', icon: IconFlask, art: 'art-6' },
 ];
+
+function TestTile({ test, index }: { test: Test; index: number }) {
+  const { add, has } = useCart();
+  const added = has('test', test.id);
+  return (
+    <div className="rich-card carousel-card">
+      <div className={`rich-card-art ${artFor(test.id + index)}`}>
+        <IconFlask size={28} />
+      </div>
+      <div className="rich-card-body">
+        <h3>{test.name}</h3>
+        <div className="rich-card-meta">
+          {test.sampleType && <span>{test.sampleType}</span>}
+          <span className="dot" />
+          <span>{test.turnaroundHours}h report</span>
+        </div>
+        <div className="rich-card-footer">
+          <div className="rich-card-price">{formatCurrency(test.price)}</div>
+          <button
+            className={`add-btn${added ? ' added' : ''}`}
+            onClick={() => add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })}
+            disabled={added}
+          >
+            {added ? (
+              <>
+                <IconCheckCircle size={13} /> Added
+              </>
+            ) : (
+              <>
+                <IconPlus size={13} /> Add
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
+  const { add, has } = useCart();
+  const added = has('package', pkg.id);
+  const testCount = pkg.tests?.length ?? 0;
+  return (
+    <div className="rich-card carousel-card">
+      <div className={`rich-card-art ${artFor(pkg.id + index)}`}>
+        <IconBox size={28} />
+      </div>
+      <div className="rich-card-body">
+        <h3>{pkg.name}</h3>
+        <div className="rich-card-meta">
+          <span>Contains {testCount} test{testCount === 1 ? '' : 's'}</span>
+        </div>
+        <div className="rich-card-footer">
+          <div className="rich-card-price">{formatCurrency(pkg.price)}</div>
+          <button
+            className={`add-btn${added ? ' added' : ''}`}
+            onClick={() => add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })}
+            disabled={added}
+          >
+            {added ? (
+              <>
+                <IconCheckCircle size={13} /> Added
+              </>
+            ) : (
+              <>
+                <IconPlus size={13} /> Add
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function HomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: tests, loading: testsLoading } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
+  const { data: packages, loading: packagesLoading } = useApi<Package[]>(
+    () => api.get('/catalog/packages'),
+    [],
+  );
+
+  const recommendedTests = useMemo(() => (tests ?? []).slice(0, 8), [tests]);
+  const featuredPackages = useMemo(() => (packages ?? []).slice(0, 8), [packages]);
 
   return (
     <>
-      <section className="hero">
-        <div>
-          <div className="hero-eyebrow">Arogya · Diagnostic Lab Booking</div>
-          <h1>Book a lab test without the trip to the city.</h1>
-          <p className="lead">
-            Real diagnostic tests, real prices, collected near you — walk in, a village pickup
-            point, or a home visit. Track your sample the whole way, from collection to result.
-          </p>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" to={user ? '/book' : '/register'}>
-              Book a test
-            </Link>
-            <Link className="btn" to="/catalog">
-              Browse the catalog
-              <IconArrowRight size={15} />
-            </Link>
-          </div>
-          <div className="trust-row">
-            <div className="trust-item">
-              <IconShieldCheck size={17} />
-              Accredited testing
-            </div>
-            <div className="trust-item">
-              <IconClock size={17} />
-              24–48h turnaround
-            </div>
-            <div className="trust-item">
-              <IconMapPin size={17} />
-              Village pickup points
-            </div>
-          </div>
-        </div>
+      <div className="search-bar" onClick={() => navigate('/catalog')}>
+        <IconSearch size={16} />
+        Search for a test, package, or center…
+      </div>
 
-        <div className="hero-art">
-          <div className="hero-art-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="icon-chip">
-                <IconFlask size={15} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>Complete Blood Count</div>
-                <div className="page-sub" style={{ margin: 0 }}>
-                  Blood · 24h turnaround
-                </div>
-              </div>
+      <div className="quick-actions">
+        {QUICK_ACTIONS.map((a) => (
+          <Link className="quick-action" to={a.to} key={a.label}>
+            <div className={`quick-action-icon ${a.art}`} style={{ color: '#fff' }}>
+              <a.icon size={18} />
             </div>
-            <div style={{ fontFamily: 'Sora', fontWeight: 800 }}>₹250</div>
-          </div>
-          <div className="hero-art-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="icon-chip">
-                <IconTruck size={15} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>In transit to center</div>
-                <div className="page-sub" style={{ margin: 0 }}>
-                  Updated 12 minutes ago
-                </div>
-              </div>
-            </div>
-            <IconCheckCircle size={18} style={{ color: 'var(--accent)' }} />
-          </div>
-          <div className="hero-art-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="icon-chip">
-                <IconCalendar size={15} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>Pickup point visit</div>
-                <div className="page-sub" style={{ margin: 0 }}>
-                  Tomorrow, 9:00–11:00 AM
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="section-title">How it works</div>
-      <div className="steps-grid">
-        {STEPS.map((s) => (
-          <div className="step-card" key={s.n}>
-            <div className="step-number">{s.n}</div>
-            <h3>{s.title}</h3>
-            <p>{s.body}</p>
-          </div>
+            <span>{a.label}</span>
+          </Link>
         ))}
       </div>
 
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div className="stat-icon" style={{ margin: 0 }}>
-          <IconActivity size={18} />
+      <div className="promo-banner">
+        <div>
+          <h3>New here? Start with a full body checkup.</h3>
+          <p>One booking, every essential test — priced as a package, tracked as one sample.</p>
         </div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontWeight: 700, fontSize: 14.5 }}>Not sure what to book?</div>
-          <p className="page-sub" style={{ margin: '2px 0 0' }}>
-            Browse the full catalog of tests and packages, with prices and turnaround times up
-            front.
-          </p>
-        </div>
-        <Link className="btn btn-primary btn-small" to="/catalog">
-          View catalog
+        <Link className="btn btn-primary" to="/catalog">
+          Browse packages
         </Link>
       </div>
+
+      <div className="section-title">Recommended tests</div>
+      {testsLoading ? (
+        <LoadingLine label="Loading…" />
+      ) : (
+        <div className="carousel">
+          {recommendedTests.map((t, i) => (
+            <TestTile test={t} key={t.id} index={i} />
+          ))}
+        </div>
+      )}
+
+      <div className="section-title">Popular packages</div>
+      {packagesLoading ? (
+        <LoadingLine label="Loading…" />
+      ) : featuredPackages.length === 0 ? (
+        <p className="page-sub">No packages published yet — check back soon.</p>
+      ) : (
+        <div className="carousel">
+          {featuredPackages.map((p, i) => (
+            <PackageTile pkg={p} key={p.id} index={i} />
+          ))}
+        </div>
+      )}
+
+      <div className="trust-row" style={{ marginTop: 8, marginBottom: 40 }}>
+        <div className="trust-item">
+          <IconShieldCheck size={17} />
+          Accredited testing
+        </div>
+        <div className="trust-item">
+          <IconBag size={17} />
+          Priced up front, no surprises
+        </div>
+        <div className="trust-item">
+          <IconCalendar size={17} />
+          Book in under 2 minutes
+        </div>
+      </div>
+
+      {!user && (
+        <div
+          className="card"
+          style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}
+        >
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontWeight: 700, fontSize: 14.5 }}>Ready to book?</div>
+            <p className="page-sub" style={{ margin: '2px 0 0' }}>
+              Create a free account to check out — it takes less than a minute.
+            </p>
+          </div>
+          <Link className="btn btn-primary btn-small" to="/register">
+            Sign up
+          </Link>
+        </div>
+      )}
     </>
   );
 }

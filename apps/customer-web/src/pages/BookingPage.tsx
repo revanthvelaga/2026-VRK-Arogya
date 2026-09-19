@@ -4,7 +4,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { CollectionMode, DiagnosticCenter, Package, PickupPoint, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
+import { IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 
 interface NavState {
@@ -32,6 +34,7 @@ export function BookingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as NavState | null) ?? {};
+  const cart = useCart();
 
   const { data: tests } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
   const { data: packages } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
@@ -40,9 +43,14 @@ export function BookingPage() {
     [],
   );
 
-  const [selectedTestIds, setSelectedTestIds] = useState<string[]>(navState.testId ? [navState.testId] : []);
+  const cartTestIds = cart.items.filter((i) => i.kind === 'test').map((i) => i.id);
+  const cartPackageIds = cart.items.filter((i) => i.kind === 'package').map((i) => i.id);
+
+  const [selectedTestIds, setSelectedTestIds] = useState<string[]>(
+    Array.from(new Set(navState.testId ? [navState.testId, ...cartTestIds] : cartTestIds)),
+  );
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>(
-    navState.packageId ? [navState.packageId] : [],
+    Array.from(new Set(navState.packageId ? [navState.packageId, ...cartPackageIds] : cartPackageIds)),
   );
   const [centerId, setCenterId] = useState(navState.centerId ?? '');
   const [collectionMode, setCollectionMode] = useState<CollectionMode>('WALK_IN');
@@ -130,6 +138,7 @@ export function BookingPage() {
         scheduledAt: iso,
         items: selected.map((i) => (i.kind === 'test' ? { testId: i.id } : { packageId: i.id })),
       });
+      cart.clear();
       navigate(`/bookings/${booking.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the booking');
@@ -259,7 +268,29 @@ export function BookingPage() {
             ) : (
               selected.map((i) => (
                 <div className="summary-line" key={i.key}>
-                  <span>{i.name}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
+                      aria-label={`Remove ${i.name}`}
+                      style={{
+                        border: 'none',
+                        background: 'var(--grey-soft)',
+                        borderRadius: '50%',
+                        width: 18,
+                        height: 18,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--ink-faint)',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <IconX size={10} />
+                    </button>
+                    {i.name}
+                  </span>
                   <span>{formatCurrency(i.price)}</span>
                 </div>
               ))

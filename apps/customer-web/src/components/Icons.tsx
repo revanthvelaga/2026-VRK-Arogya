@@ -176,3 +176,33 @@ export const IconX = icon(
     <line x1="6" y1="6" x2="18" y2="18" />
   </>,
 );
+
+export const IconSearch = icon(
+  <>
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <line x1="20" y1="20" x2="15.3" y2="15.3" />
+  </>,
+);
+
+export const IconBag = icon(
+  <>
+    <path d="M5.5 8.5h13l1 12.5a1.5 1.5 0 01-1.5 1.6H6a1.5 1.5 0 01-1.5-1.6z" />
+    <path d="M8.5 8.5V6a3.5 3.5 0 017 0v2.5" />
+  </>,
+);
+
+export const IconPhone = icon(
+  <path d="M4.5 3.5h3.4l1.6 4.4-2 1.7a13.5 13.5 0 006.9 6.9l1.7-2 4.4 1.6v3.4a1.5 1.5 0 01-1.6 1.5A17 17 0 013 5.1a1.5 1.5 0 011.5-1.6z" />,
+);
+
+export const IconMessage = icon(
+  <path d="M3.5 12.5a8.5 8.5 0 1111 8.1l-4.6 1.4 1.4-4.1a8.46 8.46 0 01-7.8-5.4z" />,
+);
+
+export const IconLayers = icon(
+  <>
+    <polygon points="12 2.5 21.5 7.5 12 12.5 2.5 7.5 12 2.5" />
+    <polyline points="2.5 13.5 12 18.5 21.5 13.5" />
+    <polyline points="2.5 17.5 12 22.5 21.5 17.5" />
+  </>,
+);

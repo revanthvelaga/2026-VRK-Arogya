@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus } from './Icons';
+import { useCart } from '../context/CartContext';
+import { IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus } from './Icons';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
@@ -10,6 +11,7 @@ const NAV_ITEMS = [
 
 export function TopNav() {
   const { user, logout } = useAuth();
+  const { items } = useCart();
 
   return (
     <header className="site-header">
@@ -45,23 +47,22 @@ export function TopNav() {
         </nav>
 
         <div className="site-header-actions">
+          <Link to="/book" className="cart-icon-btn" aria-label="Cart">
+            <IconBag size={19} />
+            {items.length > 0 && <span className="cart-icon-badge">{items.length}</span>}
+          </Link>
           {user ? (
-            <>
-              <Link to="/book" className="btn btn-primary btn-small">
-                Book a test
-              </Link>
-              <div className="user-chip">
-                {user.phone}
-                <button
-                  className="btn btn-small"
-                  style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}
-                  onClick={logout}
-                  aria-label="Log out"
-                >
-                  <IconLogout size={14} />
-                </button>
-              </div>
-            </>
+            <div className="user-chip">
+              {user.phone}
+              <button
+                className="btn btn-small"
+                style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}
+                onClick={logout}
+                aria-label="Log out"
+              >
+                <IconLogout size={14} />
+              </button>
+            </div>
           ) : (
             <>
               <Link to="/login" className="btn btn-small">

@@ -951,6 +951,376 @@ tbody tr:hover {
   gap: 6px;
 }
 
+/* ---------- Search bar ---------- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 13px 16px;
+  box-shadow: var(--shadow-card);
+  color: var(--ink-faint);
+  font-size: 14px;
+  margin-bottom: 22px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.search-bar:hover {
+  border-color: var(--accent-soft-strong);
+}
+
+/* ---------- Quick action tiles ---------- */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.quick-action {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px 14px;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.quick-action:hover {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-action span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+/* ---------- Category / filter chips (dark pills) ---------- */
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 22px;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.filter-chip svg {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.filter-chip.outline {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.filter-chip.outline svg {
+  color: var(--ink-faint);
+}
+
+.filter-chip.active {
+  background: var(--gradient);
+  border-color: transparent;
+  color: #fff;
+}
+
+.filter-chip.active svg {
+  color: #fff;
+}
+
+/* ---------- Promo banner ---------- */
+.promo-banner {
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 28px;
+  background: linear-gradient(120deg, #fdeaf0, #eef1fd);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.promo-banner h3 {
+  font-size: 18px;
+  color: #9c2a55;
+  margin-bottom: 6px;
+}
+
+.promo-banner p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 40ch;
+}
+
+/* ---------- Carousels ---------- */
+.carousel {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 2px 16px;
+  margin-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+
+.carousel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.carousel-card {
+  scroll-snap-align: start;
+  flex: 0 0 240px;
+}
+
+/* ---------- Rich cards (photo-style header, no real photography) ---------- */
+.rich-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: rise 0.4s ease both;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+  height: 100%;
+}
+
+.rich-card:hover {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+}
+
+.rich-card-art {
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.92);
+  position: relative;
+}
+
+.rich-card-art svg {
+  position: relative;
+  z-index: 1;
+}
+
+.rich-card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.35), transparent 55%);
+}
+
+.art-1 {
+  background: linear-gradient(135deg, #ff8fb1, #c65bd8);
+}
+.art-2 {
+  background: linear-gradient(135deg, #7cd6ff, #4f7bf0);
+}
+.art-3 {
+  background: linear-gradient(135deg, #6ee7c6, #0ea5a0);
+}
+.art-4 {
+  background: linear-gradient(135deg, #ffc978, #f0834a);
+}
+.art-5 {
+  background: linear-gradient(135deg, #b9a3ff, #6e5bf6);
+}
+.art-6 {
+  background: linear-gradient(135deg, #ffb0a3, #f0567a);
+}
+
+.rich-card-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.rich-card-body h3 {
+  font-size: 14.5px;
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+
+.rich-card-meta {
+  font-size: 12px;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rich-card-meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.rich-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.rich-card-price {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 16.5px;
+  color: var(--ink);
+}
+
+.add-btn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-a);
+  background: var(--surface);
+  color: var(--accent-ink);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.add-btn:hover {
+  background: var(--accent-soft);
+}
+
+.add-btn.added {
+  background: var(--accent-a);
+  border-color: var(--accent-a);
+  color: #fff;
+}
+
+/* ---------- Cart bar + icon ---------- */
+.cart-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.cart-icon-btn:hover {
+  background: var(--surface-2);
+}
+
+.cart-icon-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+}
+
+.cart-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  background: var(--surface);
+  border-top: 1px solid var(--line-strong);
+  box-shadow: 0 -12px 32px -18px rgba(16, 24, 44, 0.35);
+}
+
+.cart-bar-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cart-bar-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cart-bar-total {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  margin-top: 2px;
+}
+
 /* ---------- Selectable rows (booking form) ---------- */
 .select-row {
   display: flex;

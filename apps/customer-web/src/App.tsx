@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { CartProvider } from './context/CartContext';
 import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
@@ -15,20 +16,22 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/catalog" element={<CatalogPage />} />
-            <Route path="/centers" element={<CentersPage />} />
-            <Route element={<RequireAuth />}>
-              <Route path="/book" element={<BookingPage />} />
-              <Route path="/bookings" element={<MyBookingsPage />} />
-              <Route path="/bookings/:id" element={<BookingDetailPage />} />
+        <CartProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/centers" element={<CentersPage />} />
+              <Route element={<RequireAuth />}>
+                <Route path="/book" element={<BookingPage />} />
+                <Route path="/bookings" element={<MyBookingsPage />} />
+                <Route path="/bookings/:id" element={<BookingDetailPage />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
+          </Routes>
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );
