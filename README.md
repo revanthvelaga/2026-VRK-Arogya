@@ -19,7 +19,7 @@ server/firewall/deployment diagram — see [`flows/drawio/`](./flows/drawio).
 ```
 arogya/
 ├── apps/
-│   ├── mobile/          # React Native (Expo) customer + staff app — not started yet
+│   ├── mobile/            # React Native (Expo) customer app — browse, book, track a sample
 │   ├── customer-web/     # React customer site — browse, book, track a sample
 │   ├── admin-web/        # React admin dashboard
 │   └── api/              # NestJS backend
@@ -43,7 +43,7 @@ arogya/
 - [x] Partner-lab routing + SLA tracking — [`docs/step-06-partner-lab-routing.md`](./docs/step-06-partner-lab-routing.md)
 - [x] Admin web dashboard — [`docs/step-07-admin-web-dashboard.md`](./docs/step-07-admin-web-dashboard.md)
 - [x] Customer web app (added ahead of the mobile app, same endpoints) — [`docs/step-08-customer-web.md`](./docs/step-08-customer-web.md)
-- [ ] Customer mobile app
+- [x] Customer mobile app — [`docs/step-09-customer-mobile.md`](./docs/step-09-customer-mobile.md)
 - [ ] Notifications (push/SMS) + report PDF upload/download
 - [ ] Dockerize + GitHub Actions CI, deployment guide
 
@@ -135,3 +135,16 @@ With the API already running (above):
 
 Anyone can register here — public sign-up is always a `CUSTOMER` account.
 See [`apps/customer-web/README.md`](./apps/customer-web/README.md).
+
+## Running the mobile app locally
+
+With the API already running (above):
+
+1. `cd apps/mobile && npm install`
+2. `cp .env.example .env` — on a physical device, point `EXPO_PUBLIC_API_URL`
+   at your machine's LAN IP, not `localhost` (a simulator on the same
+   machine can keep `localhost`).
+3. `npm start` — scan the QR code with Expo Go, or press `a`/`i` for a
+   simulator.
+
+See [`apps/mobile/README.md`](./apps/mobile/README.md).

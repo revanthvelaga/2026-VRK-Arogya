@@ -142,8 +142,8 @@ form to see it show up under that category's filtered view.
 
 ## What's next
 
-Step 9 (build order item 9) is the **customer mobile app** — React
-Native/Expo, reaching customers who don't have reliable desktop access,
-built against the same endpoints this web app already proved out
-(catalog browse, cart, booking, tracking, and now audience-based
-suggestions).
+Step 9 (build order item 9), the **customer mobile app**, is done — see
+[`docs/step-09-customer-mobile.md`](./step-09-customer-mobile.md). It
+reuses this app's endpoints (catalog browse, booking, tracking,
+audience-based suggestions) rather than the cart pattern specifically,
+which is flagged there as a follow-up.
