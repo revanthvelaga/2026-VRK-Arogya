@@ -19,7 +19,11 @@ console with five areas:
   (`BOOKED → COLLECTED → ... → DELIVERED`), including routing a sample to
   a partner lab and seeing its full status history.
 - **Catalog** — add/edit tests and packages, mark a test in-house or
-  routed to a partner lab.
+  routed to a partner lab, and set which **audience** a test/package is
+  aimed at (Everyone / Men / Women / Children / Senior Men / Senior
+  Women / Fitness) — added after this step's initial build, once the
+  customer web app (step 8) needed a real field to drive its "shop by
+  category" suggestions rather than guessing from the test name.
 - **Centers** — add/edit diagnostic centers, and manage each center's
   pickup points and their recurring visit schedules, all without leaving
   the page.

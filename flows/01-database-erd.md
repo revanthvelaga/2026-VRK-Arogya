@@ -93,6 +93,7 @@ erDiagram
         boolean is_in_house
         uuid partner_lab_id FK
         int turnaround_hours
+        enum audience "EVERYONE default | MEN | WOMEN | CHILDREN | SENIOR_MEN | SENIOR_WOMEN | FITNESS"
         boolean is_active
     }
 
@@ -102,6 +103,7 @@ erDiagram
         varchar name
         text description
         numeric price
+        enum audience "EVERYONE default | MEN | WOMEN | CHILDREN | SENIOR_MEN | SENIOR_WOMEN | FITNESS"
         boolean is_active
     }
 
@@ -172,3 +174,9 @@ erDiagram
 - `booking_items` enforces "exactly one of `test_id`/`package_id`" with a
   DB-level `CHECK` constraint in `schema.sql`; the same rule is also
   validated in `BookingsService` before the row is even built.
+- `tests.audience` / `packages.audience` back the customer web app's
+  "shop by category" browsing (Men/Women/Children/Senior Men/Senior
+  Women/Fitness) — set from the admin console's catalog forms, defaults
+  to `EVERYONE` so untagged items keep showing up regardless of which
+  category a customer browsed in from. Added after the initial catalog
+  module shipped, not part of the original step-02 schema.

@@ -8,11 +8,11 @@ in plain language, with no coding background assumed.
 **Want to see how it fits together?** [`flows/`](./flows) has pictorial
 diagrams — the full database ER diagram, the module dependency graph, a
 class-level diagram, and a sequence diagram for every feature flow
-(auth, catalog, centers/pickup points, booking), rendered inline by
-GitHub. For editable, draw.io-style boxes-and-arrows versions — every API
-endpoint traced URI → guard → DTO → controller → service → DB table →
-response, plus a server/firewall/deployment diagram — see
-[`flows/drawio/`](./flows/drawio).
+(auth, catalog, centers/pickup points, booking, sample lifecycle,
+partner-lab routing), rendered inline by GitHub. For editable,
+draw.io-style boxes-and-arrows versions — every API endpoint traced URI →
+guard → DTO → controller → service → DB table → response, plus a
+server/firewall/deployment diagram — see [`flows/drawio/`](./flows/drawio).
 
 ## Repo layout
 
