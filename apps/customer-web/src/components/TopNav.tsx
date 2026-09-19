@@ -42,7 +42,7 @@ export function TopNav() {
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
               >
                 <IconCalendar size={16} />
-                My Bookings
+                My Lab Tests
               </NavLink>
               <NavLink
                 to="/insights"

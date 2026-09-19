@@ -49,6 +49,12 @@ export class ReportsController {
     return this.reportsService.findForBooking(bookingId, user);
   }
 
+  // Registered before 'reports/:id/download' so 'mine' isn't swallowed as an :id.
+  @Get('reports/mine/values')
+  findMineValues(@CurrentUser() user: AuthenticatedUser) {
+    return this.reportsService.findAllValuesForCustomer(user.userId);
+  }
+
   @Get('reports/:id/download')
   async download(
     @CurrentUser() user: AuthenticatedUser,

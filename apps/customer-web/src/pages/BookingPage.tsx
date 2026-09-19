@@ -8,7 +8,7 @@ import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PickupPointPicker } from '../components/PickupPointPicker';
-import { IconAlertTriangle, IconCheckCircle, IconPlus, IconX } from '../components/Icons';
+import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 import { formatSlotLabel, haversineDistanceKm, suggestedSlots } from '../lib/geo';
 
@@ -65,6 +65,38 @@ export function BookingPage() {
   const [scheduledSlot, setScheduledSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied'>('idle');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  const findNearbyCenters = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus('denied');
+      return;
+    }
+    setGeoStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoStatus('granted');
+      },
+      () => setGeoStatus('denied'),
+      { timeout: 10000 },
+    );
+  };
+
+  // Every center annotated with distance from the browser's geolocation
+  // once granted, nearest first — the picker below switches from a plain
+  // dropdown to a sorted, selectable list once this is populated.
+  const centersByDistance = useMemo(() => {
+    if (!userCoords) return [];
+    return (centers ?? [])
+      .map((c) => ({
+        center: c,
+        distanceKm: haversineDistanceKm(userCoords.lat, userCoords.lng, c.location.coordinates[1], c.location.coordinates[0]),
+      }))
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+  }, [centers, userCoords]);
 
   const { data: pickupPoints } = useApi<PickupPoint[]>(
     () => (centerId ? api.get(`/pickup-points?centerId=${centerId}`) : Promise.resolve([])),
@@ -337,17 +369,65 @@ export function BookingPage() {
               {centersLoading ? (
                 <LoadingLine label="Loading centers…" />
               ) : (
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label>Center</label>
-                  <select value={centerId} onChange={(e) => setCenterId(e.target.value)} required>
-                    <option value="">Select a center…</option>
-                    {(centers ?? []).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <>
+                  {geoStatus !== 'granted' && (
+                    <button
+                      type="button"
+                      className="btn btn-small"
+                      onClick={findNearbyCenters}
+                      disabled={geoStatus === 'locating'}
+                      style={{ marginBottom: 10 }}
+                    >
+                      <IconMapPin size={13} />
+                      {geoStatus === 'locating' ? 'Finding your location…' : 'Find centers near me'}
+                    </button>
+                  )}
+                  {geoStatus === 'denied' && (
+                    <p className="field-hint" style={{ marginTop: -4, marginBottom: 10 }}>
+                      Couldn't get your location — pick a center from the list below.
+                    </p>
+                  )}
+
+                  {geoStatus === 'granted' && centersByDistance.length > 0 ? (
+                    <div className="field" style={{ marginBottom: 0 }}>
+                      <label>Center — nearest first</label>
+                      {centersByDistance.map(({ center: c, distanceKm }) => (
+                        <label key={c.id} className={`select-row${centerId === c.id ? ' selected' : ''}`}>
+                          <input
+                            type="radio"
+                            name="centerId"
+                            checked={centerId === c.id}
+                            onChange={() => setCenterId(c.id)}
+                          />
+                          <div className="select-row-label">
+                            <div className="name">{c.name}</div>
+                            <div className="meta">{distanceKm.toFixed(1)}km away{c.address ? ` — ${c.address}` : ''}</div>
+                          </div>
+                        </label>
+                      ))}
+                      <button
+                        type="button"
+                        className="btn btn-small"
+                        onClick={() => setGeoStatus('idle')}
+                        style={{ marginTop: 4 }}
+                      >
+                        Browse all centers instead
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="field" style={{ marginBottom: 0 }}>
+                      <label>Center</label>
+                      <select value={centerId} onChange={(e) => setCenterId(e.target.value)} required>
+                        <option value="">Select a center…</option>
+                        {(centers ?? []).map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

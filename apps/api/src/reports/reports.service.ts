@@ -160,6 +160,30 @@ export class ReportsService {
     return qb.getOne();
   }
 
+  // Every report value across every one of a customer's bookings, newest
+  // report first — backs the Insights page's aggregate "your results" view
+  // so a customer doesn't have to open each booking to see what's abnormal.
+  async findAllValuesForCustomer(customerId: string): Promise<
+    Array<ReportValue & { bookingId: string; reportGeneratedAt: Date }>
+  > {
+    const rows = await this.reportValuesRepo
+      .createQueryBuilder('rv')
+      .innerJoin('reports', 'r', 'r.id = rv.report_id')
+      .innerJoin('bookings', 'b', 'b.id = r.booking_id')
+      .where('b.customer_id = :customerId', { customerId })
+      .addSelect('r.booking_id', 'booking_id')
+      .addSelect('r.generated_at', 'report_generated_at')
+      .orderBy('r.generated_at', 'DESC')
+      .addOrderBy('rv.created_at', 'ASC')
+      .getRawAndEntities();
+
+    return rows.entities.map((entity, i) => ({
+      ...entity,
+      bookingId: rows.raw[i].booking_id,
+      reportGeneratedAt: rows.raw[i].report_generated_at,
+    }));
+  }
+
   async findValues(id: string, user: AuthenticatedUser): Promise<ReportValueWithTrend[]> {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');

@@ -236,6 +236,11 @@ export interface ReportValue {
   previousRecordedAt?: string;
 }
 
+export interface MyReportValue extends ReportValue {
+  bookingId: string;
+  reportGeneratedAt: string;
+}
+
 export interface Issue {
   id: string;
   bookingId: string;

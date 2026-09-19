@@ -19,7 +19,7 @@ export function MyBookingsPage() {
     <>
       <div className="page-header">
         <div>
-          <h1>My Bookings</h1>
+          <h1>My Lab Tests</h1>
           <p className="page-sub">Everything you've booked, and where each sample stands.</p>
         </div>
         <Link className="btn btn-primary btn-small" to="/book">
