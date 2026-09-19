@@ -38,7 +38,7 @@ arogya/
 - [x] Catalog module (tests, packages, admin CRUD) — [`docs/step-02-catalog.md`](./docs/step-02-catalog.md)
 - [x] Diagnostic center + pickup-point module with radius search — [`docs/step-03-centers-pickup-points.md`](./docs/step-03-centers-pickup-points.md)
 - [x] Booking flow — [`docs/step-04-bookings.md`](./docs/step-04-bookings.md)
-- [ ] Sample lifecycle + admin status updates
+- [x] Sample lifecycle + admin status updates — [`docs/step-05-sample-lifecycle.md`](./docs/step-05-sample-lifecycle.md)
 - [ ] Partner-lab routing + SLA tracking
 - [ ] Admin web dashboard
 - [ ] Customer mobile app
@@ -95,6 +95,11 @@ GET    /bookings              # ADMIN/STAFF only — all bookings
 GET    /bookings/:id          # owner, or ADMIN/STAFF
 PATCH  /bookings/:id/cancel   # owner, or ADMIN/STAFF
 PATCH  /bookings/:id/status   # ADMIN/STAFF only
+
+POST   /bookings/:bookingId/samples   # ADMIN/STAFF only — seeds one sample per booking item
+GET    /bookings/:bookingId/samples   # owner, or ADMIN/STAFF
+PATCH  /samples/:id/status            # ADMIN/STAFF only — moves one sample forward
+GET    /samples/:id/history           # owner, or ADMIN/STAFF — full status audit trail
 ```
 
 See [`docs/`](./docs) for detailed, step-by-step explanations of each module.

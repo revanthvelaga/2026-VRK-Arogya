@@ -9,8 +9,8 @@ has been built against them yet.
 erDiagram
     USERS ||--o{ DIAGNOSTIC_CENTERS : owns
     USERS ||--o{ BOOKINGS : places
-    USERS ||--o{ SAMPLES : "collected_by (schema-only)"
-    USERS ||--o{ SAMPLE_STATUS_HISTORY : "changed_by (schema-only)"
+    USERS ||--o{ SAMPLES : "collected_by"
+    USERS ||--o{ SAMPLE_STATUS_HISTORY : "changed_by"
     USERS ||--o{ REPORTS : "reviewed_by (schema-only)"
 
     DIAGNOSTIC_CENTERS ||--o{ PICKUP_POINTS : has
@@ -22,7 +22,7 @@ erDiagram
     PICKUP_POINTS ||--o{ BOOKINGS : "pickup_point_id (nullable)"
 
     PARTNER_LABS ||--o{ TESTS : "routes out-of-scope tests (schema-only)"
-    PARTNER_LABS ||--o{ SAMPLES : "processes (schema-only)"
+    PARTNER_LABS ||--o{ SAMPLES : "processes (schema-only — no PartnerLab entity yet)"
 
     TESTS ||--o{ PACKAGE_TESTS : "included in"
     PACKAGES ||--o{ PACKAGE_TESTS : includes
@@ -31,11 +31,11 @@ erDiagram
     PACKAGES ||--o{ BOOKING_ITEMS : "ordered as"
 
     BOOKINGS ||--o{ BOOKING_ITEMS : contains
-    BOOKINGS ||--o{ SAMPLES : "produces (schema-only)"
+    BOOKINGS ||--o{ SAMPLES : produces
     BOOKINGS ||--o{ REPORTS : "results in (schema-only)"
 
-    BOOKING_ITEMS ||--o| SAMPLES : "tracked by (schema-only)"
-    SAMPLES ||--o{ SAMPLE_STATUS_HISTORY : "logs (schema-only)"
+    BOOKING_ITEMS ||--o| SAMPLES : "tracked by"
+    SAMPLES ||--o{ SAMPLE_STATUS_HISTORY : logs
 
     USERS {
         uuid id PK
@@ -172,3 +172,6 @@ erDiagram
 - `booking_items` enforces "exactly one of `test_id`/`package_id`" with a
   DB-level `CHECK` constraint in `schema.sql`; the same rule is also
   validated in `BookingsService` before the row is even built.
+- `samples.routed_to_partner_lab_id` is a plain UUID column, not a
+  relation — same situation as `tests.partner_lab_id`, resolved once the
+  `PartnerLab` entity is built in the partner-lab-routing step.

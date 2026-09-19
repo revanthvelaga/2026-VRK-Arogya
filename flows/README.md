@@ -28,6 +28,7 @@ opening anything.
 | [`06-catalog-flow.md`](./06-catalog-flow.md) | Browsing the test/package catalog, and an admin adding a new one |
 | [`07-centers-pickup-points-flow.md`](./07-centers-pickup-points-flow.md) | "Find near me" radius search, and the check that rejects a pickup point placed outside its center's service area |
 | [`08-booking-flow.md`](./08-booking-flow.md) | The full booking-creation flow — every validation step, in order, across every module it touches |
+| [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md) | The physical specimen's own status chain — `BOOKED → ... → DELIVERED`, the `AT_CENTER` fork, and how initializing/advancing a sample actually runs |
 
 ## How to read these
 
