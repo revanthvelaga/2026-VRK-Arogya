@@ -1,15 +1,19 @@
 import 'reflect-metadata';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { DataSource } from 'typeorm';
 import { seedDatabase } from './seed';
+
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 async function runSeed() {
   const AppDataSource = new DataSource({
     type: 'postgres',
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
-    username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'arogya_dev',
+    username: process.env.DB_USERNAME || 'arogya',
+    password: process.env.DB_PASSWORD || 'arogya_dev_pw',
+    database: process.env.DB_NAME || 'arogya',
     entities: [__dirname + '/../**/entities/*.entity.ts'],
     synchronize: true,
   });
