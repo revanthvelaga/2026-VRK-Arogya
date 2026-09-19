@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, downloadFile, uploadFile } from '../api/client';
 import type {
   Booking,
   BookingItem,
   BookingStatus,
+  Issue,
+  IssueStatus,
   PartnerLab,
+  Report,
+  ReportValue,
   Sample,
   SampleStatus,
   SampleStatusHistoryEntry,
@@ -16,11 +20,21 @@ import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleProgress } from '../components/SampleProgress';
 import { LoadingLine } from '../components/Spinner';
-import { IconArrowLeft, IconClock, IconFlask, IconPlus } from '../components/Icons';
+import {
+  IconAlertTriangle,
+  IconArrowLeft,
+  IconClock,
+  IconFileText,
+  IconFlask,
+  IconPlus,
+  IconUpload,
+} from '../components/Icons';
 import {
   bookingStatusVariant,
   formatCurrency,
   formatDateTime,
+  issueStatusVariant,
+  paymentStatusVariant,
   sampleStatusVariant,
   statusLabel,
 } from '../lib/format';
@@ -229,6 +243,270 @@ function SampleRow({
   );
 }
 
+interface ValueRow {
+  testName: string;
+  value: string;
+  unit: string;
+}
+
+function ReportValuesForm({ report, onSaved }: { report: Report; onSaved: () => void }) {
+  const [rows, setRows] = useState<ValueRow[]>([{ testName: '', value: '', unit: '' }]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateRow = (i: number, patch: Partial<ValueRow>) => {
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  };
+  const addRow = () => setRows((prev) => [...prev, { testName: '', value: '', unit: '' }]);
+  const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const values = rows
+      .filter((r) => r.testName.trim() && r.value.trim())
+      .map((r) => ({ testName: r.testName.trim(), value: Number(r.value), unit: r.unit.trim() || undefined }));
+    if (values.length === 0) {
+      setError('Enter at least one result value');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post(`/reports/${report.id}/values`, { values });
+      setRows([{ testName: '', value: '', unit: '' }]);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save values');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+      {error && <div className="error-banner">{error}</div>}
+      <p className="page-sub" style={{ margin: '0 0 8px' }}>
+        Enter each result from the PDF — out-of-range values are flagged automatically for the customer.
+      </p>
+      {rows.map((row, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+          <input
+            placeholder="Test name (e.g. Hemoglobin)"
+            value={row.testName}
+            onChange={(e) => updateRow(i, { testName: e.target.value })}
+            style={{ flex: 2 }}
+          />
+          <input
+            placeholder="Value"
+            type="number"
+            step="0.001"
+            value={row.value}
+            onChange={(e) => updateRow(i, { value: e.target.value })}
+            style={{ flex: 1 }}
+          />
+          <input
+            placeholder="Unit"
+            value={row.unit}
+            onChange={(e) => updateRow(i, { unit: e.target.value })}
+            style={{ flex: 1 }}
+          />
+          {rows.length > 1 && (
+            <button type="button" className="btn btn-small" onClick={() => removeRow(i)}>
+              ×
+            </button>
+          )}
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" className="btn btn-small" onClick={addRow}>
+          <IconPlus size={12} /> Add row
+        </button>
+        <button type="submit" className="btn btn-primary btn-small" disabled={submitting}>
+          {submitting ? 'Saving…' : 'Save values'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ReportCard({ report }: { report: Report }) {
+  const valuesApi = useApi<ReportValue[]>(() => api.get(`/reports/${report.id}/values`), [report.id]);
+  const values = valuesApi.data ?? [];
+  const [downloading, setDownloading] = useState(false);
+  const [showValuesForm, setShowValuesForm] = useState(false);
+  const abnormalCount = values.filter((v) => v.isAbnormal).length;
+
+  const download = async () => {
+    setDownloading(true);
+    try {
+      await downloadFile(`/reports/${report.id}/download`, report.fileName);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <IconFileText size={18} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{report.fileName}</div>
+            <div className="page-sub" style={{ margin: '2px 0 0' }}>
+              Uploaded {formatDateTime(report.generatedAt)}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-small" onClick={download} disabled={downloading}>
+            {downloading ? 'Downloading…' : 'Download'}
+          </button>
+          <button className="btn btn-small" onClick={() => setShowValuesForm((v) => !v)}>
+            {showValuesForm ? 'Close' : values.length > 0 ? 'Edit values' : 'Add values'}
+          </button>
+        </div>
+      </div>
+
+      {values.length > 0 && !showValuesForm && (
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>
+            Insights
+            {abnormalCount > 0 && <span className="badge badge-red">{abnormalCount} out of range</span>}
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <tbody>
+              {values.map((v) => (
+                <tr key={v.id} style={v.isAbnormal ? { color: '#dc2626', fontWeight: 600 } : undefined}>
+                  <td style={{ padding: '3px 8px 3px 0' }}>
+                    {v.isAbnormal && <IconAlertTriangle size={12} />} {v.testName}
+                  </td>
+                  <td style={{ padding: '3px 8px' }}>
+                    {v.value} {v.unit ?? ''}
+                  </td>
+                  <td style={{ padding: '3px 0', color: v.isAbnormal ? undefined : 'var(--ink-faint)' }}>
+                    {v.normalLow != null && v.normalHigh != null
+                      ? `Normal: ${v.normalLow}–${v.normalHigh} ${v.unit ?? ''}`
+                      : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showValuesForm && <ReportValuesForm report={report} onSaved={() => { setShowValuesForm(false); valuesApi.reload(); }} />}
+    </div>
+  );
+}
+
+function ReportsSection({ bookingId }: { bookingId: string }) {
+  const reportsApi = useApi<Report[]>(() => api.get(`/bookings/${bookingId}/reports`), [bookingId]);
+  const reports = reportsApi.data ?? [];
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      await uploadFile(`/bookings/${bookingId}/reports`, file);
+      reportsApi.reload();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Reports</span>
+        <label className="btn btn-small" style={{ cursor: 'pointer' }}>
+          <IconUpload size={13} />
+          {uploading ? 'Uploading…' : 'Upload PDF'}
+          <input type="file" accept="application/pdf" hidden onChange={handleFile} disabled={uploading} />
+        </label>
+      </div>
+      {uploadError && <div className="error-banner">{uploadError}</div>}
+      {reportsApi.loading && <LoadingLine label="Loading reports…" />}
+      {!reportsApi.loading && reports.length === 0 && (
+        <div className="card">
+          <p className="page-sub" style={{ margin: 0 }}>
+            No reports uploaded yet.
+          </p>
+        </div>
+      )}
+      {reports.map((r) => (
+        <ReportCard key={r.id} report={r} />
+      ))}
+    </>
+  );
+}
+
+function IssuesSection({ bookingId }: { bookingId: string }) {
+  const issuesApi = useApi<Issue[]>(() => api.get(`/bookings/${bookingId}/issues`), [bookingId]);
+  const issues = issuesApi.data ?? [];
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const updateStatus = async (issue: Issue, status: IssueStatus) => {
+    setUpdatingId(issue.id);
+    try {
+      await api.patch(`/issues/${issue.id}/status`, { status });
+      issuesApi.reload();
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  if (!issuesApi.loading && issues.length === 0) return null;
+
+  return (
+    <>
+      <div className="section-title">Issues</div>
+      {issuesApi.loading && <LoadingLine label="Loading issues…" />}
+      {issues.map((issue) => (
+        <div className="card" key={issue.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{issue.subject}</div>
+              <p className="page-sub" style={{ margin: '4px 0 0' }}>{issue.description}</p>
+              <p className="page-sub" style={{ margin: '6px 0 0', fontSize: 12 }}>
+                Raised {formatDateTime(issue.createdAt)}
+              </p>
+            </div>
+            <StatusBadge status={issue.status} variant={issueStatusVariant(issue.status)} />
+          </div>
+          {issue.status !== 'RESOLVED' && (
+            <div className="toolbar" style={{ marginTop: 10 }}>
+              {issue.status === 'OPEN' && (
+                <button
+                  className="btn btn-small"
+                  disabled={updatingId === issue.id}
+                  onClick={() => updateStatus(issue, 'IN_PROGRESS')}
+                >
+                  Mark in progress
+                </button>
+              )}
+              <button
+                className="btn btn-small btn-primary"
+                disabled={updatingId === issue.id}
+                onClick={() => updateStatus(issue, 'RESOLVED')}
+              >
+                Resolve
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function BookingDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const bookingApi = useApi<Booking>(() => api.get(`/bookings/${id}`), [id]);
@@ -317,6 +595,10 @@ export function BookingDetailPage() {
             <label>Items</label>
             {booking.items.length}
           </div>
+          <div className="field">
+            <label>Payment</label>
+            <StatusBadge status={booking.paymentStatus} variant={paymentStatusVariant(booking.paymentStatus)} />
+          </div>
         </div>
 
         <div className="toolbar" style={{ marginTop: 4 }}>
@@ -368,6 +650,10 @@ export function BookingDetailPage() {
           onUpdated={() => samplesApi.reload()}
         />
       ))}
+
+      <ReportsSection bookingId={id} />
+
+      <IssuesSection bookingId={id} />
     </>
   );
 }

@@ -134,3 +134,32 @@ export const IconBuilding = icon(
     <line x1="15" y1="21.5" x2="15" y2="17" />
   </>,
 );
+
+export const IconFileText = icon(
+  <>
+    <path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z" />
+    <polyline points="15 3 15 8 20 8" />
+    <line x1="8.5" y1="13" x2="15.5" y2="13" />
+    <line x1="8.5" y1="17" x2="15.5" y2="17" />
+  </>,
+);
+
+export const IconAlertTriangle = icon(
+  <>
+    <path d="M12 3.5L2 20.5h20L12 3.5z" />
+    <line x1="12" y1="9.5" x2="12" y2="14" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </>,
+);
+
+export const IconUpload = icon(
+  <>
+    <path d="M4 15.5v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+    <polyline points="7.5 8 12 3.5 16.5 8" />
+    <line x1="12" y1="3.5" x2="12" y2="15" />
+  </>,
+);
+
+export const IconMessage = icon(
+  <path d="M3.5 12.5a8.5 8.5 0 1111 8.1l-4.6 1.4 1.4-4.1a8.46 8.46 0 01-7.8-5.4z" />,
+);

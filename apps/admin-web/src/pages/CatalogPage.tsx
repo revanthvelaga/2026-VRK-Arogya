@@ -26,6 +26,14 @@ function TestFormModal({
   const [name, setName] = useState(initial?.name ?? '');
   const [code, setCode] = useState(initial?.code ?? '');
   const [sampleType, setSampleType] = useState(initial?.sampleType ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [preparationInstructions, setPreparationInstructions] = useState(
+    initial?.preparationInstructions ?? '',
+  );
+  const [reportInfo, setReportInfo] = useState(initial?.reportInfo ?? '');
+  const [normalRangeLow, setNormalRangeLow] = useState(String(initial?.normalRangeLow ?? ''));
+  const [normalRangeHigh, setNormalRangeHigh] = useState(String(initial?.normalRangeHigh ?? ''));
+  const [normalRangeUnit, setNormalRangeUnit] = useState(initial?.normalRangeUnit ?? '');
   const [price, setPrice] = useState(String(initial?.price ?? ''));
   const [isInHouse, setIsInHouse] = useState(initial?.isInHouse ?? true);
   const [partnerLabId, setPartnerLabId] = useState(initial?.partnerLabId ?? '');
@@ -47,6 +55,12 @@ function TestFormModal({
         name: name.trim(),
         code: code.trim() || undefined,
         sampleType: sampleType.trim() || undefined,
+        description: description.trim() || undefined,
+        preparationInstructions: preparationInstructions.trim() || undefined,
+        reportInfo: reportInfo.trim() || undefined,
+        normalRangeLow: normalRangeLow ? Number(normalRangeLow) : undefined,
+        normalRangeHigh: normalRangeHigh ? Number(normalRangeHigh) : undefined,
+        normalRangeUnit: normalRangeUnit.trim() || undefined,
         price: Number(price),
         isInHouse,
         partnerLabId: isInHouse ? undefined : partnerLabId,
@@ -105,6 +119,61 @@ function TestFormModal({
               value={turnaroundHours}
               onChange={(e) => setTurnaroundHours(e.target.value)}
             />
+          </div>
+          <div className="field field-full">
+            <label>Description</label>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What this test checks for — shown to customers"
+            />
+          </div>
+          <div className="field field-full">
+            <label>Preparation instructions</label>
+            <input
+              value={preparationInstructions}
+              onChange={(e) => setPreparationInstructions(e.target.value)}
+              placeholder="Things to do before the test — fasting, etc."
+            />
+          </div>
+          <div className="field field-full">
+            <label>Report info</label>
+            <input
+              value={reportInfo}
+              onChange={(e) => setReportInfo(e.target.value)}
+              placeholder="What the report will contain / how to read it"
+            />
+          </div>
+          <div className="field">
+            <label>Normal range — low</label>
+            <input
+              type="number"
+              step="0.01"
+              value={normalRangeLow}
+              onChange={(e) => setNormalRangeLow(e.target.value)}
+              placeholder="optional"
+            />
+          </div>
+          <div className="field">
+            <label>Normal range — high</label>
+            <input
+              type="number"
+              step="0.01"
+              value={normalRangeHigh}
+              onChange={(e) => setNormalRangeHigh(e.target.value)}
+              placeholder="optional"
+            />
+          </div>
+          <div className="field field-full">
+            <label>Normal range unit</label>
+            <input
+              value={normalRangeUnit}
+              onChange={(e) => setNormalRangeUnit(e.target.value)}
+              placeholder="e.g. mg/dL, mIU/L"
+            />
+            <span className="field-hint">
+              Drives automatic red-flagging of out-of-range report values for this test.
+            </span>
           </div>
           <div className="field field-full">
             <label>Center</label>
