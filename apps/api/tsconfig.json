@@ -6,6 +6,11 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    // Required alongside allowSyntheticDefaultImports: that flag only silences
+    // the type error on `import X from` a CommonJS module, it does not emit the
+    // interop helper. Without this, `razorpay_1.default` is undefined at runtime
+    // and constructing it crashes the app during boot.
+    "esModuleInterop": true,
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
