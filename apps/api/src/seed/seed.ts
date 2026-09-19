@@ -140,7 +140,7 @@ export async function seedDatabase(dataSource: DataSource) {
       audience: Audience.WOMEN,
       isActive: true,
     },
-    // Elderly specific tests
+    // Senior specific tests
     {
       name: 'Bone Density Test (DEXA)',
       code: 'DEXA',
@@ -148,7 +148,7 @@ export async function seedDatabase(dataSource: DataSource) {
       price: 1299,
       isInHouse: false,
       turnaroundHours: 24,
-      audience: Audience.ELDERLY,
+      audience: Audience.SENIOR_MEN,
       isActive: true,
     },
   ]);
@@ -200,7 +200,7 @@ export async function seedDatabase(dataSource: DataSource) {
       name: "Senior Citizen Health Check",
       description: 'Comprehensive package for 60+ years - includes basic panels and specialist tests',
       price: 2499,
-      audience: Audience.ELDERLY,
+      audience: Audience.SENIOR_MEN,
       isActive: true,
       tests: tests.filter((t) =>
         ['CBC', 'LFT', 'KFT', 'LIPID', 'VITD', 'VITB12', 'TSH'].includes(t.code),

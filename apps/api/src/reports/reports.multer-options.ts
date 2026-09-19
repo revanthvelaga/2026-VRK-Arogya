@@ -1,8 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
-import { diskStorage } from 'multer';
+import { diskStorage, StorageEngine } from 'multer';
 import * as path from 'path';
+import type { Request } from 'express';
+import type { File } from 'multer';
 
 // Local disk today — apps/api/uploads/reports/, gitignored. The Report
 // entity's fileUrl column holds whatever path/URL actually stores the
@@ -14,13 +16,13 @@ fs.mkdirSync(REPORTS_DIR, { recursive: true });
 export const reportMulterOptions = {
   storage: diskStorage({
     destination: REPORTS_DIR,
-    filename: (_req, file, callback) => {
+    filename: (_req: Request, file: File, callback: (error: Error | null, filename: string) => void) => {
       const ext = path.extname(file.originalname) || '.pdf';
       callback(null, `${randomUUID()}${ext}`);
     },
   }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (_req: unknown, file: Express.Multer.File, callback: (error: Error | null, accept: boolean) => void) => {
+  fileFilter: (_req: Request, file: File, callback: (error: Error | null, accept: boolean) => void) => {
     if (file.mimetype !== 'application/pdf') {
       callback(new BadRequestException('Only PDF files are accepted'), false);
       return;
