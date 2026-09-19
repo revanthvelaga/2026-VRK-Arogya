@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
+import { PatientsService } from '../patients/patients.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
@@ -10,6 +11,7 @@ import { Role } from '../common/enums/role.enum';
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly patientsService: PatientsService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -21,6 +23,12 @@ export class AuthService {
       ...dto,
       role: Role.CUSTOMER,
     });
+    // Every account gets a SELF patient profile immediately — bookings are
+    // made for a patient, not the account directly, and this means there's
+    // always at least one to pick without extra setup before a first booking.
+    if (user.role === Role.CUSTOMER) {
+      await this.patientsService.createSelf(user.id, user.fullName);
+    }
     return this.issueTokens(user.id, user.phone, user.role);
   }
 

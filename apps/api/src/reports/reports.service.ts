@@ -163,24 +163,31 @@ export class ReportsService {
   // Every report value across every one of a customer's bookings, newest
   // report first — backs the Insights page's aggregate "your results" view
   // so a customer doesn't have to open each booking to see what's abnormal.
-  async findAllValuesForCustomer(customerId: string): Promise<
-    Array<ReportValue & { bookingId: string; reportGeneratedAt: Date }>
+  async findAllValuesForCustomer(customerId: string, patientId?: string): Promise<
+    Array<ReportValue & { bookingId: string; reportGeneratedAt: Date; reportFileName: string }>
   > {
-    const rows = await this.reportValuesRepo
+    const qb = this.reportValuesRepo
       .createQueryBuilder('rv')
       .innerJoin('reports', 'r', 'r.id = rv.report_id')
       .innerJoin('bookings', 'b', 'b.id = r.booking_id')
       .where('b.customer_id = :customerId', { customerId })
       .addSelect('r.booking_id', 'booking_id')
       .addSelect('r.generated_at', 'report_generated_at')
+      .addSelect('r.file_name', 'report_file_name')
       .orderBy('r.generated_at', 'DESC')
-      .addOrderBy('rv.created_at', 'ASC')
-      .getRawAndEntities();
+      .addOrderBy('rv.created_at', 'ASC');
+
+    if (patientId) {
+      qb.andWhere('b.patient_id = :patientId', { patientId });
+    }
+
+    const rows = await qb.getRawAndEntities();
 
     return rows.entities.map((entity, i) => ({
       ...entity,
       bookingId: rows.raw[i].booking_id,
       reportGeneratedAt: rows.raw[i].report_generated_at,
+      reportFileName: rows.raw[i].report_file_name,
     }));
   }
 

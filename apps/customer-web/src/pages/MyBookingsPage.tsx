@@ -1,6 +1,7 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Booking } from '../api/types';
+import type { Booking, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingLine } from '../components/Spinner';
@@ -10,10 +11,17 @@ import { bookingStatusVariant, formatCurrency, formatDateTime, statusLabel } fro
 
 export function MyBookingsPage() {
   const { data: bookings, loading, error } = useApi<Booking[]>(() => api.get('/bookings/mine'), []);
+  const { data: patients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const [patientFilter, setPatientFilter] = useState<string | 'ALL'>('ALL');
 
-  const sorted = [...(bookings ?? [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const patientName = useMemo(() => {
+    const map = new Map((patients ?? []).map((p) => [p.id, p.fullName]));
+    return (id?: string) => (id ? map.get(id) ?? '—' : '—');
+  }, [patients]);
+
+  const sorted = [...(bookings ?? [])]
+    .filter((b) => patientFilter === 'ALL' || b.patientId === patientFilter)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <>
@@ -26,6 +34,26 @@ export function MyBookingsPage() {
           Book a test
         </Link>
       </div>
+
+      {(patients?.length ?? 0) > 1 && (
+        <div className="chip-row">
+          <button
+            className={`filter-chip${patientFilter === 'ALL' ? ' active' : ' outline'}`}
+            onClick={() => setPatientFilter('ALL')}
+          >
+            All patients
+          </button>
+          {patients!.map((p) => (
+            <button
+              key={p.id}
+              className={`filter-chip${patientFilter === p.id ? ' active' : ' outline'}`}
+              onClick={() => setPatientFilter(p.id)}
+            >
+              {p.fullName}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
@@ -41,6 +69,7 @@ export function MyBookingsPage() {
           <table>
             <thead>
               <tr>
+                <th>Patient</th>
                 <th>Scheduled</th>
                 <th>Status</th>
                 <th>Mode</th>
@@ -52,6 +81,7 @@ export function MyBookingsPage() {
             <tbody>
               {sorted.map((b) => (
                 <tr key={b.id}>
+                  <td>{patientName(b.patientId)}</td>
                   <td>{formatDateTime(b.scheduledAt)}</td>
                   <td>
                     <StatusBadge status={b.status} variant={bookingStatusVariant(b.status)} />

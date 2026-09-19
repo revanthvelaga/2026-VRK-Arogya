@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
@@ -28,8 +29,8 @@ export class BookingsController {
   }
 
   @Get('mine')
-  findMine(@CurrentUser() user: AuthenticatedUser) {
-    return this.bookingsService.findAllForCustomer(user.userId);
+  findMine(@CurrentUser() user: AuthenticatedUser, @Query('patientId') patientId?: string) {
+    return this.bookingsService.findAllForCustomer(user.userId, patientId);
   }
 
   // Registered before ':id' so it isn't swallowed by that param route.

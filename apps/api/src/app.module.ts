@@ -14,6 +14,7 @@ import { ReportsModule } from './reports/reports.module';
 import { PaymentsModule } from './payments/payments.module';
 import { IssuesModule } from './issues/issues.module';
 import { GeocodeModule } from './geocode/geocode.module';
+import { PatientsModule } from './patients/patients.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -55,6 +56,7 @@ import { HealthController } from './health.controller';
     PaymentsModule,
     IssuesModule,
     GeocodeModule,
+    PatientsModule,
   ],
   controllers: [HealthController],
 })

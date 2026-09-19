@@ -22,6 +22,7 @@ import { PackagesService } from '../catalog/packages.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { toGeoPoint } from '../common/utils/geo.util';
+import { PatientsService } from '../patients/patients.service';
 
 interface PricedItem {
   testId?: string;
@@ -40,9 +41,15 @@ export class BookingsService {
     private readonly testsService: TestsService,
     private readonly packagesService: PackagesService,
     private readonly notificationsService: NotificationsService,
+    private readonly patientsService: PatientsService,
   ) {}
 
   async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
+    // Ownership check — a customer can only book for their own patient
+    // profiles (themselves or a family member they added), never someone
+    // else's.
+    await this.patientsService.findOneForAccount(dto.patientId, customerId);
+
     const center = await this.centersService.findOne(dto.centerId);
     if (!center.isActive) {
       throw new BadRequestException('Diagnostic center is not active');
@@ -98,6 +105,7 @@ export class BookingsService {
       const isHomeVisit = dto.collectionMode === CollectionMode.HOME_VISIT;
       const booking = manager.create(Booking, {
         customerId,
+        patientId: dto.patientId,
         centerId: dto.centerId,
         pickupPointId:
           dto.collectionMode === CollectionMode.PICKUP_POINT ? dto.pickupPointId : undefined,
@@ -156,9 +164,9 @@ export class BookingsService {
     return items;
   }
 
-  findAllForCustomer(customerId: string): Promise<Booking[]> {
+  findAllForCustomer(customerId: string, patientId?: string): Promise<Booking[]> {
     return this.bookingsRepo.find({
-      where: { customerId },
+      where: patientId ? { customerId, patientId } : { customerId },
       relations: ['items'],
       order: { createdAt: 'DESC' },
     });

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   StreamableFile,
   UploadedFile,
   UseGuards,
@@ -51,8 +52,8 @@ export class ReportsController {
 
   // Registered before 'reports/:id/download' so 'mine' isn't swallowed as an :id.
   @Get('reports/mine/values')
-  findMineValues(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.findAllValuesForCustomer(user.userId);
+  findMineValues(@CurrentUser() user: AuthenticatedUser, @Query('patientId') patientId?: string) {
+    return this.reportsService.findAllValuesForCustomer(user.userId, patientId);
   }
 
   @Get('reports/:id/download')

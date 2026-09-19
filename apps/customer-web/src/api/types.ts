@@ -16,6 +16,8 @@ export interface JwtPayload {
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 export type CollectionMode = 'WALK_IN' | 'PICKUP_POINT' | 'HOME_VISIT';
+export type Relationship = 'SELF' | 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
 export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
 
@@ -60,9 +62,21 @@ export interface BookingItem {
   price: string | number;
 }
 
+export interface Patient {
+  id: string;
+  accountId: string;
+  fullName: string;
+  relationship: Relationship;
+  gender?: Gender;
+  dateOfBirth?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Booking {
   id: string;
   customerId: string;
+  patientId?: string;
   centerId: string;
   pickupPointId?: string;
   collectionMode: CollectionMode;
@@ -239,6 +253,7 @@ export interface ReportValue {
 export interface MyReportValue extends ReportValue {
   bookingId: string;
   reportGeneratedAt: string;
+  reportFileName: string;
 }
 
 export interface Issue {

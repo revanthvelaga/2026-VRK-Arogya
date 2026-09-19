@@ -7,6 +7,7 @@ import { BookingsController } from './bookings.controller';
 import { CatalogModule } from '../catalog/catalog.module';
 import { CentersModule } from '../centers/centers.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PatientsModule } from '../patients/patients.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     CatalogModule,
     CentersModule,
     NotificationsModule,
+    PatientsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

@@ -80,12 +80,19 @@ async function main() {
   const cbc = tests.find((t) => t.name.includes('Complete Blood Count'));
   if (!cbc) throw new Error('CBC test not found — run `npm run seed` first.');
 
+  // Every account gets a SELF patient profile automatically at registration
+  // — bookings are made for a patient, not the account directly.
+  const patients = await api('GET', '/patients/mine', undefined, customerAuth.accessToken);
+  const selfPatient = patients.find((p) => p.relationship === 'SELF') ?? patients[0];
+  if (!selfPatient) throw new Error('No patient profile found for the new customer.');
+
   console.log('Creating a booking...');
   const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const booking = await api(
     'POST',
     '/bookings',
     {
+      patientId: selfPatient.id,
       centerId: center.id,
       collectionMode: 'WALK_IN',
       scheduledAt,

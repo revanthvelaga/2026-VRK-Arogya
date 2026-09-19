@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CollectionMode, DiagnosticCenter, GeocodeResult, Package, PickupPoint, Test } from '../api/types';
+import type { CollectionMode, DiagnosticCenter, GeocodeResult, Package, Patient, PickupPoint, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PickupPointPicker } from '../components/PickupPointPicker';
+import { PatientPicker } from '../components/PatientPicker';
 import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 import { formatSlotLabel, haversineDistanceKm, suggestedSlots } from '../lib/geo';
@@ -45,6 +46,8 @@ export function BookingPage() {
     () => api.get('/centers'),
     [],
   );
+  const { data: patients, reload: reloadPatients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const [patientId, setPatientId] = useState('');
 
   const cartTestIds = cart.items.filter((i) => i.kind === 'test').map((i) => i.id);
   const cartPackageIds = cart.items.filter((i) => i.kind === 'package').map((i) => i.id);
@@ -158,6 +161,14 @@ export function BookingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centers]);
 
+  useEffect(() => {
+    if (!patientId && patients && patients.length > 0) {
+      const self = patients.find((p) => p.relationship === 'SELF');
+      setPatientId(self?.id ?? patients[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patients]);
+
   const handleAddressSelect = (result: GeocodeResult) => {
     setHomeAddress(result);
     setHomeAddressText(result.displayName);
@@ -252,6 +263,10 @@ export function BookingPage() {
       setError('Select at least one test or package.');
       return;
     }
+    if (!patientId) {
+      setError('Choose who this booking is for.');
+      return;
+    }
     if (!centerId) {
       setError('Choose a diagnostic center.');
       return;
@@ -276,6 +291,7 @@ export function BookingPage() {
     setSubmitting(true);
     try {
       const booking = await api.post<{ id: string }>('/bookings', {
+        patientId,
         centerId,
         collectionMode,
         pickupPointId: collectionMode === 'PICKUP_POINT' ? pickupPointId : undefined,
@@ -310,7 +326,24 @@ export function BookingPage() {
             {error && <div className="error-banner">{error}</div>}
 
             <div className="card">
-              <div className="card-title">1. Your selection</div>
+              <div className="card-title">1. Who is this for?</div>
+              {!patients ? (
+                <LoadingLine label="Loading patients…" />
+              ) : (
+                <PatientPicker
+                  patients={patients}
+                  selectedId={patientId}
+                  onSelect={setPatientId}
+                  onPatientAdded={(p) => {
+                    reloadPatients();
+                    setPatientId(p.id);
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="card">
+              <div className="card-title">2. Your selection</div>
               {items.length === 0 ? (
                 <LoadingLine label="Loading catalog…" />
               ) : selected.length === 0 ? (
@@ -365,7 +398,7 @@ export function BookingPage() {
             </div>
 
             <div className="card">
-              <div className="card-title">2. Diagnostic center</div>
+              <div className="card-title">3. Diagnostic center</div>
               {centersLoading ? (
                 <LoadingLine label="Loading centers…" />
               ) : (
@@ -432,7 +465,7 @@ export function BookingPage() {
             </div>
 
             <div className="card">
-              <div className="card-title">3. Collection</div>
+              <div className="card-title">4. Collection</div>
               <div className="form-grid">
                 {COLLECTION_MODES.map((m) => (
                   <label
@@ -635,7 +668,7 @@ export function BookingPage() {
             <button
               className="btn btn-primary"
               type="submit"
-              disabled={submitting || selected.length === 0 || !locationReady || !scheduledDate || !scheduledSlot}
+              disabled={submitting || !patientId || selected.length === 0 || !locationReady || !scheduledDate || !scheduledSlot}
               style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
             >
               {submitting ? 'Booking…' : 'Confirm booking'}

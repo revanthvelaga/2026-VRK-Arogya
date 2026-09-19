@@ -16,6 +16,9 @@ import { BookingItemDto } from './booking-item.dto';
 
 export class CreateBookingDto {
   @IsUUID()
+  patientId: string;
+
+  @IsUUID()
   centerId: string;
 
   @IsEnum(CollectionMode)

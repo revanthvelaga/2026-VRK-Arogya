@@ -19,6 +19,12 @@ export class Booking {
   @Column({ name: 'customer_id' })
   customerId: string;
 
+  // Nullable only so existing rows from before patient profiles existed
+  // don't break — every new booking always sets this (enforced in
+  // BookingsService.create, not the DTO, since ownership needs a lookup).
+  @Column({ name: 'patient_id', nullable: true })
+  patientId?: string;
+
   @Column({ name: 'center_id' })
   centerId: string;
 
