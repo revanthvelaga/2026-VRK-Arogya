@@ -64,6 +64,32 @@ graph LR
 
 ## How it flows
 
+### Initialize samples for a booking — start to end
+
+```mermaid
+graph TD
+    Start(["POST /bookings/:id/samples<br/>(ADMIN/STAFF only)"]) --> AlreadyInit{"Samples already<br/>exist for this booking?"}
+    AlreadyInit -->|yes| E400(["400: already initialized"])
+    AlreadyInit -->|no| Insert["INSERT samples (status=BOOKED) x N<br/>— one per booking_item<br/>INSERT sample_status_history x N"]
+    Insert --> E201(["201 Created + Sample[]"])
+```
+
+### Advance a sample's status — start to end
+
+```mermaid
+graph TD
+    Start(["PATCH /samples/:id/status<br/>{ status, notes? }<br/>(ADMIN/STAFF only)"]) --> Load["Load current sample"]
+    Load --> Allowed{"requested status in<br/>ALLOWED_TRANSITIONS[current]?"}
+    Allowed -->|no| E400(["400: cannot move<br/>from X to Y"])
+    Allowed -->|yes| ToCollected{"moving to<br/>COLLECTED?"}
+    ToCollected -->|yes| Stamp["stamp collectedBy<br/>+ collectedAt"]
+    ToCollected -->|no| Update
+    Stamp --> Update["UPDATE samples SET status, ...<br/>INSERT sample_status_history"]
+    Update --> E200(["200 OK + Sample"])
+```
+
+## Sequence detail (which service calls which)
+
 ```mermaid
 sequenceDiagram
     actor S as Staff

@@ -43,21 +43,52 @@ below.
 | 3 | `expectedResultAt` computed as `now + (turnaroundHoursOverride ?? partnerLab.defaultTurnaroundHours)` hours | not a rejection — the actual SLA target being set |
 | 4 | The `AT_CENTER → ROUTED_TO_PARTNER_LAB` transition itself is still checked against `ALLOWED_TRANSITIONS` (step 5's rule) | `400 Bad Request` if the sample isn't currently `AT_CENTER` |
 
-### SLA classification — read-time decision tree
+The SLA classification decision tree (`NOT_TRACKED`/`ON_TIME`/`BREACHED`/
+`IN_PROGRESS`/`AT_RISK`) is folded into the "Reading the SLA summary"
+flowchart below rather than shown twice.
+
+## How it flows
+
+### Routing a sample — start to end
 
 ```mermaid
 graph TD
-    Start{expectedResultAt set?} -->|no| NotTracked([NOT_TRACKED])
-    Start -->|yes| HasResult{reached RESULT_READY?}
-    HasResult -->|yes| Compare{actual <= expected?}
-    Compare -->|yes| OnTime([ON_TIME])
-    Compare -->|no| Breached([BREACHED])
-    HasResult -->|not yet| NowCheck{now > expected?}
-    NowCheck -->|no| InProgress([IN_PROGRESS])
-    NowCheck -->|yes| AtRisk([AT_RISK])
+    Start(["PATCH /samples/:id/status<br/>{ status: ROUTED_TO_PARTNER_LAB, partnerLabId }<br/>(ADMIN/STAFF only)"]) --> TransitionOk{"sample currently<br/>AT_CENTER?"}
+    TransitionOk -->|no| E400a(["400: invalid transition"])
+    TransitionOk -->|yes| LabIdSet{"partnerLabId set?"}
+    LabIdSet -->|no| E400b(["400: partnerLabId required"])
+    LabIdSet -->|yes| LabFound{"lab id resolves to<br/>a real partner lab?"}
+    LabFound -->|no| E404(["404 Not Found"])
+    LabFound -->|yes| Target["expectedResultAt = now +<br/>(turnaroundHoursOverride ??<br/>partnerLab.defaultTurnaroundHours)"]
+    Target --> Update["UPDATE samples<br/>SET status, routed_to_partner_lab_id, expected_result_at<br/>INSERT sample_status_history"]
+    Update --> E200(["200 OK + Sample { expectedResultAt }"])
 ```
 
-## How it flows
+### Reading the SLA summary — start to end
+
+```mermaid
+graph TD
+    Start(["GET /partner-labs/:id/sla<br/>(ADMIN/STAFF only)"]) --> Fetch["SELECT samples WHERE<br/>routed_to_partner_lab_id = :id"]
+    Fetch --> Loop["for each sample..."]
+    Loop --> HasTarget{"expectedResultAt set?"}
+    HasTarget -->|no| NotTracked(["NOT_TRACKED"])
+    HasTarget -->|yes| Reached{"reached<br/>RESULT_READY?"}
+    Reached -->|yes| Compare{"actual <= expected?"}
+    Compare -->|yes| OnTime(["ON_TIME"])
+    Compare -->|no| Breached(["BREACHED"])
+    Reached -->|"not yet"| NowCmp{"now > expected?"}
+    NowCmp -->|no| InProgress(["IN_PROGRESS"])
+    NowCmp -->|yes| AtRisk(["AT_RISK"])
+    NotTracked --> More{"more samples?"}
+    OnTime --> More
+    Breached --> More
+    InProgress --> More
+    AtRisk --> More
+    More -->|yes| Loop
+    More -->|no| E200(["200 OK + summary counts + per-sample rows"])
+```
+
+## Sequence detail (which service calls which)
 
 ### Routing a sample (setting the SLA target)
 

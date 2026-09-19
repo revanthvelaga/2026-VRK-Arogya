@@ -64,7 +64,44 @@ or already-`CANCELLED` booking rejects further cancellation with
 `400 Bad Request`. This is a **separate, coarser** status chain from each
 sample's own lifecycle — see [`09-sample-lifecycle-flow.md`](./09-sample-lifecycle-flow.md).
 
-## How it flows
+## How it flows — start to end
+
+```mermaid
+graph TD
+    Start(["POST /bookings<br/>{ centerId, collectionMode, pickupPointId?,<br/>scheduledAt, items[] }"]) --> FindCenter{"centerId resolves to<br/>a real center?"}
+    FindCenter -->|no| E404a(["404 Not Found"])
+    FindCenter -->|yes| CenterActive{"center.isActive?"}
+    CenterActive -->|no| E400a(["400: center not active"])
+    CenterActive -->|yes| Mode{"collectionMode?"}
+
+    Mode -->|PICKUP_POINT| PPSet{"pickupPointId set?"}
+    PPSet -->|no| E400b(["400: pickupPointId required"])
+    PPSet -->|yes| PPValid{"pickup point active AND<br/>belongs to this center?"}
+    PPValid -->|no| E400c(["400: pickup point invalid"])
+    PPValid -->|yes| DateCheck
+
+    Mode -->|"WALK_IN or<br/>HOME_VISIT"| PPWrong{"pickupPointId<br/>set anyway?"}
+    PPWrong -->|yes| E400d(["400: pickupPointId not valid<br/>for this mode"])
+    PPWrong -->|no| DateCheck
+
+    DateCheck{"scheduledAt is a valid,<br/>future date/time?"}
+    DateCheck -->|no| E400e(["400: invalid scheduledAt"])
+    DateCheck -->|yes| ItemShape
+
+    ItemShape{"per item: exactly one of<br/>testId / packageId set?"}
+    ItemShape -->|no| E400f(["400: exactly one required"])
+    ItemShape -->|yes| ItemFound{"item found<br/>and active?"}
+    ItemFound -->|no| E404b(["404 / 400"])
+    ItemFound -->|yes| Price["price = today's catalog price<br/>(never the request body)"]
+    Price --> MoreItems{"more items<br/>to check?"}
+    MoreItems -->|yes| ItemShape
+    MoreItems -->|no| Total["totalAmount = sum of item prices"]
+
+    Total --> Txn["Transaction:<br/>INSERT bookings (status=PENDING)<br/>INSERT booking_items x N"]
+    Txn --> E201(["201 Created + Booking"])
+```
+
+## Sequence detail (which service calls which)
 
 ```mermaid
 sequenceDiagram

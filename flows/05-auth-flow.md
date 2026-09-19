@@ -44,6 +44,38 @@ the plaintext password never reaches the `users` table.
 
 ## How it flows
 
+### Register — start to end
+
+```mermaid
+graph TD
+    Start(["POST /auth/register<br/>{ fullName, phone, password }"]) --> Validate{"DTO valid?<br/>(class-validator)"}
+    Validate -->|no| E400(["400 Bad Request"])
+    Validate -->|yes| CheckPhone{"Phone already<br/>registered?"}
+    CheckPhone -->|yes| E409(["409 Conflict"])
+    CheckPhone -->|no| Hash["bcrypt.hash(password, 10)"]
+    Hash --> Insert["INSERT INTO users<br/>role forced to CUSTOMER"]
+    Insert --> Sign["Sign accessToken (15m)<br/>+ refreshToken (7d)"]
+    Sign --> E201(["201 Created<br/>{ accessToken, refreshToken, role }"])
+```
+
+### Login — start to end
+
+```mermaid
+graph TD
+    Start(["POST /auth/login<br/>{ phone, password }"]) --> FindUser{"User with this<br/>phone exists?"}
+    FindUser -->|no| E401a(["401 Unauthorized"])
+    FindUser -->|yes| CheckPw{"bcrypt.compare(password,<br/>user.passwordHash) matches?"}
+    CheckPw -->|no| E401b(["401 Unauthorized"])
+    CheckPw -->|yes| Sign["Sign accessToken (15m)<br/>+ refreshToken (7d)"]
+    Sign --> E200(["200 OK<br/>{ accessToken, refreshToken, role }"])
+```
+
+## Sequence detail (which service calls which)
+
+The flowcharts above are the actual decision path; these sequence
+diagrams add which service/table each step actually calls, if you want
+that detail too.
+
 ### Register
 
 ```mermaid

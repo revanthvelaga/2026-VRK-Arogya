@@ -54,6 +54,32 @@ booking flow for prices — see [`08-booking-flow.md`](./08-booking-flow.md).
 
 ## How it flows
 
+### Nearby search — start to end
+
+```mermaid
+graph TD
+    Start(["GET /pickup-points/nearby<br/>?lat=&lng=&radiusKm="]) --> Query["SELECT *, ST_Distance(location, point)/1000<br/>WHERE is_active = true<br/>AND ST_DWithin(location, point, radiusKm*1000)"]
+    Query --> Sort["ORDER BY distance ASC"]
+    Sort --> E200(["200 OK, nearest first"])
+```
+
+### Admin adds a pickup point — start to end
+
+```mermaid
+graph TD
+    Start(["POST /pickup-points<br/>{ centerId, name, latitude, longitude }"]) --> Auth{"Valid JWT AND<br/>role === ADMIN?"}
+    Auth -->|no| E401(["401 / 403"])
+    Auth -->|yes| FindCenter{"centerId resolves to<br/>a real center?"}
+    FindCenter -->|no| E404(["404 Not Found"])
+    FindCenter -->|yes| Distance["ST_Distance(center point, pickup point)"]
+    Distance --> Radius{"distance <=<br/>center.serviceRadiusKm?"}
+    Radius -->|no| E400(["400 Bad Request<br/>outside service radius"])
+    Radius -->|yes| Insert["INSERT pickup_points<br/>(..., distance_km)"]
+    Insert --> E201(["201 Created"])
+```
+
+## Sequence detail (which service calls which)
+
 ### Nearby search (customer finding a pickup point)
 
 ```mermaid

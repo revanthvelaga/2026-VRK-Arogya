@@ -26,10 +26,14 @@ column below is the actual mapping; each `.md` file also links its match
 at the top. If you're looking for "the diagram for step N," use this
 table, not matching numbers.
 
-As of this pass, every step-flow file (05–10) also opens with a short
-**Objective / Classes & entities used / Tables used / Conditions
-checked** block before its diagrams, so you don't have to read the
-sequence diagram just to find out what tables or classes are involved.
+Every step-flow file (05–10) opens with a short **Objective / Classes &
+entities used / Tables used / Conditions checked** block, so you don't
+have to read a diagram just to find out what tables or classes are
+involved. "How it flows" is then a plain top-to-bottom **flowchart**
+(start → decision diamonds → end) for each endpoint — the sequence
+diagrams (which service calls which, in order) are further down under
+"Sequence detail," as optional extra depth, not the main way to follow
+the logic.
 
 | File | Pairs with (drawio) | What it shows |
 |---|---|---|

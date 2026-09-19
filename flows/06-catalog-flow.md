@@ -41,6 +41,40 @@ existing tests — never returning a deactivated item to a public browse.
 
 ## How it flows
 
+### Public browse — start to end
+
+```mermaid
+graph TD
+    Start(["GET /catalog/tests<br/>or /catalog/packages"]) --> Query["SELECT ... WHERE is_active = true<br/>(packages also JOIN package_tests, tests)"]
+    Query --> E200(["200 OK + JSON"])
+```
+
+### Admin creates a package — start to end
+
+```mermaid
+graph TD
+    Start(["POST /catalog/packages<br/>{ name, price, testIds[] }"]) --> Auth{"Valid JWT AND<br/>role === ADMIN?"}
+    Auth -->|no| E401(["401 / 403"])
+    Auth -->|yes| Resolve["SELECT tests WHERE id IN (testIds)"]
+    Resolve --> Note["ids that don't match a real<br/>row are silently dropped"]
+    Note --> Insert["INSERT packages<br/>INSERT package_tests x N"]
+    Insert --> E201(["201 Created + Package (with .tests)"])
+```
+
+### Admin removes a test — start to end
+
+```mermaid
+graph TD
+    Start(["DELETE /catalog/tests/:id"]) --> Auth{"Valid JWT AND<br/>role === ADMIN?"}
+    Auth -->|no| E401(["401 / 403"])
+    Auth -->|yes| Find{"Test with this<br/>id exists?"}
+    Find -->|no| E404(["404 Not Found"])
+    Find -->|yes| SoftDelete["UPDATE tests<br/>SET is_active = false<br/>(row kept, not deleted)"]
+    SoftDelete --> E200(["200 OK"])
+```
+
+## Sequence detail (which service calls which)
+
 ### Public browse (no login needed)
 
 ```mermaid
