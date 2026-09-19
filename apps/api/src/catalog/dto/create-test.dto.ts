@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -7,6 +8,7 @@ import {
   IsUUID,
   Min,
 } from 'class-validator';
+import { Audience } from '../../common/enums/audience.enum';
 
 export class CreateTestDto {
   @IsString()
@@ -40,4 +42,8 @@ export class CreateTestDto {
   @IsOptional()
   @IsUUID()
   centerId?: string;
+
+  @IsOptional()
+  @IsEnum(Audience)
+  audience?: Audience;
 }

@@ -7,6 +7,7 @@ import {
   JoinTable,
 } from 'typeorm';
 import { Test } from './test.entity';
+import { Audience } from '../../common/enums/audience.enum';
 
 @Entity('packages')
 export class Package {
@@ -24,6 +25,9 @@ export class Package {
 
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: number;
+
+  @Column({ type: 'enum', enum: Audience, default: Audience.EVERYONE })
+  audience: Audience;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

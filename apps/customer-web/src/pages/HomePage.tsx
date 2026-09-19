@@ -6,6 +6,8 @@ import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
+import { SEGMENTS } from '../lib/segments';
+import { telHref, whatsappHref } from '../lib/support';
 import {
   IconBag,
   IconBox,
@@ -14,6 +16,8 @@ import {
   IconFlask,
   IconLayers,
   IconMapPin,
+  IconMessage,
+  IconPhone,
   IconPlus,
   IconSearch,
   IconShieldCheck,
@@ -27,11 +31,17 @@ function artFor(id: string) {
   return ART_CLASSES[h % ART_CLASSES.length];
 }
 
-const QUICK_ACTIONS = [
-  { to: '/catalog', label: 'Full body packages', icon: IconLayers, art: 'art-5' },
-  { to: '/centers', label: 'Centers near me', icon: IconMapPin, art: 'art-2' },
-  { to: '/bookings', label: 'Track a sample', icon: IconCheckCircle, art: 'art-3' },
-  { to: '/catalog', label: 'Browse all tests', icon: IconFlask, art: 'art-6' },
+type QuickAction =
+  | { kind: 'link'; to: string; label: string; icon: typeof IconLayers; art: string }
+  | { kind: 'external'; href: string; label: string; icon: typeof IconLayers; art: string };
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { kind: 'link', to: '/catalog', label: 'Full body packages', icon: IconLayers, art: 'art-5' },
+  { kind: 'external', href: telHref(), label: 'Book via call', icon: IconPhone, art: 'art-4' },
+  { kind: 'external', href: whatsappHref(), label: 'Book via WhatsApp', icon: IconMessage, art: 'art-3' },
+  { kind: 'link', to: '/centers', label: 'Centers near me', icon: IconMapPin, art: 'art-2' },
+  { kind: 'link', to: '/bookings', label: 'Track a sample', icon: IconCheckCircle, art: 'art-6' },
+  { kind: 'link', to: '/insights', label: 'My insights', icon: IconBag, art: 'art-1' },
 ];
 
 function TestTile({ test, index }: { test: Test; index: number }) {
@@ -129,12 +139,31 @@ export function HomePage() {
       </div>
 
       <div className="quick-actions">
-        {QUICK_ACTIONS.map((a) => (
-          <Link className="quick-action" to={a.to} key={a.label}>
-            <div className={`quick-action-icon ${a.art}`} style={{ color: '#fff' }}>
-              <a.icon size={18} />
-            </div>
-            <span>{a.label}</span>
+        {QUICK_ACTIONS.map((a) =>
+          a.kind === 'link' ? (
+            <Link className="quick-action" to={a.to} key={a.label}>
+              <div className={`quick-action-icon ${a.art}`} style={{ color: '#fff' }}>
+                <a.icon size={18} />
+              </div>
+              <span>{a.label}</span>
+            </Link>
+          ) : (
+            <a className="quick-action" href={a.href} key={a.label} target="_blank" rel="noreferrer">
+              <div className={`quick-action-icon ${a.art}`} style={{ color: '#fff' }}>
+                <a.icon size={18} />
+              </div>
+              <span>{a.label}</span>
+            </a>
+          ),
+        )}
+      </div>
+
+      <div className="section-title">Shop by category</div>
+      <div className="segment-row">
+        {SEGMENTS.map((s) => (
+          <Link className="segment-tile" to={`/catalog?audience=${s.audience}`} key={s.audience}>
+            <img className="segment-photo" src={s.photo} alt={s.label} loading="lazy" />
+            <span>{s.label}</span>
           </Link>
         ))}
       </div>

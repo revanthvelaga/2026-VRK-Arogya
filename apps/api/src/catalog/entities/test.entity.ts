@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { PartnerLab } from '../../partner-labs/entities/partner-lab.entity';
+import { Audience } from '../../common/enums/audience.enum';
 
 @Entity('tests')
 export class Test {
@@ -41,6 +42,12 @@ export class Test {
 
   @Column({ name: 'turnaround_hours', default: 24 })
   turnaroundHours: number;
+
+  // Drives the customer site's "shop by category" suggestions — most
+  // tests are EVERYONE (no particular audience), not every test needs
+  // tagging to a segment.
+  @Column({ type: 'enum', enum: Audience, default: Audience.EVERYONE })
+  audience: Audience;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

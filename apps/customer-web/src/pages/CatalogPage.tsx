@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Package, Test } from '../api/types';
+import type { Audience, Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
-import { IconBox, IconCheckCircle, IconFlask, IconPlus, IconSearch } from '../components/Icons';
+import { IconBox, IconCheckCircle, IconFlask, IconPlus, IconSearch, IconX } from '../components/Icons';
+import { audienceLabel } from '../lib/segments';
 import { formatCurrency } from '../lib/format';
 
 const ART_CLASSES = ['art-1', 'art-2', 'art-3', 'art-4', 'art-5', 'art-6'];
@@ -13,6 +15,11 @@ function artFor(id: string) {
   let h = 0;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return ART_CLASSES[h % ART_CLASSES.length];
+}
+
+function matchesAudience(itemAudience: Audience, filter: Audience | null): boolean {
+  if (!filter) return true;
+  return itemAudience === filter || itemAudience === 'EVERYONE';
 }
 
 function TestCard({ test, index }: { test: Test; index: number }) {
@@ -111,7 +118,7 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
   );
 }
 
-function TestsSection() {
+function TestsSection({ audience }: { audience: Audience | null }) {
   const { data: tests, loading, error } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
   const [query, setQuery] = useState('');
   const [sampleType, setSampleType] = useState<string | null>(null);
@@ -124,11 +131,12 @@ function TestsSection() {
 
   const filtered = useMemo(() => {
     return (tests ?? []).filter((t) => {
+      if (!matchesAudience(t.audience, audience)) return false;
       if (sampleType && t.sampleType !== sampleType) return false;
       if (query && !t.name.toLowerCase().includes(query.toLowerCase())) return false;
       return true;
     });
-  }, [tests, sampleType, query]);
+  }, [tests, sampleType, query, audience]);
 
   if (loading) return <LoadingLine label="Loading tests…" />;
   if (error) return <div className="error-banner">{error}</div>;
@@ -166,7 +174,10 @@ function TestsSection() {
       )}
 
       {filtered.length === 0 ? (
-        <EmptyState icon={<IconFlask size={20} />} title="No tests match your search" />
+        <EmptyState
+          icon={<IconFlask size={20} />}
+          title={audience ? `No tests suggested for ${audienceLabel(audience)} yet` : 'No tests match your search'}
+        />
       ) : (
         <div className="catalog-grid">
           {filtered.map((t, i) => (
@@ -178,18 +189,30 @@ function TestsSection() {
   );
 }
 
-function PackagesSection() {
+function PackagesSection({ audience }: { audience: Audience | null }) {
   const { data: packages, loading, error } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
+
+  const filtered = useMemo(
+    () => (packages ?? []).filter((p) => matchesAudience(p.audience, audience)),
+    [packages, audience],
+  );
 
   if (loading) return <LoadingLine label="Loading packages…" />;
   if (error) return <div className="error-banner">{error}</div>;
-  if (!packages || packages.length === 0) {
-    return <EmptyState icon={<IconBox size={20} />} title="No packages available right now" />;
+  if (filtered.length === 0) {
+    return (
+      <EmptyState
+        icon={<IconBox size={20} />}
+        title={
+          audience ? `No packages suggested for ${audienceLabel(audience)} yet` : 'No packages available right now'
+        }
+      />
+    );
   }
 
   return (
     <div className="catalog-grid">
-      {packages.map((p, i) => (
+      {filtered.map((p, i) => (
         <PackageCard pkg={p} key={p.id} index={i} />
       ))}
     </div>
@@ -198,6 +221,8 @@ function PackagesSection() {
 
 export function CatalogPage() {
   const [tab, setTab] = useState<'tests' | 'packages'>('tests');
+  const [searchParams] = useSearchParams();
+  const audience = (searchParams.get('audience') as Audience | null) ?? null;
 
   return (
     <>
@@ -207,6 +232,18 @@ export function CatalogPage() {
           <p className="page-sub">Every test and package, priced up front.</p>
         </div>
       </div>
+
+      {audience && (
+        <div className="segment-banner">
+          <span>
+            Showing tests recommended for <strong>{audienceLabel(audience)}</strong>
+          </span>
+          <Link className="btn btn-small" to="/catalog">
+            <IconX size={12} />
+            Clear
+          </Link>
+        </div>
+      )}
 
       <div className="tabs">
         <button className={`tab-btn${tab === 'tests' ? ' active' : ''}`} onClick={() => setTab('tests')}>
@@ -220,7 +257,7 @@ export function CatalogPage() {
         </button>
       </div>
 
-      {tab === 'tests' ? <TestsSection /> : <PackagesSection />}
+      {tab === 'tests' ? <TestsSection audience={audience} /> : <PackagesSection audience={audience} />}
     </>
   );
 }

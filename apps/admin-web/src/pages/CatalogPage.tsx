@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
-import type { DiagnosticCenter, PartnerLab, Package, Test } from '../api/types';
+import type { Audience, DiagnosticCenter, PartnerLab, Package, Test } from '../api/types';
+import { AUDIENCE_OPTIONS } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { Modal } from '../components/Modal';
 import { LoadingLine } from '../components/Spinner';
@@ -30,6 +31,7 @@ function TestFormModal({
   const [partnerLabId, setPartnerLabId] = useState(initial?.partnerLabId ?? '');
   const [turnaroundHours, setTurnaroundHours] = useState(String(initial?.turnaroundHours ?? 24));
   const [centerId, setCenterId] = useState(initial?.centerId ?? '');
+  const [audience, setAudience] = useState<Audience>(initial?.audience ?? 'EVERYONE');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +52,7 @@ function TestFormModal({
         partnerLabId: isInHouse ? undefined : partnerLabId,
         turnaroundHours: turnaroundHours ? Number(turnaroundHours) : undefined,
         centerId: centerId || undefined,
+        audience,
       };
       if (initial) await api.patch(`/catalog/tests/${initial.id}`, body);
       else await api.post('/catalog/tests', body);
@@ -114,6 +117,17 @@ function TestFormModal({
               ))}
             </select>
           </div>
+          <div className="field field-full">
+            <label>Audience</label>
+            <select value={audience} onChange={(e) => setAudience(e.target.value as Audience)}>
+              {AUDIENCE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <span className="field-hint">Drives "shop by category" suggestions on the customer site.</span>
+          </div>
           <div className="field checkbox-field field-full">
             <input
               type="checkbox"
@@ -170,6 +184,7 @@ function PackageFormModal({
   const [price, setPrice] = useState(String(initial?.price ?? ''));
   const [centerId, setCenterId] = useState(initial?.centerId ?? '');
   const [testIds, setTestIds] = useState<string[]>(initial?.tests?.map((t) => t.id) ?? []);
+  const [audience, setAudience] = useState<Audience>(initial?.audience ?? 'EVERYONE');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -191,6 +206,7 @@ function PackageFormModal({
         price: Number(price),
         centerId: centerId || undefined,
         testIds,
+        audience,
       };
       if (initial) await api.patch(`/catalog/packages/${initial.id}`, body);
       else await api.post('/catalog/packages', body);
@@ -234,6 +250,16 @@ function PackageFormModal({
               {centers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Audience</label>
+            <select value={audience} onChange={(e) => setAudience(e.target.value as Audience)}>
+              {AUDIENCE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
@@ -320,6 +346,7 @@ function TestsPanel({ centers, partnerLabs }: { centers: DiagnosticCenter[]; par
                 <th>Price</th>
                 <th>Turnaround</th>
                 <th>Routing</th>
+                <th>Audience</th>
                 <th></th>
               </tr>
             </thead>
@@ -337,6 +364,17 @@ function TestsPanel({ centers, partnerLabs }: { centers: DiagnosticCenter[]; par
                     {t.isInHouse
                       ? 'In-house'
                       : (partnerLabs.find((l) => l.id === t.partnerLabId)?.name ?? 'Partner lab')}
+                  </td>
+                  <td>
+                    {t.audience === 'EVERYONE' ? (
+                      <span className="page-sub" style={{ margin: 0 }}>
+                        —
+                      </span>
+                    ) : (
+                      <span className="badge badge-accent">
+                        {AUDIENCE_OPTIONS.find((o) => o.value === t.audience)?.label ?? t.audience}
+                      </span>
+                    )}
                   </td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button
@@ -356,7 +394,7 @@ function TestsPanel({ centers, partnerLabs }: { centers: DiagnosticCenter[]; par
               ))}
               {(tests ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <EmptyState
                       icon={<IconBox size={20} />}
                       title="No tests yet"
@@ -424,6 +462,7 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
                 <th>Name</th>
                 <th>Tests included</th>
                 <th>Price</th>
+                <th>Audience</th>
                 <th></th>
               </tr>
             </thead>
@@ -440,6 +479,17 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
                   </td>
                   <td>{p.tests?.length ?? '—'}</td>
                   <td>{formatCurrency(p.price)}</td>
+                  <td>
+                    {p.audience === 'EVERYONE' ? (
+                      <span className="page-sub" style={{ margin: 0 }}>
+                        —
+                      </span>
+                    ) : (
+                      <span className="badge badge-accent">
+                        {AUDIENCE_OPTIONS.find((o) => o.value === p.audience)?.label ?? p.audience}
+                      </span>
+                    )}
+                  </td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button
                       className="btn btn-small"
@@ -458,7 +508,7 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
               ))}
               {(packages ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={4}>
+                  <td colSpan={5}>
                     <EmptyState
                       icon={<IconBox size={20} />}
                       title="No packages yet"

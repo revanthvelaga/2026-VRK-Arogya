@@ -92,6 +92,18 @@ export interface SampleStatusHistoryEntry {
   notes?: string;
 }
 
+export type Audience = 'EVERYONE' | 'MEN' | 'WOMEN' | 'CHILDREN' | 'SENIOR_MEN' | 'SENIOR_WOMEN' | 'FITNESS';
+
+export const AUDIENCE_OPTIONS: { value: Audience; label: string }[] = [
+  { value: 'EVERYONE', label: 'Everyone (no specific audience)' },
+  { value: 'MEN', label: 'Men' },
+  { value: 'WOMEN', label: 'Women' },
+  { value: 'CHILDREN', label: 'Children' },
+  { value: 'SENIOR_MEN', label: 'Senior men' },
+  { value: 'SENIOR_WOMEN', label: 'Senior women' },
+  { value: 'FITNESS', label: 'Fitness' },
+];
+
 export interface Test {
   id: string;
   centerId?: string;
@@ -102,6 +114,7 @@ export interface Test {
   isInHouse: boolean;
   partnerLabId?: string;
   turnaroundHours: number;
+  audience: Audience;
   isActive: boolean;
   createdAt: string;
 }
@@ -112,6 +125,7 @@ export interface Package {
   name: string;
   description?: string;
   price: string | number;
+  audience: Audience;
   isActive: boolean;
   createdAt: string;
   tests?: Test[];

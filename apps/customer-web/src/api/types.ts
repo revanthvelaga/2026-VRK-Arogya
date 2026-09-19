@@ -92,6 +92,8 @@ export interface SampleStatusHistoryEntry {
   notes?: string;
 }
 
+export type Audience = 'EVERYONE' | 'MEN' | 'WOMEN' | 'CHILDREN' | 'SENIOR_MEN' | 'SENIOR_WOMEN' | 'FITNESS';
+
 export interface Test {
   id: string;
   centerId?: string;
@@ -102,6 +104,7 @@ export interface Test {
   isInHouse: boolean;
   partnerLabId?: string;
   turnaroundHours: number;
+  audience: Audience;
   isActive: boolean;
   createdAt: string;
 }
@@ -112,6 +115,7 @@ export interface Package {
   name: string;
   description?: string;
   price: string | number;
+  audience: Audience;
   isActive: boolean;
   createdAt: string;
   tests?: Test[];

@@ -67,6 +67,25 @@ instead of a single-item "book this" link.
   and, on the detail page, the same `SampleProgress` stepper `admin-web`
   built for staff — the whole point of tracking is that both sides see the
   same picture.
+- **Shop by category** (home page) — six audience segments (Men, Women,
+  Children, Senior Men, Senior Women, Fitness), each a real photo tile
+  (hand-picked, license-free Unsplash photos — not a keyword search, so
+  each one actually shows the right kind of person) linking to
+  `/catalog?audience=X`. This is backed by a real `audience` field on
+  `Test`/`Package` (API step 3's catalog module, extended this pass), sett
+  able from `admin-web`'s catalog forms — not a client-side guess from the
+  test name. Catalog filters to that audience (plus anything tagged
+  `EVERYONE`) and shows a "Showing tests recommended for X" banner with a
+  clear action.
+- `/insights` (auth required) — real numbers computed from the customer's
+  own `/bookings/mine`: total bookings, completed count, total spent,
+  tests booked, and the next upcoming booking. Nothing here is
+  placeholder/fabricated data — an account with no bookings gets an empty
+  state, not a fake dashboard.
+- **Book via call / Book via WhatsApp** (home page quick actions) — real
+  `tel:`/`wa.me` links, wired to `VITE_SUPPORT_PHONE` (see `.env.example`).
+  Defaults to an obvious placeholder number — set a real one before this
+  goes anywhere near actual users.
 
 ## Known gaps (by design, for now)
 
@@ -80,4 +99,9 @@ instead of a single-item "book this" link.
 - **Card art is a gradient standing in for photography** (there's no
   image field in the catalog data model) — a deterministic hash of each
   item's id picks one of six gradients, so a given test/package always
-  gets the same one rather than a random one on every render.
+  gets the same one rather than a random one on every render. The six
+  audience-segment photos are real, hand-picked images (see above) — only
+  individual test/package cards use the gradient placeholder.
+- **"Upload prescription" isn't built.** The reference design had a
+  fourth quick-action tile for it; there's no file-upload endpoint yet
+  (that's step 10, report PDF upload/download), so it isn't faked here.

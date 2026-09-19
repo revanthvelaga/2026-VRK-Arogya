@@ -1,12 +1,14 @@
 import {
   ArrayNotEmpty,
   IsArray,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   Min,
 } from 'class-validator';
+import { Audience } from '../../common/enums/audience.enum';
 
 export class CreatePackageDto {
   @IsString()
@@ -28,4 +30,8 @@ export class CreatePackageDto {
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })
   testIds: string[];
+
+  @IsOptional()
+  @IsEnum(Audience)
+  audience?: Audience;
 }

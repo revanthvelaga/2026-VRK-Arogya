@@ -1071,6 +1071,63 @@ tbody tr:hover {
   color: #fff;
 }
 
+/* ---------- Audience segments ---------- */
+.segment-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.segment-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  text-align: center;
+}
+
+.segment-photo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.segment-tile:hover .segment-photo {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.segment-tile span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.segment-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.segment-banner strong {
+  color: var(--accent-ink);
+}
+
 /* ---------- Promo banner ---------- */
 .promo-banner {
   border-radius: var(--radius);

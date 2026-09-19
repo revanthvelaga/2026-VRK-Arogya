@@ -56,6 +56,13 @@ UPDATE users SET role = 'ADMIN' WHERE phone = '9999999999';
   involved: it drives the sample lifecycle (init → advance status →
   optional partner-lab routing → history), directly against the endpoints
   added in steps 5–6 of the build order.
+- **Catalog → Audience field**: the test/package forms include an
+  "Audience" select (Everyone / Men / Women / Children / Senior Men /
+  Senior Women / Fitness). This drives the customer site's "shop by
+  category" suggestions — set it when a test or package is genuinely
+  aimed at one group; leave it on "Everyone" for general tests (most of
+  them), which still show up regardless of which category a customer
+  browsed in from.
 
 ## Known gaps (by design, for now)
 
