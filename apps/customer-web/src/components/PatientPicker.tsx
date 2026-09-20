@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
-import type { Gender, Patient, Relationship } from '../api/types';
+import type { Gender, GeocodeResult, Patient, Relationship } from '../api/types';
+import { AddressAutocomplete } from './AddressAutocomplete';
 import { IconPlus, IconUser } from './Icons';
 
 const RELATIONSHIPS: Relationship[] = ['SELF', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'];
@@ -15,8 +16,21 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
   const [relationship, setRelationship] = useState<Relationship>('SPOUSE');
   const [gender, setGender] = useState<Gender | ''>('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [areaText, setAreaText] = useState('');
+  const [area, setArea] = useState<GeocodeResult | null>(null);
+  const [pincode, setPincode] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [phone, setPhone] = useState('');
+  const [alternatePhone, setAlternatePhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectArea = (result: GeocodeResult) => {
+    setArea(result);
+    setAreaText(result.displayName);
+    setPincode(result.pincode ?? '');
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,6 +42,14 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
         relationship,
         gender: gender || undefined,
         dateOfBirth: dateOfBirth || undefined,
+        areaAddress: area?.displayName || undefined,
+        pincode: pincode.trim() || undefined,
+        fullAddress: fullAddress.trim() || undefined,
+        landmark: landmark.trim() || undefined,
+        latitude: area?.lat,
+        longitude: area?.lng,
+        phone: phone.trim() || undefined,
+        alternatePhone: alternatePhone.trim() || undefined,
       });
       onAdded(patient);
     } catch (err) {
@@ -70,6 +92,44 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
         <div className="field">
           <label>Date of birth (optional)</label>
           <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+        </div>
+        <div className="field field-full">
+          <label>Area (optional)</label>
+          <AddressAutocomplete
+            value={areaText}
+            onChange={setAreaText}
+            onSelect={selectArea}
+            placeholder="Type an area, locality, or pincode…"
+          />
+        </div>
+        <div className="field">
+          <label>Pincode</label>
+          <input
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value)}
+            placeholder="6-digit pincode"
+            maxLength={6}
+          />
+        </div>
+        <div className="field">
+          <label>Landmark (optional)</label>
+          <input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Near…" />
+        </div>
+        <div className="field field-full">
+          <label>Full address (optional)</label>
+          <input
+            value={fullAddress}
+            onChange={(e) => setFullAddress(e.target.value)}
+            placeholder="House/flat no., street"
+          />
+        </div>
+        <div className="field">
+          <label>Phone (optional)</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit number" />
+        </div>
+        <div className="field">
+          <label>Alternate phone (optional)</label>
+          <input value={alternatePhone} onChange={(e) => setAlternatePhone(e.target.value)} placeholder="10-digit number" />
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>

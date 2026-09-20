@@ -153,7 +153,12 @@ function ReportInsightsSection({ patientId }: { patientId: string }) {
 }
 
 export function InsightsPage() {
-  const { data: patients, loading, reload: reloadPatients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const {
+    data: patients,
+    loading,
+    error: patientsError,
+    reload: reloadPatients,
+  } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientId, setPatientId] = useState('');
 
   useEffect(() => {
@@ -174,9 +179,16 @@ export function InsightsPage() {
 
       <div className="card">
         <div className="card-title">Patient</div>
-        {loading || !patients ? (
+        {loading ? (
           <LoadingLine label="Loading patients…" />
-        ) : (
+        ) : patientsError ? (
+          <div>
+            <div className="error-banner">{patientsError}</div>
+            <button type="button" className="btn btn-small" onClick={reloadPatients}>
+              Retry
+            </button>
+          </div>
+        ) : patients ? (
           <PatientPicker
             patients={patients}
             selectedId={patientId}
@@ -186,7 +198,7 @@ export function InsightsPage() {
               setPatientId(p.id);
             }}
           />
-        )}
+        ) : null}
       </div>
 
       {patientId && <ReportInsightsSection patientId={patientId} />}

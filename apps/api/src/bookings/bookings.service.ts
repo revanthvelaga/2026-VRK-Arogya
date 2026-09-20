@@ -30,6 +30,10 @@ interface PricedItem {
   price: number;
 }
 
+// Applied on top of item prices at booking time — illustrative until real
+// invoicing rules replace it.
+const GST_RATE = 0.18;
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -99,7 +103,11 @@ export class BookingsService {
     }
 
     const items = await this.priceItems(dto.items);
-    const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
+    const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+    // Rounded to paise — GST_RATE is illustrative; swap for the real
+    // invoicing rules whenever those land.
+    const gstAmount = Math.round(subtotal * GST_RATE * 100) / 100;
+    const totalAmount = subtotal + gstAmount;
 
     const savedBooking = await this.dataSource.transaction(async (manager) => {
       const isHomeVisit = dto.collectionMode === CollectionMode.HOME_VISIT;
@@ -115,6 +123,8 @@ export class BookingsService {
         homeLocation: isHomeVisit ? toGeoPoint(dto.homeLatitude as number, dto.homeLongitude as number) : undefined,
         scheduledAt,
         status: BookingStatus.PENDING,
+        subtotal,
+        gstAmount,
         totalAmount,
       });
       const inserted = await manager.save(booking);

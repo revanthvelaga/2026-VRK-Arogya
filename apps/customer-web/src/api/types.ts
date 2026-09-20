@@ -69,6 +69,13 @@ export interface Patient {
   relationship: Relationship;
   gender?: Gender;
   dateOfBirth?: string;
+  areaAddress?: string;
+  pincode?: string;
+  fullAddress?: string;
+  landmark?: string;
+  location?: GeoPoint;
+  phone?: string;
+  alternatePhone?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -85,6 +92,8 @@ export interface Booking {
   homeLocation?: GeoPoint;
   scheduledAt: string;
   status: BookingStatus;
+  subtotal: string | number;
+  gstAmount: string | number;
   totalAmount: string | number;
   paymentStatus: PaymentStatus;
   createdAt: string;

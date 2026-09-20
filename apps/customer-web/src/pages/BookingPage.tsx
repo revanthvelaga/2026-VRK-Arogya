@@ -28,6 +28,10 @@ interface SelectableItem {
   meta?: string;
 }
 
+// Displayed as its own line in the order summary rather than folded into
+// item prices, so the breakdown is transparent.
+const GST_RATE = 0.18;
+
 const COLLECTION_MODES: { value: CollectionMode; label: string; hint: string }[] = [
   { value: 'WALK_IN', label: 'Walk in', hint: 'Visit the diagnostic center yourself' },
   { value: 'PICKUP_POINT', label: 'Pickup point', hint: 'A nearby village pickup point, on its schedule' },
@@ -46,7 +50,12 @@ export function BookingPage() {
     () => api.get('/centers'),
     [],
   );
-  const { data: patients, reload: reloadPatients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const {
+    data: patients,
+    loading: patientsLoading,
+    error: patientsError,
+    reload: reloadPatients,
+  } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientId, setPatientId] = useState('');
 
   const cartTestIds = cart.items.filter((i) => i.kind === 'test').map((i) => i.id);
@@ -71,6 +80,7 @@ export function BookingPage() {
 
   const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied'>('idle');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [centerAddressText, setCenterAddressText] = useState('');
 
   const findNearbyCenters = () => {
     if (!navigator.geolocation) {
@@ -86,6 +96,12 @@ export function BookingPage() {
       () => setGeoStatus('denied'),
       { timeout: 10000 },
     );
+  };
+
+  const selectCenterAddress = (result: GeocodeResult) => {
+    setUserCoords({ lat: result.lat, lng: result.lng });
+    setCenterAddressText(result.displayName);
+    setGeoStatus('granted');
   };
 
   // Every center annotated with distance from the browser's geolocation
@@ -254,7 +270,12 @@ export function BookingPage() {
 
     return [...packageItems, ...testItems].slice(0, 4);
   }, [tests, packages, selectedTestIds, selectedPackageIds]);
-  const total = selected.reduce((sum, i) => sum + i.price, 0);
+  const subtotal = selected.reduce((sum, i) => sum + i.price, 0);
+  // Illustrative rate — swap for whatever the real invoicing/tax setup
+  // turns out to be; the point here is showing the breakdown, not the
+  // exact figure.
+  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
+  const total = subtotal + gst;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -327,9 +348,16 @@ export function BookingPage() {
 
             <div className="card">
               <div className="card-title">1. Who is this for?</div>
-              {!patients ? (
+              {patientsLoading ? (
                 <LoadingLine label="Loading patients…" />
-              ) : (
+              ) : patientsError ? (
+                <div>
+                  <div className="error-banner">{patientsError}</div>
+                  <button type="button" className="btn btn-small" onClick={reloadPatients}>
+                    Retry
+                  </button>
+                </div>
+              ) : patients ? (
                 <PatientPicker
                   patients={patients}
                   selectedId={patientId}
@@ -339,7 +367,7 @@ export function BookingPage() {
                     setPatientId(p.id);
                   }}
                 />
-              )}
+              ) : null}
             </div>
 
             <div className="card">
@@ -404,20 +432,31 @@ export function BookingPage() {
               ) : (
                 <>
                   {geoStatus !== 'granted' && (
-                    <button
-                      type="button"
-                      className="btn btn-small"
-                      onClick={findNearbyCenters}
-                      disabled={geoStatus === 'locating'}
-                      style={{ marginBottom: 10 }}
-                    >
-                      <IconMapPin size={13} />
-                      {geoStatus === 'locating' ? 'Finding your location…' : 'Find centers near me'}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-small"
+                        onClick={findNearbyCenters}
+                        disabled={geoStatus === 'locating'}
+                        style={{ marginBottom: 10 }}
+                      >
+                        <IconMapPin size={13} />
+                        {geoStatus === 'locating' ? 'Finding your location…' : 'Find centers near me'}
+                      </button>
+                      <div className="field-hint" style={{ margin: '0 0 6px' }}>
+                        Or search for your area
+                      </div>
+                      <AddressAutocomplete
+                        value={centerAddressText}
+                        onChange={setCenterAddressText}
+                        onSelect={selectCenterAddress}
+                        placeholder="Type an area, locality, or pincode…"
+                      />
+                    </>
                   )}
                   {geoStatus === 'denied' && (
-                    <p className="field-hint" style={{ marginTop: -4, marginBottom: 10 }}>
-                      Couldn't get your location — pick a center from the list below.
+                    <p className="field-hint" style={{ marginTop: 6, marginBottom: 10 }}>
+                      Couldn't get your location — search for your area above, or pick a center from the list below.
                     </p>
                   )}
 
@@ -655,6 +694,18 @@ export function BookingPage() {
                   <span>{formatCurrency(i.price)}</span>
                 </div>
               ))
+            )}
+            {selected.length > 0 && (
+              <>
+                <div className="summary-line">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="summary-line">
+                  <span>GST ({Math.round(GST_RATE * 100)}%)</span>
+                  <span>{formatCurrency(gst)}</span>
+                </div>
+              </>
             )}
             <div className="summary-total">
               <span>Total</span>

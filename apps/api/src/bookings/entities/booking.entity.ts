@@ -58,6 +58,18 @@ export class Booking {
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING })
   status: BookingStatus;
 
+  // Sum of item prices before tax — kept alongside totalAmount so the order
+  // summary (and any later invoice) can show a real breakdown instead of
+  // recomputing it client-side from prices that may since have changed.
+  // Defaulted to 0 so `synchronize: true` can add this column to a table
+  // that already has rows from before it existed.
+  @Column({ name: 'subtotal', type: 'numeric', precision: 10, scale: 2, default: 0 })
+  subtotal: number;
+
+  @Column({ name: 'gst_amount', type: 'numeric', precision: 10, scale: 2, default: 0 })
+  gstAmount: number;
+
+  // subtotal + gstAmount — what Razorpay actually charges (payments.service.ts).
   @Column({ name: 'total_amount', type: 'numeric', precision: 10, scale: 2 })
   totalAmount: number;
 

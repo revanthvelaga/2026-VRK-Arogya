@@ -5,6 +5,7 @@ import { Patient } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { Relationship } from '../common/enums/relationship.enum';
+import { toGeoPoint } from '../common/utils/geo.util';
 
 @Injectable()
 export class PatientsService {
@@ -44,13 +45,22 @@ export class PatientsService {
   }
 
   create(accountId: string, dto: CreatePatientDto): Promise<Patient> {
-    const patient = this.patientsRepo.create({ accountId, ...dto });
+    const { latitude, longitude, ...rest } = dto;
+    const patient = this.patientsRepo.create({
+      accountId,
+      ...rest,
+      location: latitude != null && longitude != null ? toGeoPoint(latitude, longitude) : undefined,
+    });
     return this.patientsRepo.save(patient);
   }
 
   async update(id: string, accountId: string, dto: UpdatePatientDto): Promise<Patient> {
     const patient = await this.findOneForAccount(id, accountId);
-    Object.assign(patient, dto);
+    const { latitude, longitude, ...rest } = dto;
+    Object.assign(patient, rest);
+    if (latitude != null && longitude != null) {
+      patient.location = toGeoPoint(latitude, longitude);
+    }
     return this.patientsRepo.save(patient);
   }
 

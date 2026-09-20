@@ -431,8 +431,16 @@ export function BookingDetailPage() {
             {statusLabel(booking.collectionMode)}
           </div>
           <div className="field">
+            <label>Subtotal</label>
+            {formatCurrency(booking.subtotal)}
+          </div>
+          <div className="field">
+            <label>GST</label>
+            {formatCurrency(booking.gstAmount)}
+          </div>
+          <div className="field">
             <label>Total</label>
-            {formatCurrency(booking.totalAmount)}
+            <strong>{formatCurrency(booking.totalAmount)}</strong>
           </div>
           <div className="field">
             <label>Items</label>

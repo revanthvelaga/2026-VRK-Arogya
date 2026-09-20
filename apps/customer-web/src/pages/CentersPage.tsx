@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { DiagnosticCenter } from '../api/types';
+import type { DiagnosticCenter, GeocodeResult } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { haversineDistanceKm } from '../lib/geo';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { IconMapPin } from '../components/Icons';
 
 export function CentersPage() {
   const { data: centers, loading, error } = useApi<DiagnosticCenter[]>(() => api.get('/centers'), []);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied'>('idle');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [addressText, setAddressText] = useState('');
+  const [addressLabel, setAddressLabel] = useState('');
 
   const findNearMe = () => {
     if (!navigator.geolocation) {
@@ -23,10 +26,18 @@ export function CentersPage() {
       (pos) => {
         setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setGeoStatus('granted');
+        setAddressLabel('');
       },
       () => setGeoStatus('denied'),
       { timeout: 10000 },
     );
+  };
+
+  const selectAddress = (result: GeocodeResult) => {
+    setUserCoords({ lat: result.lat, lng: result.lng });
+    setAddressText(result.displayName);
+    setAddressLabel(result.displayName);
+    setGeoStatus('idle');
   };
 
   // Distance from the browser's geolocation to every center, nearest
@@ -55,12 +66,27 @@ export function CentersPage() {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-title">Find centers near you</div>
         {geoStatus === 'denied' && (
-          <div className="error-banner">Couldn't get your location — showing all centers below instead.</div>
+          <div className="error-banner">Couldn't get your location — search for your area below instead.</div>
         )}
-        <button type="button" className="btn btn-primary btn-small" onClick={findNearMe} disabled={geoStatus === 'locating'}>
+        <button
+          type="button"
+          className="btn btn-primary btn-small"
+          onClick={findNearMe}
+          disabled={geoStatus === 'locating'}
+          style={{ marginBottom: 10 }}
+        >
           <IconMapPin size={14} />
           {geoStatus === 'locating' ? 'Locating…' : geoStatus === 'granted' ? 'Refresh my location' : 'Use my location'}
         </button>
+        <div className="field-hint" style={{ margin: '0 0 6px' }}>
+          Or search for your area
+        </div>
+        <AddressAutocomplete value={addressText} onChange={setAddressText} onSelect={selectAddress} placeholder="Type an area, locality, or pincode…" />
+        {addressLabel && (
+          <p className="page-sub" style={{ margin: '8px 0 0' }}>
+            Showing centers near <strong>{addressLabel}</strong>
+          </p>
+        )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
