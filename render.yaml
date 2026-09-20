@@ -1,0 +1,42 @@
+# Render Blueprint — deploys apps/api as a free web service.
+# In the Render dashboard: New > Blueprint > connect this repo. Render
+# reads this file automatically; you'll be prompted for the "sync: false"
+# values (DATABASE_URL, and the two Razorpay keys if you want payments to
+# work) during setup. JWT secrets are generated for you.
+#
+# The database itself isn't defined here — Render's own free Postgres
+# doesn't support enabling the PostGIS extension this app needs (a
+# permissions restriction on their free tier), so the database is a
+# separate, free Supabase project instead. See docs/step-11-cloud-deploy.md
+# for the full walkthrough, including enabling PostGIS on Supabase and
+# where to find its connection string.
+services:
+  - type: web
+    name: arogya-api
+    runtime: node
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /health
+    envVars:
+      # Paste Supabase's connection string here (Project Settings >
+      # Database > Connection string > URI). The API falls back to
+      # DB_HOST/DB_PORT/etc. (local dev only) when this is unset.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      # Optional — leave blank to skip payments for now; every other
+      # feature works without these. dashboard.razorpay.com, Test Mode,
+      # Settings > API Keys.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false

@@ -46,7 +46,8 @@ arogya/
 - [x] Customer web app (added ahead of the mobile app, same endpoints) — [`docs/step-08-customer-web.md`](./docs/step-08-customer-web.md)
 - [x] Customer mobile app — [`docs/step-09-customer-mobile.md`](./docs/step-09-customer-mobile.md)
 - [x] Notifications (in-app + real email; push/SMS documented as an extension point, not built — see the doc) + report PDF upload/download — [`docs/step-10-notifications-reports.md`](./docs/step-10-notifications-reports.md)
-- [ ] Dockerize + GitHub Actions CI, deployment guide
+- [x] Cloud deployment (Render + Supabase, free) and a phone-installable EAS build of the mobile app — [`docs/step-11-cloud-deploy.md`](./docs/step-11-cloud-deploy.md)
+- [ ] Dockerize + GitHub Actions CI
 
 ## Running the API locally
 

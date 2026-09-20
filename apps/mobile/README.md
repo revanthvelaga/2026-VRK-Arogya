@@ -30,8 +30,17 @@ Public sign-up is always forced to `CUSTOMER` on the API, same as
 
 This doesn't need the Play Store at all — [EAS Build](https://docs.expo.dev/build/introduction/)
 is Expo's free cloud build service and hands you a direct APK download
-link in about 15 minutes. Run these from your own machine (not this
-sandbox — it has no Expo login and no Android build tooling):
+link in about 15 minutes.
+
+**Want the API and the build itself to run entirely in the cloud, with
+nothing local at all (not even `ngrok`)?** See
+[`docs/step-11-cloud-deploy.md`](../../docs/step-11-cloud-deploy.md) —
+deploys `apps/api` to a free Render + Supabase setup, then triggers the
+EAS build straight from expo.dev's website instead of a local CLI.
+
+The steps below are the local-CLI version of the same build — run them
+from your own machine (not this sandbox — it has no Expo login and no
+Android build tooling):
 
 1. **Point the app at a real API.** `EXPO_PUBLIC_API_URL` gets baked into
    the JS bundle at build time, so `localhost` won't work on a phone —
