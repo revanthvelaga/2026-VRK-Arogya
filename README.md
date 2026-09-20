@@ -50,7 +50,7 @@ arogya/
 
 ## Running the API locally
 
-1. `docker compose up -d` — starts Postgres+PostGIS on port 5432
+1. `docker compose up -d` — starts Postgres+PostGIS, exposed on host port 55432 (moved off the 5432 default, which a natively-installed Postgres commonly binds first on Windows)
 2. `cd apps/api && npm install`
 3. `cp .env.example .env` and adjust secrets
 4. `npm run start:dev` — API on http://localhost:3000

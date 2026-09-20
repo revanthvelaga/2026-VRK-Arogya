@@ -30,7 +30,7 @@ import { HealthController } from './health.controller';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
+        port: config.get<number>('DB_PORT', 55432),
         username: config.get('DB_USERNAME', 'arogya'),
         password: config.get('DB_PASSWORD', 'arogya_dev_pw'),
         database: config.get('DB_NAME', 'arogya'),

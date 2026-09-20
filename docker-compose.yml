@@ -7,7 +7,13 @@ services:
       POSTGRES_PASSWORD: arogya_dev_pw
       POSTGRES_DB: arogya
     ports:
-      - "5432:5432"
+      # Host side moved off the Postgres default — a native Postgres
+      # install (common on Windows, e.g. from another project) binds 5432
+      # first, at boot, before Docker Desktop starts, silently shadowing
+      # this container: the app then talks to the wrong Postgres with the
+      # wrong credentials, which just looks like a password error. The
+      # container's own port stays 5432, only the host mapping changes.
+      - "55432:5432"
     volumes:
       - arogya_pgdata:/var/lib/postgresql/data
     healthcheck:
