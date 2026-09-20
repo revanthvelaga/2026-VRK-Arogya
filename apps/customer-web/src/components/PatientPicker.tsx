@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api/client';
 import type { Gender, GeocodeResult, Patient, Relationship } from '../api/types';
 import { AddressAutocomplete } from './AddressAutocomplete';
-import { IconPlus, IconUser } from './Icons';
+import { IconPlus } from './Icons';
 
 const RELATIONSHIPS: Relationship[] = ['SELF', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'];
 
@@ -163,23 +163,21 @@ export function PatientPicker({
 
   return (
     <div>
-      <div className="chip-row">
-        {patients.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`filter-chip${selectedId === p.id ? ' active' : ' outline'}`}
-            onClick={() => onSelect(p.id)}
-          >
-            <IconUser size={13} />
-            {p.fullName}
-            {p.relationship !== 'SELF' && (
-              <span style={{ opacity: 0.75 }}> · {relationshipLabel(p.relationship)}</span>
-            )}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div className="field" style={{ marginBottom: 0, flex: 1, minWidth: 180 }}>
+          <label>Patient</label>
+          <select value={selectedId} onChange={(e) => onSelect(e.target.value)}>
+            {!selectedId && <option value="">Select a patient…</option>}
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.fullName}
+                {p.relationship !== 'SELF' ? ` · ${relationshipLabel(p.relationship)}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
         {!adding && (
-          <button type="button" className="filter-chip outline" onClick={() => setAdding(true)}>
+          <button type="button" className="btn btn-small" onClick={() => setAdding(true)}>
             <IconPlus size={13} />
             Add family member
           </button>
