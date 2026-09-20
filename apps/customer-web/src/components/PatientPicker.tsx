@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
 import { api } from '../api/client';
 import type { Gender, GeocodeResult, Patient, Relationship } from '../api/types';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -16,25 +15,28 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
   const [relationship, setRelationship] = useState<Relationship>('SPOUSE');
   const [gender, setGender] = useState<Gender | ''>('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [areaText, setAreaText] = useState('');
-  const [area, setArea] = useState<GeocodeResult | null>(null);
-  const [pincode, setPincode] = useState('');
   const [fullAddress, setFullAddress] = useState('');
+  const [cityText, setCityText] = useState('');
+  const [city, setCity] = useState<GeocodeResult | null>(null);
+  const [pincode, setPincode] = useState('');
   const [landmark, setLandmark] = useState('');
   const [phone, setPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectArea = (result: GeocodeResult) => {
-    setArea(result);
-    setAreaText(result.displayName);
+  const selectCity = (result: GeocodeResult) => {
+    setCity(result);
+    setCityText(result.displayName);
     setPincode(result.pincode ?? '');
   };
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
     setError(null);
+    if (!fullName.trim()) {
+      setError('Enter a name.');
+      return;
+    }
     setSubmitting(true);
     try {
       const patient = await api.post<Patient>('/patients', {
@@ -42,12 +44,12 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
         relationship,
         gender: gender || undefined,
         dateOfBirth: dateOfBirth || undefined,
-        areaAddress: area?.displayName || undefined,
+        areaAddress: city?.displayName || undefined,
         pincode: pincode.trim() || undefined,
         fullAddress: fullAddress.trim() || undefined,
         landmark: landmark.trim() || undefined,
-        latitude: area?.lat,
-        longitude: area?.lng,
+        latitude: city?.lat,
+        longitude: city?.lng,
         phone: phone.trim() || undefined,
         alternatePhone: alternatePhone.trim() || undefined,
       });
@@ -60,15 +62,17 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
   };
 
   return (
-    <form
-      onSubmit={submit}
-      style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 12, marginTop: 8 }}
-    >
+    // A plain div, not a <form> — this renders inside BookingPage's own
+    // outer <form>, and a nested <form> silently breaks submit wiring
+    // (the inner form's submit event never fires), so the button below
+    // is a regular button with an onClick instead of relying on native
+    // form submission.
+    <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 12, marginTop: 8 }}>
       {error && <div className="error-banner">{error}</div>}
       <div className="form-grid">
         <div className="field field-full">
           <label>Full name</label>
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus />
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
         </div>
         <div className="field">
           <label>Relationship</label>
@@ -94,12 +98,20 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
           <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
         </div>
         <div className="field field-full">
-          <label>Area (optional)</label>
+          <label>Full address (optional)</label>
+          <input
+            value={fullAddress}
+            onChange={(e) => setFullAddress(e.target.value)}
+            placeholder="House/flat no., street"
+          />
+        </div>
+        <div className="field field-full">
+          <label>City / Town / Village (optional)</label>
           <AddressAutocomplete
-            value={areaText}
-            onChange={setAreaText}
-            onSelect={selectArea}
-            placeholder="Type an area, locality, or pincode…"
+            value={cityText}
+            onChange={setCityText}
+            onSelect={selectCity}
+            placeholder="Type a city, town, or village…"
           />
         </div>
         <div className="field">
@@ -107,21 +119,13 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
           <input
             value={pincode}
             onChange={(e) => setPincode(e.target.value)}
-            placeholder="6-digit pincode"
+            placeholder="Auto-filled from city/town/village"
             maxLength={6}
           />
         </div>
         <div className="field">
           <label>Landmark (optional)</label>
           <input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Near…" />
-        </div>
-        <div className="field field-full">
-          <label>Full address (optional)</label>
-          <input
-            value={fullAddress}
-            onChange={(e) => setFullAddress(e.target.value)}
-            placeholder="House/flat no., street"
-          />
         </div>
         <div className="field">
           <label>Phone (optional)</label>
@@ -133,14 +137,14 @@ function AddPatientForm({ onAdded, onCancel }: { onAdded: (p: Patient) => void; 
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="submit" className="btn btn-primary btn-small" disabled={submitting}>
+        <button type="button" className="btn btn-primary btn-small" disabled={submitting} onClick={submit}>
           {submitting ? 'Adding…' : 'Add family member'}
         </button>
         <button type="button" className="btn btn-small" onClick={onCancel}>
           Cancel
         </button>
       </div>
-    </form>
+    </div>
   );
 }
 
