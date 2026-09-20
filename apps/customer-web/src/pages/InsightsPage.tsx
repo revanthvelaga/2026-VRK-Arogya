@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
-import { IconAlertTriangle, IconBag, IconFileText } from '../components/Icons';
+import { IconAlertTriangle, IconArrowRight, IconBag, IconFileText } from '../components/Icons';
 import { formatDateTime, formatNumber } from '../lib/format';
 
 interface ReportGroup {
@@ -57,6 +57,7 @@ function ReportGroupCard({ group }: { group: ReportGroup }) {
       <div className="insight-param-list" style={{ marginTop: 12 }}>
         {ordered.map((v) => {
           const hasRange = v.normalLow != null && v.normalHigh != null;
+          const hasTrend = v.previousValue != null && Number(v.previousValue) !== Number(v.value);
           return (
             <div className="insight-param-row" key={v.id}>
               <div>
@@ -73,9 +74,17 @@ function ReportGroupCard({ group }: { group: ReportGroup }) {
                 )}
                 {v.category && <div className="insight-param-category">{v.category}</div>}
               </div>
-              <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within'}`}>
-                {formatNumber(v.value)} {v.unit ?? ''}
-              </span>
+              <div className="insight-value-trend">
+                {hasTrend && (
+                  <>
+                    <span className="value-pill normal-ghost">{formatNumber(v.previousValue!)}</span>
+                    <IconArrowRight size={11} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+                  </>
+                )}
+                <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within'}`}>
+                  {formatNumber(v.value)} {v.unit ?? ''}
+                </span>
+              </div>
             </div>
           );
         })}

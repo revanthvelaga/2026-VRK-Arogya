@@ -185,7 +185,7 @@ function ReportCard({ report }: { report: Report }) {
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{report.fileName}</div>
             <div className="page-sub" style={{ margin: '2px 0 0' }}>
-              Uploaded {formatDateTime(report.generatedAt)}
+              Report date: {formatDateTime(report.generatedAt)}
             </div>
           </div>
         </div>

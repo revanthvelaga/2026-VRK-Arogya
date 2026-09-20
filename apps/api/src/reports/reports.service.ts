@@ -35,6 +35,7 @@ export class ReportsService {
     bookingId: string,
     uploadedBy: string,
     file: Express.Multer.File,
+    reportDate?: string,
   ): Promise<PublicReport> {
     const booking = await this.bookingsService.findOne(bookingId); // 404s if the booking doesn't exist
 
@@ -46,6 +47,9 @@ export class ReportsService {
         mimeType: file.mimetype,
         sizeBytes: file.size,
         uploadedBy,
+        // Left unset, the generated_at column's own DB default ("now()")
+        // takes over — only pass a value when staff actually back-dated it.
+        ...(reportDate ? { generatedAt: new Date(reportDate) } : {}),
       }),
     );
 
@@ -132,6 +136,8 @@ export class ReportsService {
   // Same parameter from an earlier report for the same customer — powers the
   // "107 -> 108" trend display. Matched by testId when there is one (a
   // free-form entry has none, so those fall back to matching on testName).
+  // Scoped to a single patient when known, so a multi-profile account never
+  // shows one family member's trend arrow computed against another's value.
   // One query per value rather than a single batched query: report result
   // sets are small (a handful to a few dozen parameters), so the simplicity
   // is worth more here than the extra round trips.
@@ -140,6 +146,7 @@ export class ReportsService {
     customerId: string,
     beforeGeneratedAt: Date,
     currentReportId: string,
+    patientId?: string,
   ): Promise<ReportValue | null> {
     const qb = this.reportValuesRepo
       .createQueryBuilder('rv')
@@ -151,6 +158,9 @@ export class ReportsService {
       .orderBy('r.generated_at', 'DESC')
       .limit(1);
 
+    if (patientId) {
+      qb.andWhere('b.patient_id = :patientId', { patientId });
+    }
     if (value.testId) {
       qb.andWhere('rv.test_id = :testId', { testId: value.testId });
     } else {
@@ -163,8 +173,12 @@ export class ReportsService {
   // Every report value across every one of a customer's bookings, newest
   // report first — backs the Insights page's aggregate "your results" view
   // so a customer doesn't have to open each booking to see what's abnormal.
+  // Each value also carries its trend against that same patient's previous
+  // report (same computation as findValues, just across the whole portfolio
+  // rather than one report), so a repeat test shows "108 -> 118" the moment
+  // a second report lands, not just on the single-report detail view.
   async findAllValuesForCustomer(customerId: string, patientId?: string): Promise<
-    Array<ReportValue & { bookingId: string; reportGeneratedAt: Date; reportFileName: string }>
+    Array<ReportValueWithTrend & { bookingId: string; reportGeneratedAt: Date; reportFileName: string }>
   > {
     const qb = this.reportValuesRepo
       .createQueryBuilder('rv')
@@ -174,6 +188,7 @@ export class ReportsService {
       .addSelect('r.booking_id', 'booking_id')
       .addSelect('r.generated_at', 'report_generated_at')
       .addSelect('r.file_name', 'report_file_name')
+      .addSelect('b.patient_id', 'patient_id')
       .orderBy('r.generated_at', 'DESC')
       .addOrderBy('rv.created_at', 'ASC');
 
@@ -183,12 +198,27 @@ export class ReportsService {
 
     const rows = await qb.getRawAndEntities();
 
-    return rows.entities.map((entity, i) => ({
-      ...entity,
-      bookingId: rows.raw[i].booking_id,
-      reportGeneratedAt: rows.raw[i].report_generated_at,
-      reportFileName: rows.raw[i].report_file_name,
-    }));
+    return Promise.all(
+      rows.entities.map(async (entity, i) => {
+        const raw = rows.raw[i];
+        const previous = await this.findPreviousValue(
+          entity,
+          customerId,
+          raw.report_generated_at,
+          entity.reportId,
+          raw.patient_id ?? undefined,
+        );
+        return {
+          ...entity,
+          bookingId: raw.booking_id,
+          reportGeneratedAt: raw.report_generated_at,
+          reportFileName: raw.report_file_name,
+          previousValue: previous ? Number(previous.value) : undefined,
+          previousUnit: previous?.unit,
+          previousRecordedAt: previous?.createdAt,
+        };
+      }),
+    );
   }
 
   async findValues(id: string, user: AuthenticatedUser): Promise<ReportValueWithTrend[]> {
@@ -200,7 +230,7 @@ export class ReportsService {
 
     return Promise.all(
       values.map(async (v) => {
-        const previous = await this.findPreviousValue(v, booking.customerId, report.generatedAt, id);
+        const previous = await this.findPreviousValue(v, booking.customerId, report.generatedAt, id, booking.patientId);
         return {
           ...v,
           previousValue: previous ? Number(previous.value) : undefined,

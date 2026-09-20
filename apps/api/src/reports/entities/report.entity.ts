@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity';
 
 // Matches schema.sql's `reports` table (id, booking_id, file_url,
@@ -38,7 +38,12 @@ export class Report {
   @Column({ name: 'uploaded_by' })
   uploadedBy: string;
 
-  @CreateDateColumn({ name: 'generated_at' })
+  // The date the report was actually generated (as printed on the lab's
+  // own PDF), not necessarily the moment it was uploaded into Arogya —
+  // staff can back-date this at upload time when entering an older
+  // report. Defaults to "now" (a plain Column with a DB default, not
+  // @CreateDateColumn, precisely so it stays overridable).
+  @Column({ name: 'generated_at', type: 'timestamptz', default: () => 'now()' })
   generatedAt: Date;
 
   @Column({ name: 'reviewed_by', nullable: true })

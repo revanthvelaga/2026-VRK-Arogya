@@ -54,6 +54,7 @@ function ReportGroupCard({ group, navigation }: { group: ReportGroup; navigation
       <View style={{ marginTop: spacing.sm }}>
         {ordered.map((v) => {
           const hasRange = v.normalLow != null && v.normalHigh != null;
+          const hasTrend = v.previousValue != null && Number(v.previousValue) !== Number(v.value);
           return (
             <View style={styles.paramRow} key={v.id}>
               <View style={{ flex: 1 }}>
@@ -68,10 +69,20 @@ function ReportGroupCard({ group, navigation }: { group: ReportGroup; navigation
                 )}
                 {v.category && <Text style={styles.paramCategory}>{v.category}</Text>}
               </View>
-              <View style={[styles.valuePill, v.isAbnormal ? styles.valuePillAbnormal : styles.valuePillWithin]}>
-                <Text style={[styles.valuePillText, v.isAbnormal ? styles.valuePillTextAbnormal : styles.valuePillTextWithin]}>
-                  {formatNumber(v.value)} {v.unit ?? ''}
-                </Text>
+              <View style={styles.valueTrendRow}>
+                {hasTrend && (
+                  <>
+                    <View style={styles.valuePillGhost}>
+                      <Text style={styles.valuePillGhostText}>{formatNumber(v.previousValue!)}</Text>
+                    </View>
+                    <Text style={styles.trendArrow}>→</Text>
+                  </>
+                )}
+                <View style={[styles.valuePill, v.isAbnormal ? styles.valuePillAbnormal : styles.valuePillWithin]}>
+                  <Text style={[styles.valuePillText, v.isAbnormal ? styles.valuePillTextAbnormal : styles.valuePillTextWithin]}>
+                    {formatNumber(v.value)} {v.unit ?? ''}
+                  </Text>
+                </View>
               </View>
             </View>
           );
@@ -218,10 +229,20 @@ const styles = StyleSheet.create({
   paramName: { fontSize: 13, fontWeight: '600', color: colors.ink },
   paramRange: { fontSize: 11.5, color: colors.inkFaint, marginTop: 2 },
   paramCategory: { fontSize: 11, color: colors.inkFaint, marginTop: 1, fontStyle: 'italic' },
+  valueTrendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   valuePill: { borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   valuePillAbnormal: { backgroundColor: colors.redSoft },
   valuePillWithin: { backgroundColor: colors.greySoft },
   valuePillText: { fontSize: 12, fontWeight: '700' },
   valuePillTextAbnormal: { color: colors.red },
   valuePillTextWithin: { color: colors.inkSoft },
+  valuePillGhost: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  valuePillGhostText: { fontSize: 12, fontWeight: '600', color: colors.inkFaint },
+  trendArrow: { fontSize: 12, color: colors.inkFaint },
 });

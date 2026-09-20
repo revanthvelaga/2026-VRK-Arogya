@@ -365,7 +365,7 @@ function ReportCard({ report }: { report: Report }) {
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{report.fileName}</div>
             <div className="page-sub" style={{ margin: '2px 0 0' }}>
-              Uploaded {formatDateTime(report.generatedAt)}
+              Report date: {formatDateTime(report.generatedAt)}
             </div>
           </div>
         </div>
@@ -423,6 +423,7 @@ function ReportCard({ report }: { report: Report }) {
 function ReportsSection({ bookingId }: { bookingId: string }) {
   const reportsApi = useApi<Report[]>(() => api.get(`/bookings/${bookingId}/reports`), [bookingId]);
   const reports = reportsApi.data ?? [];
+  const [reportDate, setReportDate] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -433,7 +434,11 @@ function ReportsSection({ bookingId }: { bookingId: string }) {
     setUploading(true);
     setUploadError(null);
     try {
-      await uploadFile(`/bookings/${bookingId}/reports`, file);
+      // Left blank, the server stamps the report with "now" — the date
+      // field only matters when backdating an older report to the date
+      // actually printed on it.
+      await uploadFile(`/bookings/${bookingId}/reports`, file, 'file', reportDate ? { reportDate } : undefined);
+      setReportDate('');
       reportsApi.reload();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
@@ -444,14 +449,26 @@ function ReportsSection({ bookingId }: { bookingId: string }) {
 
   return (
     <>
-      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span>Reports</span>
-        <label className="btn btn-small" style={{ cursor: 'pointer' }}>
-          <IconUpload size={13} />
-          {uploading ? 'Uploading…' : 'Upload PDF'}
-          <input type="file" accept="application/pdf" hidden onChange={handleFile} disabled={uploading} />
-        </label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="date"
+            value={reportDate}
+            onChange={(e) => setReportDate(e.target.value)}
+            title="Report date (optional — defaults to today)"
+            style={{ width: 150 }}
+          />
+          <label className="btn btn-small" style={{ cursor: 'pointer' }}>
+            <IconUpload size={13} />
+            {uploading ? 'Uploading…' : 'Upload PDF'}
+            <input type="file" accept="application/pdf" hidden onChange={handleFile} disabled={uploading} />
+          </label>
+        </div>
       </div>
+      <p className="page-sub" style={{ margin: '0 0 10px' }}>
+        Report date defaults to today — set it before uploading to backdate an older report to the date printed on it.
+      </p>
       {uploadError && <div className="error-banner">{uploadError}</div>}
       {reportsApi.loading && <LoadingLine label="Loading reports…" />}
       {!reportsApi.loading && reports.length === 0 && (

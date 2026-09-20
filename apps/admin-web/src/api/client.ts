@@ -101,13 +101,23 @@ export const api = {
 
 // Multipart upload (report PDFs) — bypasses apiRequest's default JSON
 // Content-Type so the browser can set its own multipart boundary.
-export async function uploadFile<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+// `fields` rides along as extra text parts on the same form — e.g. the
+// report's own date, when staff are backdating an older PDF.
+export async function uploadFile<T>(
+  path: string,
+  file: File,
+  fieldName = 'file',
+  fields?: Record<string, string>,
+): Promise<T> {
   const session = getSession();
   const headers: Record<string, string> = {};
   if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
 
   const form = new FormData();
   form.append(fieldName, file);
+  for (const [key, value] of Object.entries(fields ?? {})) {
+    form.append(key, value);
+  }
 
   let res: Response;
   try {

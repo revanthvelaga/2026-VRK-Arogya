@@ -16,6 +16,7 @@ import * as fs from 'fs';
 import { ReportsService } from './reports.service';
 import { reportMulterOptions } from './reports.multer-options';
 import { AddReportValuesDto } from './dto/add-report-values.dto';
+import { UploadReportDto } from './dto/upload-report.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -39,10 +40,11 @@ export class ReportsController {
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @Param('bookingId') bookingId: string,
+    @Body() dto: UploadReportDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('file is required');
-    return this.reportsService.upload(bookingId, user.userId, file);
+    return this.reportsService.upload(bookingId, user.userId, file, dto.reportDate);
   }
 
   @Get('bookings/:bookingId/reports')
