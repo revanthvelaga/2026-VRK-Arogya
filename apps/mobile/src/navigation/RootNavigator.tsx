@@ -15,6 +15,9 @@ import { RegisterScreen } from '../screens/RegisterScreen';
 import { BookingScreen } from '../screens/BookingScreen';
 import { BookingDetailScreen } from '../screens/BookingDetailScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
+import { TestDetailScreen } from '../screens/TestDetailScreen';
+import { PackageDetailScreen } from '../screens/PackageDetailScreen';
+import { PaymentScreen } from '../screens/PaymentScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,7 +55,7 @@ function Tabs() {
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Arogya' }} />
       <Tab.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catalog' }} />
       <Tab.Screen name="Centers" component={CentersScreen} options={{ title: 'Centers' }} />
-      <Tab.Screen name="Bookings" component={MyBookingsScreen} options={{ title: 'My Bookings' }} />
+      <Tab.Screen name="Bookings" component={MyBookingsScreen} options={{ title: 'My Lab Tests' }} />
     </Tab.Navigator>
   );
 }
@@ -63,8 +66,11 @@ export function RootNavigator() {
       <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />
       <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create account' }} />
+      <Stack.Screen name="TestDetail" component={TestDetailScreen} options={{ title: 'Test details' }} />
+      <Stack.Screen name="PackageDetail" component={PackageDetailScreen} options={{ title: 'Package details' }} />
       <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Book a test' }} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} options={{ title: 'Booking' }} />
+      <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: 'Payment' }} />
       <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights' }} />
     </Stack.Navigator>
   );

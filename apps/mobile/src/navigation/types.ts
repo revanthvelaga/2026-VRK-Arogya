@@ -12,8 +12,11 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList>;
   Login: undefined;
   Register: undefined;
+  TestDetail: { id: string };
+  PackageDetail: { id: string };
   Booking: { testId?: string; packageId?: string; centerId?: string } | undefined;
   BookingDetail: { id: string };
+  Payment: { bookingId: string };
   Insights: undefined;
 };
 

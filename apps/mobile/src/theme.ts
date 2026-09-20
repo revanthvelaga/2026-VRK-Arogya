@@ -18,6 +18,8 @@ export const colors = {
   amberSoft: '#FEF3E5',
   red: '#B42318',
   redSoft: '#FEE4E2',
+  green: '#067647',
+  greenSoft: '#ECFDF3',
   greySoft: '#F2F4F7',
 } as const;
 

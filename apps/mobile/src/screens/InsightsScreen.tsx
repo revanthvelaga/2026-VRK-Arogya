@@ -1,91 +1,183 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { api } from '../api/client';
-import type { Booking } from '../api/types';
+import { api, downloadFile } from '../api/client';
+import type { MyReportValue, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { RequireAuth } from '../components/RequireAuth';
 import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { PatientPicker } from '../components/PatientPicker';
 import { EmptyState, ErrorBanner } from '../components/EmptyState';
 import { LoadingLine } from '../components/Spinner';
-import { formatCurrency, formatDateTime } from '../lib/format';
-import { colors, radius, shadow, spacing } from '../theme';
+import { formatDateTime, formatNumber } from '../lib/format';
+import { colors, radius, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Insights'>;
 
-function InsightsBody({ navigation }: Props) {
-  const { data: bookings, loading, error } = useApi<Booking[]>(() => api.get('/bookings/mine'), []);
+interface ReportGroup {
+  reportId: string;
+  bookingId: string;
+  reportFileName: string;
+  reportGeneratedAt: string;
+  values: MyReportValue[];
+}
 
-  const stats = useMemo(() => {
-    const list = bookings ?? [];
-    const totalSpent = list.filter((b) => b.status !== 'CANCELLED').reduce((sum, b) => sum + Number(b.totalAmount), 0);
-    const completed = list.filter((b) => b.status === 'COMPLETED').length;
-    const upcoming = list
-      .filter((b) => (b.status === 'PENDING' || b.status === 'CONFIRMED') && new Date(b.scheduledAt) > new Date())
-      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
-    const totalTests = list.reduce((sum, b) => sum + (b.items?.length ?? 0), 0);
-    const memberSince = list.length
-      ? list.reduce((earliest, b) => (new Date(b.createdAt) < new Date(earliest) ? b.createdAt : earliest), list[0].createdAt)
-      : null;
-    return { totalSpent, completed, upcoming, totalTests, totalBookings: list.length, memberSince };
-  }, [bookings]);
+function ReportGroupCard({ group, navigation }: { group: ReportGroup; navigation: Props['navigation'] }) {
+  const [downloading, setDownloading] = useState(false);
 
-  if (loading) return <LoadingLine label="Loading your insights…" />;
-  if (error) return <ErrorBanner message={error} />;
+  const download = async () => {
+    setDownloading(true);
+    try {
+      await downloadFile(`/reports/${group.reportId}/download`, group.reportFileName);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
-  if (!bookings || bookings.length === 0) {
-    return (
-      <View style={styles.content}>
-        <Text style={styles.heading}>Insights</Text>
-        <Text style={styles.sub}>A quick look at your health-testing history.</Text>
-        <EmptyState title="Nothing to show yet" hint="Book your first test and your insights will build up from there." />
+  const ordered = [...group.values].sort((a, b) => Number(b.isAbnormal) - Number(a.isAbnormal));
+
+  return (
+    <Card>
+      <View style={styles.reportTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.reportName}>{group.reportFileName}</Text>
+          <Text style={styles.reportMeta}>{formatDateTime(group.reportGeneratedAt)}</Text>
+        </View>
       </View>
-    );
+      <View style={styles.reportActions}>
+        <Button title={downloading ? 'Downloading…' : 'Download'} variant="secondary" onPress={download} disabled={downloading} />
+        <Button title="View booking" variant="ghost" onPress={() => navigation.navigate('BookingDetail', { id: group.bookingId })} />
+      </View>
+
+      <View style={{ marginTop: spacing.sm }}>
+        {ordered.map((v) => {
+          const hasRange = v.normalLow != null && v.normalHigh != null;
+          return (
+            <View style={styles.paramRow} key={v.id}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paramName}>
+                  {v.isAbnormal ? '⚠ ' : ''}
+                  {v.testName}
+                </Text>
+                {hasRange && (
+                  <Text style={styles.paramRange}>
+                    Range: {formatNumber(v.normalLow!)} – {formatNumber(v.normalHigh!)} {v.unit ?? ''}
+                  </Text>
+                )}
+                {v.category && <Text style={styles.paramCategory}>{v.category}</Text>}
+              </View>
+              <View style={[styles.valuePill, v.isAbnormal ? styles.valuePillAbnormal : styles.valuePillWithin]}>
+                <Text style={[styles.valuePillText, v.isAbnormal ? styles.valuePillTextAbnormal : styles.valuePillTextWithin]}>
+                  {formatNumber(v.value)} {v.unit ?? ''}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </Card>
+  );
+}
+
+function ReportInsightsSection({ patientId, navigation }: { patientId: string; navigation: Props['navigation'] }) {
+  const { data: values, loading } = useApi<MyReportValue[]>(
+    () => (patientId ? api.get(`/reports/mine/values?patientId=${patientId}`) : Promise.resolve([])),
+    [patientId],
+  );
+
+  const groups = useMemo(() => {
+    const byReport = new Map<string, ReportGroup>();
+    for (const v of values ?? []) {
+      if (!byReport.has(v.reportId)) {
+        byReport.set(v.reportId, {
+          reportId: v.reportId,
+          bookingId: v.bookingId,
+          reportFileName: v.reportFileName,
+          reportGeneratedAt: v.reportGeneratedAt,
+          values: [],
+        });
+      }
+      byReport.get(v.reportId)!.values.push(v);
+    }
+    return Array.from(byReport.values()).sort((a, b) => new Date(b.reportGeneratedAt).getTime() - new Date(a.reportGeneratedAt).getTime());
+  }, [values]);
+
+  if (loading) return <LoadingLine label="Loading results…" />;
+
+  if (!values || values.length === 0) {
+    return <EmptyState title="No results yet" hint="Once a report is uploaded for this patient, results will appear here." />;
   }
+
+  const outOfRange = values.filter((v) => v.isAbnormal);
+  const withinRange = values.filter((v) => !v.isAbnormal);
+
+  return (
+    <>
+      <Card>
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryTile, styles.summaryOut]}>
+            <Text style={styles.summaryLabel}>Out of range</Text>
+            <Text style={styles.summaryCount}>{outOfRange.length}</Text>
+          </View>
+          <View style={[styles.summaryTile, styles.summaryWithin]}>
+            <Text style={styles.summaryLabel}>Within range</Text>
+            <Text style={styles.summaryCount}>{withinRange.length}</Text>
+          </View>
+        </View>
+      </Card>
+      {groups.map((g) => (
+        <ReportGroupCard group={g} key={g.reportId} navigation={navigation} />
+      ))}
+    </>
+  );
+}
+
+function InsightsBody({ navigation }: Props) {
+  const {
+    data: patients,
+    loading,
+    error: patientsError,
+    reload: reloadPatients,
+  } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const [patientId, setPatientId] = useState('');
+
+  useEffect(() => {
+    if (!patientId && patients && patients.length > 0) {
+      const self = patients.find((p) => p.relationship === 'SELF');
+      setPatientId(self?.id ?? patients[0].id);
+    }
+  }, [patients, patientId]);
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Insights</Text>
-      {stats.memberSince && <Text style={styles.sub}>Booking with Arogya since {formatDateTime(stats.memberSince)}.</Text>}
-
-      <View style={styles.statGrid}>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{stats.totalBookings}</Text>
-          <Text style={styles.statLabel}>Total bookings</Text>
-        </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{stats.completed}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{formatCurrency(stats.totalSpent)}</Text>
-          <Text style={styles.statLabel}>Total spent</Text>
-        </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{stats.totalTests}</Text>
-          <Text style={styles.statLabel}>Tests booked</Text>
-        </View>
-      </View>
+      <Text style={styles.sub}>Report results, with out-of-range values flagged — per patient.</Text>
 
       <Card>
-        <Text style={styles.cardTitle}>Next up</Text>
-        {stats.upcoming ? (
-          <View style={styles.upcomingRow}>
-            <View>
-              <Text style={styles.upcomingDate}>{formatDateTime(stats.upcoming.scheduledAt)}</Text>
-              <Text style={styles.upcomingMeta}>
-                {stats.upcoming.items?.length ?? 0} item(s) · {formatCurrency(stats.upcoming.totalAmount)}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('BookingDetail', { id: stats.upcoming!.id })}>
-              <Text style={styles.trackLink}>Track it</Text>
-            </TouchableOpacity>
+        <Text style={styles.cardTitle}>Patient</Text>
+        {loading ? (
+          <LoadingLine label="Loading patients…" />
+        ) : patientsError ? (
+          <View>
+            <ErrorBanner message={patientsError} />
+            <Button title="Retry" variant="secondary" onPress={reloadPatients} />
           </View>
-        ) : (
-          <Text style={styles.upcomingMeta}>Nothing scheduled right now.</Text>
-        )}
+        ) : patients ? (
+          <PatientPicker
+            patients={patients}
+            selectedId={patientId}
+            onSelect={setPatientId}
+            onPatientAdded={(p) => {
+              reloadPatients();
+              setPatientId(p.id);
+            }}
+          />
+        ) : null}
       </Card>
+
+      {patientId && <ReportInsightsSection patientId={patientId} navigation={navigation} />}
     </ScrollView>
   );
 }
@@ -100,24 +192,36 @@ export function InsightsScreen(props: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl, flex: 1 },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   heading: { fontSize: 22, fontWeight: '800', color: colors.ink },
   sub: { fontSize: 13, color: colors.inkSoft, marginTop: 2, marginBottom: spacing.lg },
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  statTile: {
-    width: '47%',
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    ...shadow.card,
-  },
-  statNum: { fontSize: 20, fontWeight: '800', color: colors.ink },
-  statLabel: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },
-  upcomingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  upcomingDate: { fontSize: 14.5, fontWeight: '700', color: colors.ink },
-  upcomingMeta: { fontSize: 12.5, color: colors.inkSoft, marginTop: 2 },
-  trackLink: { fontSize: 13, fontWeight: '700', color: colors.accent },
+  reportTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  reportName: { fontSize: 14, fontWeight: '700', color: colors.ink },
+  reportMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
+  reportActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  summaryRow: { flexDirection: 'row', gap: spacing.sm },
+  summaryTile: { flex: 1, borderRadius: radius.md, padding: spacing.sm },
+  summaryOut: { backgroundColor: colors.redSoft },
+  summaryWithin: { backgroundColor: colors.greenSoft },
+  summaryLabel: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
+  summaryCount: { fontSize: 18, fontWeight: '800', color: colors.ink, marginTop: 2 },
+  paramRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: 8,
+    gap: spacing.sm,
+  },
+  paramName: { fontSize: 13, fontWeight: '600', color: colors.ink },
+  paramRange: { fontSize: 11.5, color: colors.inkFaint, marginTop: 2 },
+  paramCategory: { fontSize: 11, color: colors.inkFaint, marginTop: 1, fontStyle: 'italic' },
+  valuePill: { borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  valuePillAbnormal: { backgroundColor: colors.redSoft },
+  valuePillWithin: { backgroundColor: colors.greySoft },
+  valuePillText: { fontSize: 12, fontWeight: '700' },
+  valuePillTextAbnormal: { color: colors.red },
+  valuePillTextWithin: { color: colors.inkSoft },
 });

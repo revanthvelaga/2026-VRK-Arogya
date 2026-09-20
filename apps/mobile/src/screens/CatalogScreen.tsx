@@ -6,6 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import type { Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { useCart } from '../context/CartContext';
 import { audienceLabel } from '../lib/segments';
 import { formatCurrency } from '../lib/format';
 import { EmptyState } from '../components/EmptyState';
@@ -26,6 +27,7 @@ export function CatalogScreen({ navigation, route }: Props) {
   const audience = route.params?.audience;
   const [tab, setTab] = useState<'tests' | 'packages'>('tests');
   const [query, setQuery] = useState('');
+  const cart = useCart();
 
   const { data: tests, loading: testsLoading } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
   const { data: packages, loading: packagesLoading } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
@@ -86,24 +88,36 @@ export function CatalogScreen({ navigation, route }: Props) {
                 hint={audience ? 'Try clearing the category filter.' : 'Try a different search.'}
               />
             }
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <View style={styles.rowInfo}>
-                  <Text style={styles.rowTitle}>{item.name}</Text>
-                  {item.sampleType && <Text style={styles.rowMeta}>{item.sampleType} · {item.turnaroundHours}h turnaround</Text>}
-                </View>
-                <View style={styles.rowRight}>
-                  <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
-                  <TouchableOpacity
-                    testID={`catalog-book-test-${item.id}`}
-                    style={styles.bookBtn}
-                    onPress={() => navigation.navigate('Booking', { testId: item.id })}
-                  >
-                    <Text style={styles.bookBtnText}>Book</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const added = cart.has('test', item.id);
+              return (
+                <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('TestDetail', { id: item.id })}>
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowTitle}>{item.name}</Text>
+                    {item.sampleType && <Text style={styles.rowMeta}>{item.sampleType} · {item.turnaroundHours}h turnaround</Text>}
+                  </View>
+                  <View style={styles.rowRight}>
+                    <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={[styles.cartBtn, added && styles.cartBtnAdded]}
+                        onPress={() => cart.add({ kind: 'test', id: item.id, name: item.name, price: Number(item.price) })}
+                        disabled={added}
+                      >
+                        <Text style={[styles.cartBtnText, added && styles.cartBtnTextAdded]}>{added ? 'Added' : '+ Cart'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        testID={`catalog-book-test-${item.id}`}
+                        style={styles.bookBtn}
+                        onPress={() => navigation.navigate('Booking', { testId: item.id })}
+                      >
+                        <Text style={styles.bookBtnText}>Book</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
           />
         )
       ) : packagesLoading ? (
@@ -119,25 +133,49 @@ export function CatalogScreen({ navigation, route }: Props) {
               hint={audience ? 'Try clearing the category filter.' : undefined}
             />
           }
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle}>{item.name}</Text>
-                <Text style={styles.rowMeta}>{item.tests?.length ?? 0} tests included</Text>
-              </View>
-              <View style={styles.rowRight}>
-                <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
-                <TouchableOpacity
-                  testID={`catalog-book-package-${item.id}`}
-                  style={styles.bookBtn}
-                  onPress={() => navigation.navigate('Booking', { packageId: item.id })}
-                >
-                  <Text style={styles.bookBtnText}>Book</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const added = cart.has('package', item.id);
+            return (
+              <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('PackageDetail', { id: item.id })}>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowTitle}>{item.name}</Text>
+                  <Text style={styles.rowMeta}>{item.tests?.length ?? 0} tests included</Text>
+                </View>
+                <View style={styles.rowRight}>
+                  <Text style={styles.rowPrice}>{formatCurrency(item.price)}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity
+                      style={[styles.cartBtn, added && styles.cartBtnAdded]}
+                      onPress={() => cart.add({ kind: 'package', id: item.id, name: item.name, price: Number(item.price) })}
+                      disabled={added}
+                    >
+                      <Text style={[styles.cartBtnText, added && styles.cartBtnTextAdded]}>{added ? 'Added' : '+ Cart'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID={`catalog-book-package-${item.id}`}
+                      style={styles.bookBtn}
+                      onPress={() => navigation.navigate('Booking', { packageId: item.id })}
+                    >
+                      <Text style={styles.bookBtnText}>Book</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
+      )}
+
+      {cart.items.length > 0 && (
+        <TouchableOpacity style={styles.cartBar} onPress={() => navigation.navigate('Booking', undefined)}>
+          <View>
+            <Text style={styles.cartBarCount}>
+              {cart.items.length} item{cart.items.length > 1 ? 's' : ''} added
+            </Text>
+            <Text style={styles.cartBarTotal}>{formatCurrency(cart.total)}</Text>
+          </View>
+          <Text style={styles.cartBarAction}>Go to cart</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -189,6 +227,24 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
   rowRight: { alignItems: 'flex-end', gap: 6 },
   rowPrice: { fontSize: 14, fontWeight: '700', color: colors.ink },
+  cartBtn: { backgroundColor: colors.greySoft, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 6 },
+  cartBtnAdded: { backgroundColor: colors.accentSoft },
+  cartBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.inkSoft },
+  cartBtnTextAdded: { color: '#0B7A76' },
   bookBtn: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },
   bookBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  cartBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.ink,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    margin: spacing.lg,
+    marginTop: 0,
+    ...shadow.card,
+  },
+  cartBarCount: { fontSize: 12, color: '#E6EBF0' },
+  cartBarTotal: { fontSize: 16, fontWeight: '800', color: '#fff', marginTop: 2 },
+  cartBarAction: { fontSize: 13, fontWeight: '700', color: colors.accent },
 });

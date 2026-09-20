@@ -16,6 +16,10 @@ export interface JwtPayload {
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 export type CollectionMode = 'WALK_IN' | 'PICKUP_POINT' | 'HOME_VISIT';
+export type Relationship = 'SELF' | 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
+export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
 
 export type SampleStatus =
   | 'BOOKED'
@@ -35,15 +39,40 @@ export interface BookingItem {
   price: string | number;
 }
 
+export interface Patient {
+  id: string;
+  accountId: string;
+  fullName: string;
+  relationship: Relationship;
+  gender?: Gender;
+  dateOfBirth?: string;
+  areaAddress?: string;
+  pincode?: string;
+  fullAddress?: string;
+  landmark?: string;
+  location?: GeoPoint;
+  phone?: string;
+  alternatePhone?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Booking {
   id: string;
   customerId: string;
+  patientId?: string;
   centerId: string;
   pickupPointId?: string;
   collectionMode: CollectionMode;
+  homeAddressLine?: string;
+  homeAddressPincode?: string;
+  homeLocation?: GeoPoint;
   scheduledAt: string;
   status: BookingStatus;
+  subtotal: string | number;
+  gstAmount: string | number;
   totalAmount: string | number;
+  paymentStatus: PaymentStatus;
   createdAt: string;
   items: BookingItem[];
 }
@@ -77,6 +106,13 @@ export interface Test {
   name: string;
   code?: string;
   sampleType?: string;
+  category?: string;
+  description?: string;
+  preparationInstructions?: string;
+  reportInfo?: string;
+  normalRangeLow?: string | number;
+  normalRangeHigh?: string | number;
+  normalRangeUnit?: string;
   price: string | number;
   isInHouse: boolean;
   partnerLabId?: string;
@@ -103,6 +139,13 @@ export interface GeoPoint {
   coordinates: [number, number]; // [longitude, latitude]
 }
 
+export interface GeocodeResult {
+  displayName: string;
+  lat: number;
+  lng: number;
+  pincode?: string;
+}
+
 export interface DiagnosticCenter {
   id: string;
   name: string;
@@ -123,4 +166,69 @@ export interface PickupPoint {
   distanceKm?: string | number;
   isActive: boolean;
   createdAt: string;
+}
+
+export interface Report {
+  id: string;
+  bookingId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  generatedAt: string;
+  reviewedBy?: string;
+}
+
+export interface ReportValue {
+  id: string;
+  reportId: string;
+  testId?: string;
+  testName: string;
+  category?: string;
+  value: string | number;
+  unit?: string;
+  normalLow?: string | number;
+  normalHigh?: string | number;
+  isAbnormal: boolean;
+  createdAt: string;
+  previousValue?: string | number;
+  previousUnit?: string;
+  previousRecordedAt?: string;
+}
+
+export interface MyReportValue extends ReportValue {
+  bookingId: string;
+  reportGeneratedAt: string;
+  reportFileName: string;
+}
+
+export interface Issue {
+  id: string;
+  bookingId: string;
+  raisedBy: string;
+  subject: string;
+  description: string;
+  status: IssueStatus;
+  resolvedBy?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payment {
+  id: string;
+  bookingId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId?: string;
+  amount: string | number;
+  currency: string;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
+export interface RazorpayOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
 }
