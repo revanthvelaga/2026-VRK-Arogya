@@ -26,6 +26,58 @@ Public sign-up is always forced to `CUSTOMER` on the API, same as
    preview (via `react-native-web`, not a target this app is designed
    for — useful for a quick sanity check only).
 
+## Building a real APK to install on your phone
+
+This doesn't need the Play Store at all — [EAS Build](https://docs.expo.dev/build/introduction/)
+is Expo's free cloud build service and hands you a direct APK download
+link in about 15 minutes. Run these from your own machine (not this
+sandbox — it has no Expo login and no Android build tooling):
+
+1. **Point the app at a real API.** `EXPO_PUBLIC_API_URL` gets baked into
+   the JS bundle at build time, so `localhost` won't work on a phone —
+   there's no "your machine" from the phone's point of view. Either:
+   - deploy `apps/api` somewhere reachable (a small VPS, Render, Railway,
+     Fly.io, etc.), or
+   - run the API on your own machine and use an HTTPS tunnel
+     ([ngrok](https://ngrok.com), ngrok's free tier is enough:
+     `ngrok http 3000`, then use the `https://...ngrok-free.app` URL it
+     gives you) — works from anywhere, not just the same Wi-Fi.
+
+   Update `apps/mobile/.env`'s `EXPO_PUBLIC_API_URL` to that address
+   before building (`cp .env.example .env` first if you don't have one).
+   Also set `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` in the API's own
+   `.env` if you want the in-app Pay button to work — without them,
+   everything else still works, only "Pay" returns an error.
+
+2. **Sign up for a free Expo account** at [expo.dev](https://expo.dev) if
+   you don't have one — no cost, and it's separate from a Google Play
+   Developer account (not needed for this path).
+
+3. From `apps/mobile`:
+   ```
+   npx eas-cli@latest login       # your Expo account
+   npx eas-cli@latest build --platform android --profile preview
+   ```
+   The `preview` profile (`eas.json`) is set to build a plain installable
+   `.apk` rather than the `.aab` bundle format the Play Store requires,
+   and `distribution: internal` skips any store submission — it just
+   builds and gives you a link. First run will ask a couple of setup
+   questions (e.g. to generate a new Android signing keystore — let it,
+   EAS manages it for you) and may prompt you to create the project on
+   expo.dev; accept the defaults.
+
+4. When the build finishes, the terminal prints a link (also visible on
+   your [expo.dev](https://expo.dev) dashboard) — open it on your phone,
+   or scan the QR code it shows, to download the APK directly. Android
+   will ask you to allow installs from this source the first time
+   ("Install unknown apps") since it isn't from the Play Store; that's
+   expected for this path.
+
+Once you're happy with it and want it actually listed on the Play Store
+(for wider testing or a public release), that needs your own Google Play
+Console account (one-time $25 fee) — `eas.json`'s `submit` profile is
+already there for when you're ready; ask and I'll walk through it.
+
 ## How it's put together
 
 Same conventions as `admin-web`/`customer-web`, ported to React Native —
