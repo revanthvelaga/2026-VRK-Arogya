@@ -8,12 +8,14 @@ import type {
   BookingStatus,
   Issue,
   IssueStatus,
+  Package,
   PartnerLab,
   Report,
   ReportValue,
   Sample,
   SampleStatus,
   SampleStatusHistoryEntry,
+  Test,
 } from '../api/types';
 import { SAMPLE_TRANSITIONS } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -549,6 +551,8 @@ export function BookingDetailPage() {
   const bookingApi = useApi<Booking>(() => api.get(`/bookings/${id}`), [id]);
   const samplesApi = useApi<Sample[]>(() => api.get(`/bookings/${id}/samples`), [id]);
   const partnerLabsApi = useApi<PartnerLab[]>(() => api.get('/partner-labs'), []);
+  const testsApi = useApi<Test[]>(() => api.get('/catalog/tests'), []);
+  const packagesApi = useApi<Package[]>(() => api.get('/catalog/packages'), []);
 
   const [nextBookingStatus, setNextBookingStatus] = useState<BookingStatus | ''>('');
   const [statusUpdating, setStatusUpdating] = useState(false);
@@ -564,6 +568,26 @@ export function BookingDetailPage() {
     booking?.items.forEach((i) => map.set(i.id, i));
     return map;
   }, [booking]);
+
+  // Booking items only carry a testId/packageId — the actual name lives in
+  // the catalog, so it's resolved here the same way customer-web/mobile do
+  // rather than showing staff a bare item count with nothing to identify
+  // what was actually booked.
+  const testNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (testsApi.data ?? []).forEach((t) => map.set(t.id, t.name));
+    return map;
+  }, [testsApi.data]);
+  const packageNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (packagesApi.data ?? []).forEach((p) => map.set(p.id, p.name));
+    return map;
+  }, [packagesApi.data]);
+  const itemName = (item: BookingItem): string => {
+    if (item.testId) return testNameById.get(item.testId) ?? 'Test';
+    if (item.packageId) return packageNameById.get(item.packageId) ?? 'Package';
+    return 'Item';
+  };
 
   const updateBookingStatus = async () => {
     if (!nextBookingStatus) return;
@@ -625,17 +649,43 @@ export function BookingDetailPage() {
             {statusLabel(booking.collectionMode)}
           </div>
           <div className="field">
-            <label>Total</label>
-            {formatCurrency(booking.totalAmount)}
+            <label>Subtotal</label>
+            {formatCurrency(booking.subtotal)}
           </div>
           <div className="field">
-            <label>Items</label>
-            {booking.items.length}
+            <label>GST</label>
+            {formatCurrency(booking.gstAmount)}
+          </div>
+          <div className="field">
+            <label>Total</label>
+            <strong>{formatCurrency(booking.totalAmount)}</strong>
           </div>
           <div className="field">
             <label>Payment</label>
             <StatusBadge status={booking.paymentStatus} variant={paymentStatusVariant(booking.paymentStatus)} />
           </div>
+        </div>
+
+        <div className="field field-full" style={{ marginTop: 4, marginBottom: 0 }}>
+          <label>Items ({booking.items.length})</label>
+          {testsApi.loading || packagesApi.loading ? (
+            <LoadingLine label="Loading catalog…" />
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <tbody>
+                {booking.items.map((item) => (
+                  <tr key={item.id}>
+                    <td style={{ padding: '4px 8px 4px 0' }}>
+                      {itemName(item)}
+                      {item.testId && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--ink-faint)' }}>Test</span>}
+                      {item.packageId && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--ink-faint)' }}>Package</span>}
+                    </td>
+                    <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item.price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         <div className="toolbar" style={{ marginTop: 4 }}>

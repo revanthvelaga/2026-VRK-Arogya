@@ -63,11 +63,14 @@ export interface BookingItem {
 export interface Booking {
   id: string;
   customerId: string;
+  patientId?: string;
   centerId: string;
   pickupPointId?: string;
   collectionMode: CollectionMode;
   scheduledAt: string;
   status: BookingStatus;
+  subtotal: string | number;
+  gstAmount: string | number;
   totalAmount: string | number;
   paymentStatus: PaymentStatus;
   createdAt: string;
