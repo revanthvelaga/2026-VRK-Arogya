@@ -1,8 +1,12 @@
-# Render Blueprint — deploys apps/api as a free web service.
+# Render Blueprint — deploys apps/api (a free web service) and
+# apps/admin-web + apps/customer-web (free static sites) so the whole
+# app — API, admin console, and customer site — is reachable from a
+# browser without anything running locally.
 # In the Render dashboard: New > Blueprint > connect this repo. Render
 # reads this file automatically; you'll be prompted for the "sync: false"
-# values (DATABASE_URL, and the two Razorpay keys if you want payments to
-# work) during setup. JWT secrets are generated for you.
+# values during setup (DATABASE_URL, the two Razorpay keys if you want
+# payments to work, and each web app's own API URL). JWT secrets are
+# generated for you.
 #
 # The database itself isn't defined here — Render's own free Postgres
 # doesn't support enabling the PostGIS extension this app needs (a
@@ -41,4 +45,44 @@ services:
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+  - type: web
+    name: arogya-admin-web
+    runtime: static
+    rootDir: apps/admin-web
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # Client-side routing (React Router) — any path that isn't a real
+    # file falls back to index.html so a direct link to e.g.
+    # /bookings/:id doesn't 404 on refresh.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # The arogya-api service's own URL, copied from its Render page
+      # once it's deployed (e.g. https://arogya-api-xxxx.onrender.com) —
+      # baked into the built JS at build time, so it must be set before
+      # this service deploys.
+      - key: VITE_API_URL
+        sync: false
+
+  - type: web
+    name: arogya-customer-web
+    runtime: static
+    rootDir: apps/customer-web
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      # Optional — E.164 format (e.g. +911234567890). Leave blank and
+      # the "Book via Call"/"Book via WhatsApp" tiles use a placeholder
+      # number.
+      - key: VITE_SUPPORT_PHONE
         sync: false
