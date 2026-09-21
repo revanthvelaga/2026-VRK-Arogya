@@ -20,9 +20,11 @@ services:
     startCommand: node dist/main
     healthCheckPath: /health
     envVars:
-      # Paste Supabase's connection string here (Project Settings >
-      # Database > Connection string > URI). The API falls back to
-      # DB_HOST/DB_PORT/etc. (local dev only) when this is unset.
+      # Paste Supabase's Session pooler connection string here (its
+      # dashboard's "Connect" button — Session pooler, not Direct
+      # connection, since Direct needs IPv6 and Render's free tier is
+      # IPv4-only outbound). The API falls back to DB_HOST/DB_PORT/etc.
+      # (local dev only) when this is unset.
       - key: DATABASE_URL
         sync: false
       - key: JWT_ACCESS_SECRET

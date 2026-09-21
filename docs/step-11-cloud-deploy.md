@@ -32,8 +32,16 @@ of total inactivity; opening its dashboard resumes it.
 1. **Create a Supabase project** (free, no card) — supabase.com → New
    project. Once it's up: **Database → Extensions** in the sidebar →
    search `postgis` → enable it.
-2. **Get its connection string** — **Project Settings → Database →
-   Connection string**, "URI" format. Copy it — you'll paste it into
+2. **Get its connection string** — click **Connect** near the top of the
+   project dashboard (not under Project Settings — Supabase moved this).
+   In the dialog, pick **Session pooler**, not "Direct connection": the
+   direct one requires IPv6, which Render's free tier can't reach (it's
+   IPv4-only outbound), so it'll time out from there even though it
+   works fine from your own machine. Session pooler works over IPv4 on
+   every plan, free included, and — unlike transaction mode — behaves
+   like a normal persistent connection, which is what this app needs.
+   Copy the string and replace `[YOUR-PASSWORD]` with the database
+   password you set when creating the project. You'll paste it into
    Render next.
 3. **Deploy the API on Render** — render.com → **New → Blueprint** →
    connect this GitHub repo. Render reads [`render.yaml`](../render.yaml)
