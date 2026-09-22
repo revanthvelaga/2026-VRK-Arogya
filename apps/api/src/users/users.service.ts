@@ -16,6 +16,10 @@ export class UsersService {
     return this.usersRepo.findOne({ where: { phone } });
   }
 
+  findByEmail(email: string): Promise<User | null> {
+    return this.usersRepo.findOne({ where: { email } });
+  }
+
   findById(id: string): Promise<User | null> {
     return this.usersRepo.findOne({ where: { id } });
   }
@@ -45,7 +49,27 @@ export class UsersService {
     return this.usersRepo.save(user);
   }
 
+  // Google and phone-OTP sign-ins never set a password — there's nothing
+  // to hash, so this skips straight past bcrypt rather than hashing an
+  // empty string (which would otherwise let literally nothing be typed
+  // in as a "password" and pass validatePassword).
+  async createOAuthUser(params: {
+    fullName: string;
+    phone?: string;
+    email?: string;
+    role?: Role;
+  }): Promise<User> {
+    const user = this.usersRepo.create({
+      fullName: params.fullName,
+      phone: params.phone,
+      email: params.email,
+      role: params.role ?? Role.CUSTOMER,
+    });
+    return this.usersRepo.save(user);
+  }
+
   async validatePassword(user: User, password: string): Promise<boolean> {
+    if (!user.passwordHash) return false;
     return bcrypt.compare(password, user.passwordHash);
   }
 }

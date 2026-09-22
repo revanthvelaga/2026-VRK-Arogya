@@ -51,6 +51,23 @@ services:
       # console.anthropic.com > API Keys.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Optional — enables "Sign in with Google" on the customer site.
+      # Neither of these is a secret (no client secret is used — Google
+      # Identity Services hands back an ID token directly), but they're
+      # still per-project, so: console.cloud.google.com > APIs & Services
+      # > Credentials > Create OAuth client ID > Web application. This
+      # value must match VITE_GOOGLE_CLIENT_ID on arogya-customer-web.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      # Optional — enables mobile OTP sign-in via Firebase Phone Auth.
+      # Also not a secret (ID-token verification only needs the public
+      # project id, checked against Google's own public keys — no
+      # service account file needed). Create a free project at
+      # console.firebase.google.com, enable Authentication > Sign-in
+      # method > Phone, and copy the project id from Project settings.
+      # Must match VITE_FIREBASE_PROJECT_ID on arogya-customer-web.
+      - key: FIREBASE_PROJECT_ID
+        sync: false
 
   - type: web
     name: arogya-admin-web
@@ -90,4 +107,17 @@ services:
       # the "Book via Call"/"Book via WhatsApp" tiles use a placeholder
       # number.
       - key: VITE_SUPPORT_PHONE
+        sync: false
+      # Optional — "Sign in with Google" / mobile OTP on the login page.
+      # None of these four are secrets (see the matching comments on
+      # arogya-api above) — they're the public web config Firebase/Google
+      # hand you when you create the project. Leave all four blank and
+      # the login page works exactly as before (phone + password only).
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
         sync: false

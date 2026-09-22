@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { GoogleAuthService } from './google-auth.service';
+import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { UsersModule } from '../users/users.module';
 import { PatientsModule } from '../patients/patients.module';
 
@@ -23,6 +25,6 @@ import { PatientsModule } from '../patients/patients.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService],
 })
 export class AuthModule {}

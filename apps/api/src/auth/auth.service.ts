@@ -1,8 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PatientsService } from '../patients/patients.service';
+import { GoogleAuthService } from './google-auth.service';
+import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
@@ -14,6 +16,8 @@ export class AuthService {
     private readonly patientsService: PatientsService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly googleAuthService: GoogleAuthService,
+    private readonly firebasePhoneAuthService: FirebasePhoneAuthService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -42,7 +46,44 @@ export class AuthService {
     return this.issueTokens(user.id, user.phone, user.role);
   }
 
-  private issueTokens(userId: string, phone: string, role: Role) {
+  // "Sign in with Google" — same account either way: an existing email
+  // logs straight in, a new one is created and given the usual SELF
+  // patient profile, same as register().
+  async googleLogin(idToken: string) {
+    const { email, name } = await this.googleAuthService.verify(idToken);
+
+    let user = await this.usersService.findByEmail(email);
+    if (!user) {
+      user = await this.usersService.createOAuthUser({
+        fullName: name?.trim() || email.split('@')[0],
+        email,
+        role: Role.CUSTOMER,
+      });
+      await this.patientsService.createSelf(user.id, user.fullName);
+    }
+
+    return this.issueTokens(user.id, user.phone, user.role);
+  }
+
+  // Mobile OTP — the frontend verifies the code with Firebase directly
+  // and only reaches us with the resulting (already-verified) token, so
+  // there's no OTP to check here, only whose phone it belongs to.
+  async phoneOtpLogin(idToken: string, fullName?: string) {
+    const { phone } = await this.firebasePhoneAuthService.verify(idToken);
+
+    let user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      if (!fullName?.trim()) {
+        throw new PreconditionFailedException('New account — enter your name to finish signing up.');
+      }
+      user = await this.usersService.createOAuthUser({ fullName: fullName.trim(), phone, role: Role.CUSTOMER });
+      await this.patientsService.createSelf(user.id, user.fullName);
+    }
+
+    return this.issueTokens(user.id, user.phone, user.role);
+  }
+
+  private issueTokens(userId: string, phone: string | undefined, role: Role) {
     const payload = { sub: userId, phone, role };
 
     const accessToken = this.jwtService.sign(payload, {
