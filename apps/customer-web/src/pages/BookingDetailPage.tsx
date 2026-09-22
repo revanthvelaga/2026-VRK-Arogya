@@ -2,27 +2,18 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
-import type { Booking, Issue, Report, ReportValue, Sample, SampleStatusHistoryEntry } from '../api/types';
+import type { Booking, Issue, Report, Sample, SampleStatusHistoryEntry } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleProgress } from '../components/SampleProgress';
 import { LoadingLine } from '../components/Spinner';
-import {
-  IconAlertTriangle,
-  IconArrowLeft,
-  IconArrowRight,
-  IconClock,
-  IconCreditCard,
-  IconFileText,
-  IconMessage,
-} from '../components/Icons';
+import { IconArrowLeft, IconClock, IconCreditCard, IconFileText, IconMessage } from '../components/Icons';
 import {
   bookingStatusVariant,
   formatCurrency,
   formatDateTime,
-  formatNumber,
   issueStatusVariant,
   paymentStatusVariant,
   sampleStatusVariant,
@@ -154,8 +145,6 @@ function PaymentButton({ booking, onPaid }: { booking: Booking; onPaid: () => vo
 }
 
 function ReportCard({ report }: { report: Report }) {
-  const valuesApi = useApi<ReportValue[]>(() => api.get(`/reports/${report.id}/values`), [report.id]);
-  const values = valuesApi.data ?? [];
   const [downloading, setDownloading] = useState(false);
   const [viewing, setViewing] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -184,12 +173,6 @@ function ReportCard({ report }: { report: Report }) {
     }
   };
 
-  const outOfRange = values.filter((v) => v.isAbnormal);
-  const withinRange = values.filter((v) => !v.isAbnormal);
-  // Abnormal parameters first — that's what a customer opening a report
-  // actually wants to see, not alphabetical or entry order.
-  const ordered = [...outOfRange, ...withinRange];
-
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
@@ -212,73 +195,6 @@ function ReportCard({ report }: { report: Report }) {
         </div>
       </div>
       {downloadError && <div className="error-banner" style={{ marginTop: 10 }}>{downloadError}</div>}
-
-      {valuesApi.loading && <LoadingLine label="Loading insights…" />}
-      {values.length > 0 && (
-        <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>
-            Clinician insights
-          </div>
-
-          <div className="insight-summary">
-            <div className="insight-summary-card out">
-              <div className="label">Out of range</div>
-              <div className="count">
-                {outOfRange.length}
-                <span>parameter{outOfRange.length === 1 ? '' : 's'}</span>
-              </div>
-            </div>
-            <div className="insight-summary-card within">
-              <div className="label">Within range</div>
-              <div className="count">
-                {withinRange.length}
-                <span>parameter{withinRange.length === 1 ? '' : 's'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="insight-param-list">
-            {ordered.map((v) => {
-              const hasRange = v.normalLow != null && v.normalHigh != null;
-              const hasTrend = v.previousValue != null && Number(v.previousValue) !== Number(v.value);
-              return (
-                <div className="insight-param-row" key={v.id}>
-                  <div>
-                    <div className="insight-param-name">
-                      {v.isAbnormal && (
-                        <IconAlertTriangle
-                          size={12}
-                          style={{ marginRight: 5, verticalAlign: -1, color: 'var(--red)' }}
-                        />
-                      )}
-                      {v.testName}
-                    </div>
-                    {hasRange && (
-                      <div className="insight-param-range">
-                        Range: {formatNumber(v.normalLow!)} – {formatNumber(v.normalHigh!)} {v.unit ?? ''}
-                      </div>
-                    )}
-                    {v.category && <div className="insight-param-category">{v.category}</div>}
-                  </div>
-                  <div className="insight-value-trend">
-                    {hasTrend && (
-                      <>
-                        <span className="value-pill normal-ghost">
-                          {formatNumber(v.previousValue!)}
-                        </span>
-                        <IconArrowRight size={11} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
-                      </>
-                    )}
-                    <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within'}`}>
-                      {formatNumber(v.value)} {v.unit ?? ''}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
