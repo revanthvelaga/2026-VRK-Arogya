@@ -195,7 +195,7 @@ function HealthScoreGauge({ score, normal, total }: { score: number; normal: num
             <p className="page-sub" style={{ margin: '10px 0 0' }}>
               {total === 0
                 ? 'Upload a report for this patient to see a health score here.'
-                : `${normal} of ${total} parameters within normal range in the latest report.`}
+                : `${normal} of ${total} parameters within normal range, based on their most recent reading.`}
             </p>
           </div>
         </div>
@@ -373,11 +373,9 @@ function HealthRecommendationCard({ patientId }: { patientId: string }) {
   );
 }
 
-// Everything that hangs off a patient's report results: the health score
-// (scored off the latest report only, so an old abnormal value doesn't
-// keep dragging the score down after it's been resolved), the list of
-// every report on file, and the detail of whichever one is selected
-// (defaulting to the latest) with its own View/Download actions.
+// Everything that hangs off a patient's report results: the health score,
+// the list of every report on file, and the detail of whichever one is
+// selected (defaulting to the latest) with its own View/Download actions.
 function PatientResultsSection({ patientId }: { patientId: string }) {
   const { data: values, loading } = useApi<MyReportValue[]>(
     () => (patientId ? api.get(`/reports/mine/values?patientId=${patientId}`) : Promise.resolve([])),
@@ -393,11 +391,35 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId, latest?.reportId]);
 
+  // The same test can show up on more than one report (a repeat CBC a
+  // month later, say) — counting every occurrence would double the "out
+  // of range"/"within range" tallies and the health score for parameters
+  // that just got re-tested. The API already returns values newest-report
+  // first, so keeping only the first occurrence per test gives the most
+  // recent reading for each distinct parameter, with everything older
+  // folded away rather than double-counted. Each kept value already
+  // carries its own previousValue/previousUnit from the API (the reading
+  // right before it, same patient, same test) for the old → new arrow.
+  const latestPerParam = useMemo(() => {
+    const seen = new Set<string>();
+    const result: MyReportValue[] = [];
+    for (const v of values ?? []) {
+      const key = v.testId ?? v.testName;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(v);
+    }
+    return result;
+  }, [values]);
+
   const healthStats = useMemo(() => {
-    const vals = latest?.values ?? [];
-    const normal = vals.filter((v) => !v.isAbnormal).length;
-    return { total: vals.length, normal, score: vals.length ? Math.round((normal / vals.length) * 100) : 0 };
-  }, [latest]);
+    const normal = latestPerParam.filter((v) => !v.isAbnormal).length;
+    return {
+      total: latestPerParam.length,
+      normal,
+      score: latestPerParam.length ? Math.round((normal / latestPerParam.length) * 100) : 0,
+    };
+  }, [latestPerParam]);
 
   if (loading) return <LoadingLine label="Loading results…" />;
 
@@ -415,8 +437,8 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
   }
 
   const selectedGroup = groups.find((g) => g.reportId === selectedReportId) ?? latest;
-  const outOfRange = values.filter((v) => v.isAbnormal);
-  const withinRange = values.filter((v) => !v.isAbnormal);
+  const outOfRange = latestPerParam.filter((v) => v.isAbnormal);
+  const withinRange = latestPerParam.filter((v) => !v.isAbnormal);
 
   return (
     <>
