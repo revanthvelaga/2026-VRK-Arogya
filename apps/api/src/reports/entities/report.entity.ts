@@ -16,11 +16,15 @@ export class Report {
   @JoinColumn({ name: 'booking_id' })
   booking: Booking;
 
-  // Today, this is an absolute path on local disk (see
-  // reports.multer-options.ts) — swap it for a real S3 URL once that
-  // integration lands; nothing else about this column changes.
-  @Column({ name: 'file_url' })
-  fileUrl: string;
+  // The PDF's actual bytes, stored in the database rather than on local
+  // disk. A hosting platform's free web service tier commonly gives the
+  // app an ephemeral filesystem — anything written to disk disappears the
+  // next time the container restarts or wakes from sleep, which silently
+  // destroyed every uploaded report on a free-tier deploy. Postgres bytea
+  // has no such lifecycle; swap this for a real S3 URL later if report
+  // volume ever outgrows it — nothing else about the column's role changes.
+  @Column({ name: 'file_data', type: 'bytea' })
+  fileData: Buffer;
 
   @Column({ name: 'file_name' })
   fileName: string;

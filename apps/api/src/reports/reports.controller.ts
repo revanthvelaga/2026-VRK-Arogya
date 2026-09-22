@@ -12,7 +12,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as fs from 'fs';
 import { ReportsService } from './reports.service';
 import { reportMulterOptions } from './reports.multer-options';
 import { AddReportValuesDto } from './dto/add-report-values.dto';
@@ -58,15 +57,20 @@ export class ReportsController {
     return this.reportsService.findAllValuesForCustomer(user.userId, patientId);
   }
 
+  // `?view=1` renders the PDF in the browser tab (Content-Disposition:
+  // inline) instead of forcing a save-to-disk prompt — the same bytes,
+  // same endpoint, same auth check either way.
   @Get('reports/:id/download')
   async download(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query('view') view?: string,
   ): Promise<StreamableFile> {
     const report = await this.reportsService.getForDownload(id, user);
-    return new StreamableFile(fs.createReadStream(report.fileUrl), {
+    const dispositionType = view ? 'inline' : 'attachment';
+    return new StreamableFile(report.fileData, {
       type: report.mimeType,
-      disposition: `attachment; filename="${report.fileName}"`,
+      disposition: `${dispositionType}; filename="${report.fileName}"`,
     });
   }
 

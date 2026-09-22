@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as fs from 'fs';
 import { Report } from './entities/report.entity';
 import { ReportValue } from './entities/report-value.entity';
 import { AddReportValuesDto } from './dto/add-report-values.dto';
@@ -11,7 +10,22 @@ import { NotificationType } from '../common/enums/notification-type.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { TestsService } from '../catalog/tests.service';
 
-export type PublicReport = Omit<Report, 'fileUrl' | 'booking'>;
+export type PublicReport = Omit<Report, 'fileData' | 'booking'>;
+
+// Every column except the PDF bytes themselves — used for any query that
+// lists reports rather than serving one for download, so listing a
+// booking's reports doesn't pull megabytes of PDF data across the wire
+// for every row just to show a filename and a date.
+const METADATA_COLUMNS: (keyof Report)[] = [
+  'id',
+  'bookingId',
+  'fileName',
+  'mimeType',
+  'sizeBytes',
+  'uploadedBy',
+  'generatedAt',
+  'reviewedBy',
+];
 
 export interface ReportValueWithTrend extends ReportValue {
   previousValue?: number;
@@ -42,7 +56,7 @@ export class ReportsService {
     const report = await this.reportsRepo.save(
       this.reportsRepo.create({
         bookingId,
-        fileUrl: file.path,
+        fileData: file.buffer,
         fileName: file.originalname,
         mimeType: file.mimetype,
         sizeBytes: file.size,
@@ -66,6 +80,7 @@ export class ReportsService {
     await this.bookingsService.findOneForUser(bookingId, user); // ownership check — owner or ADMIN/STAFF
     const reports = await this.reportsRepo.find({
       where: { bookingId },
+      select: METADATA_COLUMNS,
       order: { generatedAt: 'DESC' },
     });
     return reports.map((r) => this.toPublic(r));
@@ -75,16 +90,13 @@ export class ReportsService {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');
     await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
-    if (!fs.existsSync(report.fileUrl)) {
-      throw new NotFoundException('Report file is missing from storage');
-    }
     return report;
   }
 
-  // Never leak the raw disk path to clients — /reports/:id/download is
-  // the only way to actually get the bytes.
+  // Never leak the raw bytes to clients through a metadata response —
+  // /reports/:id/download is the only way to actually get them.
   private toPublic(report: Report): PublicReport {
-    const { fileUrl: _fileUrl, booking: _booking, ...rest } = report;
+    const { fileData: _fileData, booking: _booking, ...rest } = report;
     return rest;
   }
 

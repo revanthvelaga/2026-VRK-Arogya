@@ -1,25 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import * as fs from 'fs';
-import { diskStorage } from 'multer';
-import * as path from 'path';
+import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 
-// Local disk today — apps/api/uploads/reports/, gitignored. The Report
-// entity's fileUrl column holds whatever path/URL actually stores the
-// file, so swapping this for real S3 storage later only touches this
-// one file, not the entity, service, or controller.
-export const REPORTS_DIR = path.join(process.cwd(), 'uploads', 'reports');
-fs.mkdirSync(REPORTS_DIR, { recursive: true });
-
+// In-memory, not disk — the uploaded bytes are stored straight into
+// Postgres (see Report.fileData), so there's never a file on the API's
+// own filesystem to lose. A hosting platform's free web service tier
+// typically doesn't persist local disk writes across a restart/sleep
+// cycle, which used to make an uploaded report vanish without warning.
 export const reportMulterOptions = {
-  storage: diskStorage({
-    destination: REPORTS_DIR,
-    filename: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, filename: string) => void) => {
-      const ext = path.extname(file.originalname) || '.pdf';
-      callback(null, `${randomUUID()}${ext}`);
-    },
-  }),
+  storage: memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, accept: boolean) => void) => {
     if (file.mimetype !== 'application/pdf') {
