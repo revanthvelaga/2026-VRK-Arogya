@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
-import type { Booking, MyReportValue, Patient } from '../api/types';
+import type { MyReportValue, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
-import { StatusBadge } from '../components/StatusBadge';
 import {
+  IconActivity,
   IconAlertTriangle,
   IconArrowRight,
   IconBag,
-  IconCalendar,
   IconFileText,
   IconMapPin,
   IconPhone,
+  IconShieldCheck,
   IconUser,
 } from '../components/Icons';
-import { bookingStatusVariant, formatCurrency, formatDateTime, formatNumber, statusLabel } from '../lib/format';
+import { formatDateTime, formatNumber } from '../lib/format';
 
 function relationshipLabel(r: Patient['relationship']): string {
   return r.charAt(0) + r.slice(1).toLowerCase();
@@ -93,64 +93,6 @@ function PatientProfileCard({ patient }: { patient: Patient }) {
   );
 }
 
-function PatientBookingHistory({ patientId }: { patientId: string }) {
-  const { data: bookings, loading } = useApi<Booking[]>(
-    () => (patientId ? api.get(`/bookings/mine?patientId=${patientId}`) : Promise.resolve([])),
-    [patientId],
-  );
-
-  const sorted = [...(bookings ?? [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-
-  if (loading) return <LoadingLine label="Loading booking history…" />;
-
-  return (
-    <div className="card">
-      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <IconCalendar size={15} />
-        Booking history ({sorted.length})
-      </div>
-      {sorted.length === 0 ? (
-        <p className="page-sub" style={{ margin: 0 }}>
-          No bookings yet for this patient.
-        </p>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {sorted.map((b) => (
-            <Link
-              key={b.id}
-              to={`/bookings/${b.id}`}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 12px',
-                borderRadius: 10,
-                border: '1px solid var(--line)',
-                textDecoration: 'none',
-                color: 'inherit',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{formatDateTime(b.scheduledAt)}</div>
-                <div className="page-sub" style={{ margin: '2px 0 0', fontSize: 12 }}>
-                  {statusLabel(b.collectionMode)} · {b.items?.length ?? 0} item{(b.items?.length ?? 0) === 1 ? '' : 's'}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{formatCurrency(b.totalAmount)}</div>
-                <StatusBadge status={b.status} variant={bookingStatusVariant(b.status)} />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 interface ReportGroup {
   reportId: string;
   bookingId: string;
@@ -191,10 +133,12 @@ function HealthScoreGauge({ score, normal, total }: { score: number; normal: num
     return () => cancelAnimationFrame(raf);
   }, [score, total]);
 
-  const radius = 54;
+  const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (animated / 100) * circumference;
   const color = total === 0 ? 'var(--ink-faint)' : score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : 'var(--red)';
+  const soft = total === 0 ? 'var(--grey-soft)' : score >= 80 ? 'var(--green-soft)' : score >= 50 ? 'var(--amber-soft)' : 'var(--red-soft)';
+  const Icon = total === 0 ? IconActivity : score >= 80 ? IconShieldCheck : IconAlertTriangle;
   const headline =
     total === 0
       ? 'No results yet'
@@ -205,42 +149,54 @@ function HealthScoreGauge({ score, normal, total }: { score: number; normal: num
           : 'Needs attention';
 
   return (
-    <div className="card">
-      <div className="card-title">Overall body health score</div>
-      <div className="health-score-body">
-        <div className="health-score-ring-wrap">
-          <svg width={132} height={132} viewBox="0 0 132 132">
-            <circle cx={66} cy={66} r={radius} fill="none" stroke="var(--line)" strokeWidth={12} />
-            {total > 0 && (
-              <circle
-                cx={66}
-                cy={66}
-                r={radius}
-                fill="none"
-                stroke={color}
-                strokeWidth={12}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                transform="rotate(-90 66 66)"
-                style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease' }}
-              />
-            )}
-          </svg>
-          <div className="health-score-ring-label">
-            <div className="health-score-number">{total === 0 ? '–' : animated}</div>
-            {total > 0 && <div className="health-score-unit">/ 100</div>}
-          </div>
+    <div className="card health-score-card">
+      <div className="health-score-glow" style={{ background: `radial-gradient(circle, ${soft}, transparent 70%)` }} />
+      <div className="health-score-inner">
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <IconActivity size={16} style={{ color: 'var(--accent-ink)' }} />
+          Overall body health score
         </div>
-        <div className="health-score-meta">
-          <div className="health-score-headline" style={{ color }}>
-            {headline}
+        <div className="health-score-body">
+          <div className="health-score-ring-wrap">
+            <svg width={156} height={156} viewBox="0 0 156 156">
+              <circle cx={78} cy={78} r={radius} fill="none" stroke="var(--line)" strokeWidth={14} />
+              {total > 0 && (
+                <circle
+                  cx={78}
+                  cy={78}
+                  r={radius}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={14}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  transform="rotate(-90 78 78)"
+                  style={{
+                    transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease',
+                    filter: total > 0 ? `drop-shadow(0 2px 9px ${color})` : undefined,
+                  }}
+                />
+              )}
+            </svg>
+            <div className="health-score-ring-label">
+              <div className="health-score-number" style={{ color }}>
+                {total === 0 ? '–' : animated}
+              </div>
+              {total > 0 && <div className="health-score-unit">out of 100</div>}
+            </div>
           </div>
-          <p className="page-sub" style={{ margin: '4px 0 0' }}>
-            {total === 0
-              ? 'Upload a report for this patient to see a health score here.'
-              : `${normal} of ${total} parameters within normal range in the latest report.`}
-          </p>
+          <div className="health-score-meta">
+            <div className="health-score-badge" style={{ background: soft, color }}>
+              <Icon size={13} />
+              {headline}
+            </div>
+            <p className="page-sub" style={{ margin: '10px 0 0' }}>
+              {total === 0
+                ? 'Upload a report for this patient to see a health score here.'
+                : `${normal} of ${total} parameters within normal range in the latest report.`}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -378,10 +334,31 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
   }
 
   const selectedGroup = groups.find((g) => g.reportId === selectedReportId) ?? latest;
+  const outOfRange = values.filter((v) => v.isAbnormal);
+  const withinRange = values.filter((v) => !v.isAbnormal);
 
   return (
     <>
       <HealthScoreGauge score={healthStats.score} normal={healthStats.normal} total={healthStats.total} />
+
+      <div className="card">
+        <div className="insight-summary" style={{ margin: 0 }}>
+          <div className="insight-summary-card out">
+            <div className="label">Out of range</div>
+            <div className="count">
+              {outOfRange.length}
+              <span>parameter{outOfRange.length === 1 ? '' : 's'}</span>
+            </div>
+          </div>
+          <div className="insight-summary-card within">
+            <div className="label">Within range</div>
+            <div className="count">
+              {withinRange.length}
+              <span>parameter{withinRange.length === 1 ? '' : 's'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -453,7 +430,7 @@ export function InsightsPage() {
       <div className="page-header">
         <div>
           <h1>Insights</h1>
-          <p className="page-sub">Each patient's full profile — details, bookings, and report results in one place.</p>
+          <p className="page-sub">Each patient's health score, lab reports, and results in one place.</p>
         </div>
       </div>
 
@@ -468,18 +445,15 @@ export function InsightsPage() {
               Retry
             </button>
           </div>
-        ) : patients ? (
-          <PatientPicker
-            patients={patients}
-            selectedId={patientId}
-            onSelect={setPatientId}
-            onPatientAdded={(p) => {
-              reloadPatients();
-              setPatientId(p.id);
-            }}
-            variant="cards"
+        ) : patients && patients.length > 0 ? (
+          <PatientPicker patients={patients} selectedId={patientId} onSelect={setPatientId} variant="cards" allowAdd={false} />
+        ) : (
+          <EmptyState
+            icon={<IconUser size={20} />}
+            title="No patients yet"
+            subtitle="Add a family member while booking a test — they'll show up here once they have data."
           />
-        ) : null}
+        )}
       </div>
 
       {selectedPatient && <PatientProfileCard patient={selectedPatient} />}
@@ -490,8 +464,6 @@ export function InsightsPage() {
           <PatientResultsSection patientId={patientId} />
         </>
       )}
-
-      {patientId && <PatientBookingHistory patientId={patientId} />}
     </>
   );
 }

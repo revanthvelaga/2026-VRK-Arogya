@@ -154,15 +154,20 @@ export function PatientPicker({
   onSelect,
   onPatientAdded,
   variant = 'select',
+  allowAdd = true,
 }: {
   patients: Patient[];
   selectedId: string;
   onSelect: (id: string) => void;
-  onPatientAdded: (patient: Patient) => void;
+  onPatientAdded?: (patient: Patient) => void;
   // 'cards' is a bigger, more visual picker for a page a customer lingers
   // on (Insights); 'select' stays the compact dropdown used inline in the
   // booking form, where the patient is one field among many.
   variant?: 'select' | 'cards';
+  // Insights only makes sense for a patient who already has bookings/reports
+  // on file, so it hides the "add a new family member" affordance rather
+  // than letting someone create a patient with nothing to show yet.
+  allowAdd?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
 
@@ -184,17 +189,17 @@ export function PatientPicker({
               </div>
             </button>
           ))}
-          {!adding && (
+          {allowAdd && !adding && (
             <button type="button" className="patient-card-add" onClick={() => setAdding(true)}>
               <IconPlus size={16} />
               Add
             </button>
           )}
         </div>
-        {adding && (
+        {allowAdd && adding && (
           <AddPatientForm
             onAdded={(p) => {
-              onPatientAdded(p);
+              onPatientAdded?.(p);
               setAdding(false);
             }}
             onCancel={() => setAdding(false)}
@@ -229,7 +234,7 @@ export function PatientPicker({
       {adding && (
         <AddPatientForm
           onAdded={(p) => {
-            onPatientAdded(p);
+            onPatientAdded?.(p);
             setAdding(false);
           }}
           onCancel={() => setAdding(false)}

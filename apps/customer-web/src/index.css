@@ -1928,18 +1928,52 @@ tbody tr:hover {
 }
 
 /* ---------- Health score gauge ---------- */
+.health-score-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.health-score-glow {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.8;
+}
+
+.health-score-inner {
+  position: relative;
+  z-index: 1;
+}
+
 .health-score-body {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 28px;
   flex-wrap: wrap;
 }
 
 .health-score-ring-wrap {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 156px;
+  height: 156px;
   flex-shrink: 0;
+  animation: healthRingIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes healthRingIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .health-score-ring-wrap svg {
@@ -1957,7 +1991,7 @@ tbody tr:hover {
 
 .health-score-number {
   font-family: 'Sora', sans-serif;
-  font-size: 32px;
+  font-size: 38px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -1967,7 +2001,7 @@ tbody tr:hover {
   font-size: 10.5px;
   font-weight: 700;
   color: var(--ink-faint);
-  margin-top: 3px;
+  margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1977,10 +2011,15 @@ tbody tr:hover {
   min-width: 180px;
 }
 
-.health-score-headline {
+.health-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
   font-family: 'Sora', sans-serif;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 13.5px;
 }
 
 /* ---------- Report list + detail ---------- */
