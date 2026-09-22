@@ -23,8 +23,16 @@ export class Report {
   // destroyed every uploaded report on a free-tier deploy. Postgres bytea
   // has no such lifecycle; swap this for a real S3 URL later if report
   // volume ever outgrows it — nothing else about the column's role changes.
-  @Column({ name: 'file_data', type: 'bytea' })
-  fileData: Buffer;
+  //
+  // Nullable, not required: a report row created before this column
+  // existed has nothing to backfill it with, and a NOT NULL column can't
+  // be added onto existing rows with `synchronize` — that migration would
+  // fail on boot (Postgres refuses to add a NOT NULL column with no
+  // default while rows already exist) and take the whole API down.
+  // ReportsService.getForDownload() turns a missing value into a normal
+  // 404 asking for a re-upload rather than serving undefined bytes.
+  @Column({ name: 'file_data', type: 'bytea', nullable: true })
+  fileData?: Buffer;
 
   @Column({ name: 'file_name' })
   fileName: string;

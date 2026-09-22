@@ -86,11 +86,16 @@ export class ReportsService {
     return reports.map((r) => this.toPublic(r));
   }
 
-  async getForDownload(id: string, user: AuthenticatedUser): Promise<Report> {
+  async getForDownload(id: string, user: AuthenticatedUser): Promise<Report & { fileData: Buffer }> {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');
     await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
-    return report;
+    // A row created before the switch to bytea storage has no bytes to
+    // serve — ask staff to re-upload rather than send an empty file.
+    if (!report.fileData) {
+      throw new NotFoundException('This report needs to be re-uploaded before it can be viewed or downloaded.');
+    }
+    return report as Report & { fileData: Buffer };
   }
 
   // Never leak the raw bytes to clients through a metadata response —
