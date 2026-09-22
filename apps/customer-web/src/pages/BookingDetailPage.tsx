@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, downloadFile } from '../api/client';
+import { api, downloadFile, viewFile } from '../api/client';
 import type { Booking, Issue, Report, ReportValue, Sample, SampleStatusHistoryEntry } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
@@ -157,6 +157,7 @@ function ReportCard({ report }: { report: Report }) {
   const valuesApi = useApi<ReportValue[]>(() => api.get(`/reports/${report.id}/values`), [report.id]);
   const values = valuesApi.data ?? [];
   const [downloading, setDownloading] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const download = async () => {
@@ -171,6 +172,18 @@ function ReportCard({ report }: { report: Report }) {
     }
   };
 
+  const view = async () => {
+    setViewing(true);
+    setDownloadError(null);
+    try {
+      await viewFile(`/reports/${report.id}/download`);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Could not open report');
+    } finally {
+      setViewing(false);
+    }
+  };
+
   const outOfRange = values.filter((v) => v.isAbnormal);
   const withinRange = values.filter((v) => !v.isAbnormal);
   // Abnormal parameters first — that's what a customer opening a report
@@ -179,19 +192,24 @@ function ReportCard({ report }: { report: Report }) {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', minWidth: 0 }}>
           <IconFileText size={18} style={{ color: 'var(--teal)', marginTop: 2, flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{report.fileName}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{report.fileName}</div>
             <div className="page-sub" style={{ margin: '2px 0 0' }}>
               Report date: {formatDateTime(report.generatedAt)}
             </div>
           </div>
         </div>
-        <button className="btn btn-small" onClick={download} disabled={downloading}>
-          {downloading ? 'Downloading…' : 'Download'}
-        </button>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button className="btn btn-small" onClick={view} disabled={viewing}>
+            {viewing ? 'Opening…' : 'View'}
+          </button>
+          <button className="btn btn-small" onClick={download} disabled={downloading}>
+            {downloading ? 'Downloading…' : 'Download'}
+          </button>
+        </div>
       </div>
       {downloadError && <div className="error-banner" style={{ marginTop: 10 }}>{downloadError}</div>}
 

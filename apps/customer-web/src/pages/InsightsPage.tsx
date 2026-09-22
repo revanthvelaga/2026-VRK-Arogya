@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, downloadFile } from '../api/client';
+import { api, downloadFile, viewFile } from '../api/client';
 import type { Booking, MyReportValue, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
@@ -159,8 +159,97 @@ interface ReportGroup {
   values: MyReportValue[];
 }
 
-function ReportGroupCard({ group }: { group: ReportGroup }) {
+function groupByReport(values: MyReportValue[]): ReportGroup[] {
+  const byReport = new Map<string, ReportGroup>();
+  for (const v of values) {
+    if (!byReport.has(v.reportId)) {
+      byReport.set(v.reportId, {
+        reportId: v.reportId,
+        bookingId: v.bookingId,
+        reportFileName: v.reportFileName,
+        reportGeneratedAt: v.reportGeneratedAt,
+        values: [],
+      });
+    }
+    byReport.get(v.reportId)!.values.push(v);
+  }
+  return Array.from(byReport.values()).sort(
+    (a, b) => new Date(b.reportGeneratedAt).getTime() - new Date(a.reportGeneratedAt).getTime(),
+  );
+}
+
+// A ring that animates from empty to the actual score on mount/patient
+// change, rather than snapping straight to the final value — the visual
+// motion the user asked for. The number and the stroke animate together
+// off the same `animated` state so they never drift out of sync.
+function HealthScoreGauge({ score, normal, total }: { score: number; normal: number; total: number }) {
+  const [animated, setAnimated] = useState(0);
+
+  useEffect(() => {
+    setAnimated(0);
+    const raf = requestAnimationFrame(() => setAnimated(score));
+    return () => cancelAnimationFrame(raf);
+  }, [score, total]);
+
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (animated / 100) * circumference;
+  const color = total === 0 ? 'var(--ink-faint)' : score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : 'var(--red)';
+  const headline =
+    total === 0
+      ? 'No results yet'
+      : score >= 80
+        ? 'Looking good'
+        : score >= 50
+          ? 'A few things to watch'
+          : 'Needs attention';
+
+  return (
+    <div className="card">
+      <div className="card-title">Overall body health score</div>
+      <div className="health-score-body">
+        <div className="health-score-ring-wrap">
+          <svg width={132} height={132} viewBox="0 0 132 132">
+            <circle cx={66} cy={66} r={radius} fill="none" stroke="var(--line)" strokeWidth={12} />
+            {total > 0 && (
+              <circle
+                cx={66}
+                cy={66}
+                r={radius}
+                fill="none"
+                stroke={color}
+                strokeWidth={12}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                transform="rotate(-90 66 66)"
+                style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease' }}
+              />
+            )}
+          </svg>
+          <div className="health-score-ring-label">
+            <div className="health-score-number">{total === 0 ? '–' : animated}</div>
+            {total > 0 && <div className="health-score-unit">/ 100</div>}
+          </div>
+        </div>
+        <div className="health-score-meta">
+          <div className="health-score-headline" style={{ color }}>
+            {headline}
+          </div>
+          <p className="page-sub" style={{ margin: '4px 0 0' }}>
+            {total === 0
+              ? 'Upload a report for this patient to see a health score here.'
+              : `${normal} of ${total} parameters within normal range in the latest report.`}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportDetailCard({ group }: { group: ReportGroup }) {
   const [downloading, setDownloading] = useState(false);
+  const [viewing, setViewing] = useState(false);
 
   const download = async () => {
     setDownloading(true);
@@ -171,22 +260,34 @@ function ReportGroupCard({ group }: { group: ReportGroup }) {
     }
   };
 
+  const view = async () => {
+    setViewing(true);
+    try {
+      await viewFile(`/reports/${group.reportId}/download`);
+    } finally {
+      setViewing(false);
+    }
+  };
+
   // Abnormal first within this one report.
   const ordered = [...group.values].sort((a, b) => Number(b.isAbnormal) - Number(a.isAbnormal));
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div className="report-detail-header">
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', minWidth: 0 }}>
           <IconFileText size={18} style={{ color: 'var(--teal)', marginTop: 2, flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{group.reportFileName}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{group.reportFileName}</div>
             <div className="page-sub" style={{ margin: '2px 0 0' }}>
               {formatDateTime(group.reportGeneratedAt)}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="report-detail-actions">
+          <button className="btn btn-small" onClick={view} disabled={viewing}>
+            {viewing ? 'Opening…' : 'View'}
+          </button>
           <button className="btn btn-small" onClick={download} disabled={downloading}>
             {downloading ? 'Downloading…' : 'Download'}
           </button>
@@ -235,70 +336,96 @@ function ReportGroupCard({ group }: { group: ReportGroup }) {
   );
 }
 
-function ReportInsightsSection({ patientId }: { patientId: string }) {
+// Everything that hangs off a patient's report results: the health score
+// (scored off the latest report only, so an old abnormal value doesn't
+// keep dragging the score down after it's been resolved), the list of
+// every report on file, and the detail of whichever one is selected
+// (defaulting to the latest) with its own View/Download actions.
+function PatientResultsSection({ patientId }: { patientId: string }) {
   const { data: values, loading } = useApi<MyReportValue[]>(
     () => (patientId ? api.get(`/reports/mine/values?patientId=${patientId}`) : Promise.resolve([])),
     [patientId],
   );
 
-  const groups = useMemo(() => {
-    const byReport = new Map<string, ReportGroup>();
-    for (const v of values ?? []) {
-      if (!byReport.has(v.reportId)) {
-        byReport.set(v.reportId, {
-          reportId: v.reportId,
-          bookingId: v.bookingId,
-          reportFileName: v.reportFileName,
-          reportGeneratedAt: v.reportGeneratedAt,
-          values: [],
-        });
-      }
-      byReport.get(v.reportId)!.values.push(v);
-    }
-    return Array.from(byReport.values()).sort(
-      (a, b) => new Date(b.reportGeneratedAt).getTime() - new Date(a.reportGeneratedAt).getTime(),
-    );
-  }, [values]);
+  const groups = useMemo(() => groupByReport(values ?? []), [values]);
+  const latest = groups[0];
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedReportId(latest?.reportId ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, latest?.reportId]);
+
+  const healthStats = useMemo(() => {
+    const vals = latest?.values ?? [];
+    const normal = vals.filter((v) => !v.isAbnormal).length;
+    return { total: vals.length, normal, score: vals.length ? Math.round((normal / vals.length) * 100) : 0 };
+  }, [latest]);
 
   if (loading) return <LoadingLine label="Loading results…" />;
 
   if (!values || values.length === 0) {
     return (
-      <EmptyState
-        icon={<IconBag size={20} />}
-        title="No results yet"
-        subtitle="Once a report is uploaded for this patient, results will appear here."
-      />
+      <>
+        <HealthScoreGauge score={0} normal={0} total={0} />
+        <EmptyState
+          icon={<IconBag size={20} />}
+          title="No results yet"
+          subtitle="Once a report is uploaded for this patient, results will appear here."
+        />
+      </>
     );
   }
 
-  const outOfRange = values.filter((v) => v.isAbnormal);
-  const withinRange = values.filter((v) => !v.isAbnormal);
+  const selectedGroup = groups.find((g) => g.reportId === selectedReportId) ?? latest;
 
   return (
     <>
+      <HealthScoreGauge score={healthStats.score} normal={healthStats.normal} total={healthStats.total} />
+
       <div className="card">
-        <div className="insight-summary" style={{ margin: 0 }}>
-          <div className="insight-summary-card out">
-            <div className="label">Out of range</div>
-            <div className="count">
-              {outOfRange.length}
-              <span>parameter{outOfRange.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-          <div className="insight-summary-card within">
-            <div className="label">Within range</div>
-            <div className="count">
-              {withinRange.length}
-              <span>parameter{withinRange.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <IconFileText size={15} />
+          Lab reports ({groups.length})
+        </div>
+        <div className="report-list">
+          {groups.map((g, i) => {
+            const abnormalCount = g.values.filter((v) => v.isAbnormal).length;
+            return (
+              <button
+                type="button"
+                key={g.reportId}
+                className={`report-list-item${g.reportId === selectedGroup?.reportId ? ' selected' : ''}`}
+                onClick={() => setSelectedReportId(g.reportId)}
+              >
+                <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
+                <div className="report-list-item-body">
+                  <div className="report-list-item-name">
+                    {g.reportFileName}
+                    {i === 0 && (
+                      <span className="badge badge-accent" style={{ marginLeft: 8 }}>
+                        Latest
+                      </span>
+                    )}
+                  </div>
+                  <div className="report-list-item-meta">
+                    {formatDateTime(g.reportGeneratedAt)} · {g.values.length} parameter
+                    {g.values.length === 1 ? '' : 's'}
+                    {abnormalCount > 0 && (
+                      <span className="report-list-item-flag">
+                        {' '}
+                        · {abnormalCount} out of range
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {groups.map((g) => (
-        <ReportGroupCard group={g} key={g.reportId} />
-      ))}
+      {selectedGroup && <ReportDetailCard group={selectedGroup} />}
     </>
   );
 }
@@ -350,19 +477,21 @@ export function InsightsPage() {
               reloadPatients();
               setPatientId(p.id);
             }}
+            variant="cards"
           />
         ) : null}
       </div>
 
       {selectedPatient && <PatientProfileCard patient={selectedPatient} />}
-      {patientId && <PatientBookingHistory patientId={patientId} />}
 
       {patientId && (
         <>
           <div className="section-title">Report insights</div>
-          <ReportInsightsSection patientId={patientId} />
+          <PatientResultsSection patientId={patientId} />
         </>
       )}
+
+      {patientId && <PatientBookingHistory patientId={patientId} />}
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, downloadFile, uploadFile } from '../api/client';
+import { api, downloadFile, uploadFile, viewFile } from '../api/client';
 import type {
   Booking,
   BookingItem,
@@ -347,6 +347,7 @@ function ReportCard({ report }: { report: Report }) {
   const valuesApi = useApi<ReportValue[]>(() => api.get(`/reports/${report.id}/values`), [report.id]);
   const values = valuesApi.data ?? [];
   const [downloading, setDownloading] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [showValuesForm, setShowValuesForm] = useState(false);
   const abnormalCount = values.filter((v) => v.isAbnormal).length;
 
@@ -359,19 +360,31 @@ function ReportCard({ report }: { report: Report }) {
     }
   };
 
+  const view = async () => {
+    setViewing(true);
+    try {
+      await viewFile(`/reports/${report.id}/download`);
+    } finally {
+      setViewing(false);
+    }
+  };
+
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', minWidth: 0 }}>
           <IconFileText size={18} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{report.fileName}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, wordBreak: 'break-word' }}>{report.fileName}</div>
             <div className="page-sub" style={{ margin: '2px 0 0' }}>
               Report date: {formatDateTime(report.generatedAt)}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button className="btn btn-small" onClick={view} disabled={viewing}>
+            {viewing ? 'Opening…' : 'View'}
+          </button>
           <button className="btn btn-small" onClick={download} disabled={downloading}>
             {downloading ? 'Downloading…' : 'Download'}
           </button>

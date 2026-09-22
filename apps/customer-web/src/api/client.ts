@@ -99,19 +99,25 @@ export const api = {
   delete: <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' }),
 };
 
-// Report downloads need the same Bearer token as any other request, so a
-// plain <a href> won't work — fetch the bytes with auth, then hand the
-// browser a local blob URL to save.
-export async function downloadFile(path: string, fileName: string): Promise<void> {
+// Report downloads/views need the same Bearer token as any other
+// request, so a plain <a href> won't work — fetch the bytes with auth,
+// then hand the browser a local blob URL either to save (download) or
+// to open in a new tab, where the browser's own PDF viewer renders it
+// (view) — same endpoint, same bytes, just a different disposition.
+async function fetchAsBlobUrl(path: string): Promise<string> {
   const session = getSession();
   const headers: Record<string, string> = {};
   if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
 
   const res = await fetch(`${BASE_URL}${path}`, { headers });
-  if (!res.ok) throw new ApiError(res.status, `Download failed (${res.status})`);
+  if (!res.ok) throw new ApiError(res.status, `Request failed (${res.status})`);
 
   const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+  return URL.createObjectURL(blob);
+}
+
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const url = await fetchAsBlobUrl(path);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
@@ -119,4 +125,13 @@ export async function downloadFile(path: string, fileName: string): Promise<void
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+// Opens the PDF in a new tab for reading, rather than forcing a save
+// prompt. The blob URL is deliberately not revoked immediately — the new
+// tab needs it to still be valid after this function returns; the browser
+// frees it when that tab is closed or navigated away.
+export async function viewFile(path: string): Promise<void> {
+  const url = await fetchAsBlobUrl(`${path}${path.includes('?') ? '&' : '?'}view=1`);
+  window.open(url, '_blank', 'noopener');
 }

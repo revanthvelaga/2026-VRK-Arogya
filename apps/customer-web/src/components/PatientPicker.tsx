@@ -153,13 +153,56 @@ export function PatientPicker({
   selectedId,
   onSelect,
   onPatientAdded,
+  variant = 'select',
 }: {
   patients: Patient[];
   selectedId: string;
   onSelect: (id: string) => void;
   onPatientAdded: (patient: Patient) => void;
+  // 'cards' is a bigger, more visual picker for a page a customer lingers
+  // on (Insights); 'select' stays the compact dropdown used inline in the
+  // booking form, where the patient is one field among many.
+  variant?: 'select' | 'cards';
 }) {
   const [adding, setAdding] = useState(false);
+
+  if (variant === 'cards') {
+    return (
+      <div>
+        <div className="patient-card-row">
+          {patients.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              className={`patient-card${p.id === selectedId ? ' selected' : ''}`}
+              onClick={() => onSelect(p.id)}
+            >
+              <div className="patient-card-avatar">{p.fullName.charAt(0).toUpperCase()}</div>
+              <div className="patient-card-text">
+                <div className="patient-card-name">{p.fullName}</div>
+                <div className="patient-card-rel">{relationshipLabel(p.relationship)}</div>
+              </div>
+            </button>
+          ))}
+          {!adding && (
+            <button type="button" className="patient-card-add" onClick={() => setAdding(true)}>
+              <IconPlus size={16} />
+              Add
+            </button>
+          )}
+        </div>
+        {adding && (
+          <AddPatientForm
+            onAdded={(p) => {
+              onPatientAdded(p);
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
