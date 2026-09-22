@@ -11,7 +11,8 @@ import { PickupPointPicker } from '../components/PickupPointPicker';
 import { PatientPicker } from '../components/PatientPicker';
 import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
-import { formatSlotLabel, haversineDistanceKm, suggestedSlots } from '../lib/geo';
+import type { SlotPeriod } from '../lib/geo';
+import { SLOT_PERIODS, formatSlotLabel, haversineDistanceKm, suggestedSlotsForPeriod } from '../lib/geo';
 
 interface NavState {
   testId?: string;
@@ -74,6 +75,7 @@ export function BookingPage() {
   const [homeAddress, setHomeAddress] = useState<GeocodeResult | null>(null);
   const [homeAddressPincode, setHomeAddressPincode] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledPeriod, setScheduledPeriod] = useState<SlotPeriod | null>(null);
   const [scheduledSlot, setScheduledSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,7 +193,7 @@ export function BookingPage() {
     setHomeAddressPincode(result.pincode ?? '');
   };
 
-  const slots = scheduledDate ? suggestedSlots(scheduledDate) : [];
+  const slots = scheduledDate && scheduledPeriod ? suggestedSlotsForPeriod(scheduledDate, scheduledPeriod) : [];
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const items: SelectableItem[] = useMemo(() => {
@@ -633,25 +635,50 @@ export function BookingPage() {
                       min={todayStr}
                       onChange={(e) => {
                         setScheduledDate(e.target.value);
+                        setScheduledPeriod(null);
                         setScheduledSlot(null);
                       }}
                       required
                     />
+
                     {scheduledDate && (
-                      <div className="chip-row" style={{ marginTop: 10 }}>
-                        {slots.length === 0 ? (
-                          <span className="field-hint">No slots left for this date — try another day.</span>
-                        ) : (
-                          slots.map((s) => (
+                      <div style={{ marginTop: 10 }}>
+                        <div className="period-row">
+                          {(Object.keys(SLOT_PERIODS) as SlotPeriod[]).map((p) => (
                             <button
-                              key={s}
+                              key={p}
                               type="button"
-                              className={`filter-chip${scheduledSlot === s ? ' active' : ' outline'}`}
-                              onClick={() => setScheduledSlot(s)}
+                              className={`period-option${scheduledPeriod === p ? ' selected' : ''}`}
+                              onClick={() => {
+                                setScheduledPeriod(p);
+                                setScheduledSlot(null);
+                              }}
                             >
-                              {formatSlotLabel(s)}
+                              <span className="period-option-label">{SLOT_PERIODS[p].label}</span>
+                              <span className="period-option-range">{SLOT_PERIODS[p].range}</span>
                             </button>
-                          ))
+                          ))}
+                        </div>
+
+                        {scheduledPeriod && (
+                          <div className="chip-row" style={{ marginTop: 10 }}>
+                            {slots.length === 0 ? (
+                              <span className="field-hint">
+                                No slots left in this window — try the other one or another day.
+                              </span>
+                            ) : (
+                              slots.map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  className={`filter-chip${scheduledSlot === s ? ' active' : ' outline'}`}
+                                  onClick={() => setScheduledSlot(s)}
+                                >
+                                  {formatSlotLabel(s)}
+                                </button>
+                              ))
+                            )}
+                          </div>
                         )}
                       </div>
                     )}

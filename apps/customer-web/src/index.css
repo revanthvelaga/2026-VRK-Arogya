@@ -54,6 +54,15 @@ body {
   font-size: 14px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* A row meant to scroll horizontally on its own (time slots, the
+     carousel, etc.) can still force the whole *page* to scroll sideways
+     on mobile, because a flex/grid child's default min-width is "auto"
+     (fits its content) rather than 0 — so an unwrapped row of chips
+     quietly grows its ancestors past the viewport instead of scrolling
+     in place. This is the backstop: the page itself never scrolls
+     horizontally, so only elements that opt into their own overflow-x
+     (like .chip-row) can scroll, exactly as intended. */
+  overflow-x: hidden;
 }
 
 h1,
@@ -1436,12 +1445,69 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
+/* ---------- Time-of-day period picker ---------- */
+.period-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.period-option {
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.period-option:hover {
+  border-color: var(--accent-soft-strong);
+}
+
+.period-option.selected {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+}
+
+.period-option-label {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.period-option-range {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.period-option.selected .period-option-range {
+  color: var(--accent-ink);
+}
+
 /* ---------- Booking layout ---------- */
 .booking-layout {
   display: grid;
   grid-template-columns: 1fr 330px;
   gap: 24px;
   align-items: start;
+}
+
+/* A grid item's default min-width is "auto" (sized to its content), so
+   an unwrapped row inside it — like the time-slot chips — can force this
+   whole column wider than the viewport instead of scrolling within
+   itself. min-width: 0 lets the column actually shrink to the track's
+   real size, which is what makes .chip-row's own overflow-x: auto work
+   as a contained, in-place scroll rather than blowing out the page. */
+.booking-layout > * {
+  min-width: 0;
 }
 
 .summary-card {

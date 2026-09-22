@@ -11,23 +11,35 @@ export function haversineDistanceKm(lat1: number, lng1: number, lat2: number, ln
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Suggested home-visit / walk-in time slots for a given date — 30-minute
-// increments across typical lab hours, with a minimum lead time so "today"
-// doesn't offer a slot 5 minutes from now.
-export function suggestedSlots(dateStr: string, leadMinutes = 30): string[] {
+export type SlotPeriod = 'MORNING' | 'AFTERNOON';
+
+// Two broad windows rather than a wall of 30-minute slots — a customer
+// picks roughly when they're free first, then chooses from a handful of
+// exact times within it.
+export const SLOT_PERIODS: Record<SlotPeriod, { label: string; range: string; startHour: number; endHour: number }> = {
+  MORNING: { label: 'Morning', range: '9:00 AM – 12:00 PM', startHour: 9, endHour: 12 },
+  AFTERNOON: { label: 'Afternoon', range: '12:00 PM – 5:00 PM', startHour: 12, endHour: 17 },
+};
+
+// 4 slots spread evenly across the chosen period (rounded to the nearest
+// 5 minutes), skipping any that fall before the minimum lead time so
+// "today" doesn't offer a slot that's already passed.
+export function suggestedSlotsForPeriod(dateStr: string, period: SlotPeriod, leadMinutes = 30): string[] {
   if (!dateStr) return [];
+  const { startHour, endHour } = SLOT_PERIODS[period];
   const [year, month, day] = dateStr.split('-').map(Number);
-  const slots: string[] = [];
   const now = new Date();
   const earliest = new Date(now.getTime() + leadMinutes * 60 * 1000);
+  const stepMinutes = ((endHour - startHour) * 60) / 4;
 
-  for (let hour = 7; hour <= 19; hour++) {
-    for (const minute of [0, 30]) {
-      if (hour === 19 && minute === 30) continue; // stop at 7:00 PM
-      const slot = new Date(year, month - 1, day, hour, minute, 0, 0);
-      if (slot.getTime() < earliest.getTime()) continue;
-      slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-    }
+  const slots: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const minutesFromStart = Math.round((i * stepMinutes) / 5) * 5;
+    const hour = startHour + Math.floor(minutesFromStart / 60);
+    const minute = minutesFromStart % 60;
+    const slot = new Date(year, month - 1, day, hour, minute, 0, 0);
+    if (slot.getTime() < earliest.getTime()) continue;
+    slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
   }
   return slots;
 }
