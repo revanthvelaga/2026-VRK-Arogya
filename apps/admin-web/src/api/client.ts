@@ -45,14 +45,26 @@ export function setUnauthorizedHandler(handler: () => void): void {
   onUnauthorized = handler;
 }
 
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (Array.isArray(body.message)) return body.message.join(', ');
+    if (typeof body.message === 'string') return body.message;
+  } catch {
+    // Response body wasn't JSON — keep the fallback.
+  }
+  return fallback;
+}
+
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const session = getSession();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> | undefined),
   };
-  if (session?.accessToken) {
-    headers.Authorization = `Bearer ${session.accessToken}`;
+  const hadToken = Boolean(session?.accessToken);
+  if (hadToken) {
+    headers.Authorization = `Bearer ${session!.accessToken}`;
   }
 
   let res: Response;
@@ -63,20 +75,19 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   if (res.status === 401) {
-    setSession(null);
-    onUnauthorized?.();
-    throw new ApiError(401, 'Session expired — please log in again');
+    // "Session expired" only makes sense when there was a session to
+    // expire — a request that never carried a token (login) getting a
+    // 401 means the credentials were wrong, not that a session lapsed.
+    if (hadToken) {
+      setSession(null);
+      onUnauthorized?.();
+      throw new ApiError(401, 'Session expired — please log in again');
+    }
+    throw new ApiError(401, await extractErrorMessage(res, 'Invalid credentials'));
   }
 
   if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      if (Array.isArray(body.message)) message = body.message.join(', ');
-      else if (typeof body.message === 'string') message = body.message;
-    } catch {
-      // Response body wasn't JSON — keep the default message.
-    }
+    const message = await extractErrorMessage(res, `Request failed (${res.status})`);
     throw new ApiError(res.status, message);
   }
 
