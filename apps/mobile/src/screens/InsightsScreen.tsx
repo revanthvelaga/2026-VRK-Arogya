@@ -1,20 +1,119 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, downloadFile } from '../api/client';
-import type { MyReportValue, Patient } from '../api/types';
+import type { Booking, MyReportValue, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { RequireAuth } from '../components/RequireAuth';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 import { PatientPicker } from '../components/PatientPicker';
 import { EmptyState, ErrorBanner } from '../components/EmptyState';
 import { LoadingLine } from '../components/Spinner';
-import { formatDateTime, formatNumber } from '../lib/format';
+import { bookingStatusVariant, formatCurrency, formatDateTime, formatNumber, statusLabel } from '../lib/format';
 import { colors, radius, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Insights'>;
+
+function relationshipLabel(r: Patient['relationship']): string {
+  return r.charAt(0) + r.slice(1).toLowerCase();
+}
+
+function calculateAge(dateOfBirth: string): number {
+  const dob = new Date(dateOfBirth);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const monthDiff = now.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+function PatientProfileCard({ patient }: { patient: Patient }) {
+  const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
+  const address = [patient.fullAddress, patient.landmark, patient.areaAddress, patient.pincode]
+    .filter(Boolean)
+    .join(', ');
+  const metaLine = [
+    patient.gender && patient.gender.charAt(0) + patient.gender.slice(1).toLowerCase(),
+    age != null && `${age} yrs`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <Card>
+      <View style={styles.profileTop}>
+        <View style={styles.profileAvatar}>
+          <Text style={styles.profileAvatarText}>{patient.fullName.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.profileNameRow}>
+            <Text style={styles.profileName}>{patient.fullName}</Text>
+            <View style={styles.relationshipBadge}>
+              <Text style={styles.relationshipBadgeText}>{relationshipLabel(patient.relationship)}</Text>
+            </View>
+          </View>
+          <Text style={styles.profileMeta}>{metaLine || 'No demographic details on file yet'}</Text>
+        </View>
+      </View>
+
+      {(patient.phone || address) && (
+        <View style={styles.profileDetails}>
+          {patient.phone && (
+            <Text style={styles.profileDetailLine}>
+              {patient.phone}
+              {patient.alternatePhone ? ` / ${patient.alternatePhone}` : ''}
+            </Text>
+          )}
+          {address && <Text style={styles.profileDetailLine}>{address}</Text>}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function PatientBookingHistory({ patientId, navigation }: { patientId: string; navigation: Props['navigation'] }) {
+  const { data: bookings, loading } = useApi<Booking[]>(
+    () => (patientId ? api.get(`/bookings/mine?patientId=${patientId}`) : Promise.resolve([])),
+    [patientId],
+  );
+
+  const sorted = [...(bookings ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  if (loading) return <LoadingLine label="Loading booking history…" />;
+
+  return (
+    <Card>
+      <Text style={styles.cardTitle}>Booking history ({sorted.length})</Text>
+      {sorted.length === 0 ? (
+        <Text style={styles.mutedText}>No bookings yet for this patient.</Text>
+      ) : (
+        sorted.map((b) => (
+          <TouchableOpacity
+            key={b.id}
+            style={styles.bookingRow}
+            onPress={() => navigation.navigate('BookingDetail', { id: b.id })}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bookingDate}>{formatDateTime(b.scheduledAt)}</Text>
+              <Text style={styles.bookingMeta}>
+                {statusLabel(b.collectionMode)} · {b.items?.length ?? 0} item{(b.items?.length ?? 0) === 1 ? '' : 's'}
+              </Text>
+            </View>
+            <View style={styles.bookingRight}>
+              <Text style={styles.bookingTotal}>{formatCurrency(b.totalAmount)}</Text>
+              <Badge status={b.status} variant={bookingStatusVariant(b.status)} />
+            </View>
+          </TouchableOpacity>
+        ))
+      )}
+    </Card>
+  );
+}
 
 interface ReportGroup {
   reportId: string;
@@ -161,10 +260,12 @@ function InsightsBody({ navigation }: Props) {
     }
   }, [patients, patientId]);
 
+  const selectedPatient = patients?.find((p) => p.id === patientId);
+
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Insights</Text>
-      <Text style={styles.sub}>Report results, with out-of-range values flagged — per patient.</Text>
+      <Text style={styles.sub}>Each patient's full profile — details, bookings, and report results in one place.</Text>
 
       <Card>
         <Text style={styles.cardTitle}>Patient</Text>
@@ -188,7 +289,15 @@ function InsightsBody({ navigation }: Props) {
         ) : null}
       </Card>
 
-      {patientId && <ReportInsightsSection patientId={patientId} navigation={navigation} />}
+      {selectedPatient && <PatientProfileCard patient={selectedPatient} />}
+      {patientId && <PatientBookingHistory patientId={patientId} navigation={navigation} />}
+
+      {patientId && (
+        <>
+          <Text style={styles.sectionTitle}>Report insights</Text>
+          <ReportInsightsSection patientId={patientId} navigation={navigation} />
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -207,6 +316,40 @@ const styles = StyleSheet.create({
   heading: { fontSize: 22, fontWeight: '800', color: colors.ink },
   sub: { fontSize: 13, color: colors.inkSoft, marginTop: 2, marginBottom: spacing.lg },
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginTop: spacing.sm, marginBottom: spacing.sm },
+  mutedText: { fontSize: 13, color: colors.inkSoft },
+  profileTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarText: { fontSize: 16, fontWeight: '800', color: colors.teal },
+  profileNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
+  profileName: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  relationshipBadge: { backgroundColor: colors.accentSoft, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  relationshipBadgeText: { fontSize: 11, fontWeight: '700', color: '#0B7A76' },
+  profileMeta: { fontSize: 12.5, color: colors.inkSoft, marginTop: 4 },
+  profileDetails: { marginTop: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 },
+  profileDetailLine: { fontSize: 13, color: colors.inkSoft },
+  bookingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  bookingDate: { fontSize: 13.5, fontWeight: '600', color: colors.ink },
+  bookingMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
+  bookingRight: { alignItems: 'flex-end', gap: 4 },
+  bookingTotal: { fontSize: 13, fontWeight: '700', color: colors.ink },
   reportTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   reportName: { fontSize: 14, fontWeight: '700', color: colors.ink },
   reportMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },

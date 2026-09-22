@@ -1,13 +1,155 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, downloadFile } from '../api/client';
-import type { MyReportValue, Patient } from '../api/types';
+import type { Booking, MyReportValue, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
-import { IconAlertTriangle, IconArrowRight, IconBag, IconFileText } from '../components/Icons';
-import { formatDateTime, formatNumber } from '../lib/format';
+import { StatusBadge } from '../components/StatusBadge';
+import {
+  IconAlertTriangle,
+  IconArrowRight,
+  IconBag,
+  IconCalendar,
+  IconFileText,
+  IconMapPin,
+  IconPhone,
+  IconUser,
+} from '../components/Icons';
+import { bookingStatusVariant, formatCurrency, formatDateTime, formatNumber, statusLabel } from '../lib/format';
+
+function relationshipLabel(r: Patient['relationship']): string {
+  return r.charAt(0) + r.slice(1).toLowerCase();
+}
+
+function calculateAge(dateOfBirth: string): number {
+  const dob = new Date(dateOfBirth);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const monthDiff = now.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+function PatientProfileCard({ patient }: { patient: Patient }) {
+  const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
+  const address = [patient.fullAddress, patient.landmark, patient.areaAddress, patient.pincode]
+    .filter(Boolean)
+    .join(', ');
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'var(--accent-soft)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <IconUser size={18} style={{ color: 'var(--teal)' }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>{patient.fullName}</div>
+            <span className="badge badge-accent">{relationshipLabel(patient.relationship)}</span>
+          </div>
+          <div className="page-sub" style={{ margin: '4px 0 0' }}>
+            {[
+              patient.gender && patient.gender.charAt(0) + patient.gender.slice(1).toLowerCase(),
+              age != null && `${age} yrs`,
+              patient.dateOfBirth && `DOB ${formatDateTime(patient.dateOfBirth).split(',')[0]}`,
+            ]
+              .filter(Boolean)
+              .join(' · ') || 'No demographic details on file yet'}
+          </div>
+        </div>
+      </div>
+
+      {(patient.phone || patient.alternatePhone || address) && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'grid', gap: 8 }}>
+          {patient.phone && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-soft)' }}>
+              <IconPhone size={14} style={{ flexShrink: 0, color: 'var(--ink-faint)' }} />
+              {patient.phone}
+              {patient.alternatePhone && ` / ${patient.alternatePhone}`}
+            </div>
+          )}
+          {address && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'var(--ink-soft)' }}>
+              <IconMapPin size={14} style={{ flexShrink: 0, color: 'var(--ink-faint)', marginTop: 2 }} />
+              {address}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatientBookingHistory({ patientId }: { patientId: string }) {
+  const { data: bookings, loading } = useApi<Booking[]>(
+    () => (patientId ? api.get(`/bookings/mine?patientId=${patientId}`) : Promise.resolve([])),
+    [patientId],
+  );
+
+  const sorted = [...(bookings ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  if (loading) return <LoadingLine label="Loading booking history…" />;
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <IconCalendar size={15} />
+        Booking history ({sorted.length})
+      </div>
+      {sorted.length === 0 ? (
+        <p className="page-sub" style={{ margin: 0 }}>
+          No bookings yet for this patient.
+        </p>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {sorted.map((b) => (
+            <Link
+              key={b.id}
+              to={`/bookings/${b.id}`}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--line)',
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{formatDateTime(b.scheduledAt)}</div>
+                <div className="page-sub" style={{ margin: '2px 0 0', fontSize: 12 }}>
+                  {statusLabel(b.collectionMode)} · {b.items?.length ?? 0} item{(b.items?.length ?? 0) === 1 ? '' : 's'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{formatCurrency(b.totalAmount)}</div>
+                <StatusBadge status={b.status} variant={bookingStatusVariant(b.status)} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ReportGroup {
   reportId: string;
@@ -177,12 +319,14 @@ export function InsightsPage() {
     }
   }, [patients, patientId]);
 
+  const selectedPatient = patients?.find((p) => p.id === patientId);
+
   return (
     <>
       <div className="page-header">
         <div>
           <h1>Insights</h1>
-          <p className="page-sub">Report results, with out-of-range values flagged — per patient.</p>
+          <p className="page-sub">Each patient's full profile — details, bookings, and report results in one place.</p>
         </div>
       </div>
 
@@ -210,7 +354,15 @@ export function InsightsPage() {
         ) : null}
       </div>
 
-      {patientId && <ReportInsightsSection patientId={patientId} />}
+      {selectedPatient && <PatientProfileCard patient={selectedPatient} />}
+      {patientId && <PatientBookingHistory patientId={patientId} />}
+
+      {patientId && (
+        <>
+          <div className="section-title">Report insights</div>
+          <ReportInsightsSection patientId={patientId} />
+        </>
+      )}
     </>
   );
 }
