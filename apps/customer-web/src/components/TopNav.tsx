@@ -62,7 +62,7 @@ export function TopNav() {
           </Link>
           {user ? (
             <div className="user-chip">
-              {user.phone}
+              {user.phone ?? 'My account'}
               <button
                 className="btn btn-small"
                 style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}

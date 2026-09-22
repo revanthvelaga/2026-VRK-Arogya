@@ -5,7 +5,7 @@ import type { AuthSession, Role } from '../api/types';
 
 export interface CurrentUser {
   userId: string;
-  phone: string;
+  phone?: string;
   role: Role;
 }
 
@@ -20,6 +20,11 @@ interface AuthContextValue {
   user: CurrentUser | null;
   login: (phone: string, password: string) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  // fullName is only needed the first time a given phone number signs
+  // in — the API rejects a brand-new phone with no name (see ApiError
+  // status 412), which is the caller's cue to ask for one and retry.
+  loginWithPhoneOtp: (idToken: string, fullName?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -52,12 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(sessionToUser(session));
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    const session = await api.post<AuthSession>('/auth/google', { idToken });
+    setSession(session);
+    setUser(sessionToUser(session));
+  };
+
+  const loginWithPhoneOtp = async (idToken: string, fullName?: string) => {
+    const session = await api.post<AuthSession>('/auth/phone-otp', { idToken, fullName });
+    setSession(session);
+    setUser(sessionToUser(session));
+  };
+
   const logout = () => {
     setSession(null);
     setUser(null);
   };
 
-  const value = useMemo(() => ({ user, login, register, logout }), [user]);
+  const value = useMemo(
+    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, logout }),
+    [user],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

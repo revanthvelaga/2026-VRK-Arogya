@@ -8,7 +8,7 @@ export interface AuthSession {
 
 export interface JwtPayload {
   sub: string;
-  phone: string;
+  phone?: string;
   role: Role;
   iat: number;
   exp: number;

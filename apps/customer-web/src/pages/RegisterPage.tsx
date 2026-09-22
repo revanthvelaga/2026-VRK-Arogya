@@ -3,13 +3,17 @@ import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { IconPlus } from '../components/Icons';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
+import { googleClientId } from '../lib/googleAuth';
+import { firebasePhoneAuthConfigured } from '../lib/firebaseAuth';
 
 interface LocationState {
   from?: { pathname: string };
 }
 
 export function RegisterPage() {
-  const { register, user } = useAuth();
+  const { register, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [fullName, setFullName] = useState('');
@@ -39,6 +43,17 @@ export function RegisterPage() {
       setSubmitting(false);
     }
   };
+
+  const onGoogleCredential = async (idToken: string) => {
+    setError(null);
+    try {
+      await loginWithGoogle(idToken);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+    }
+  };
+
+  const showAltSignIn = Boolean(googleClientId) || firebasePhoneAuthConfigured;
 
   return (
     <div className="login-screen">
@@ -90,6 +105,19 @@ export function RegisterPage() {
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
+
+        {showAltSignIn && (
+          <>
+            <div className="auth-divider">
+              <span>or continue with</span>
+            </div>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <GoogleSignInButton onCredential={onGoogleCredential} />
+              <PhoneOtpSignIn />
+            </div>
+          </>
+        )}
+
         <p style={{ textAlign: 'center', marginTop: 18, marginBottom: 0 }}>
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
