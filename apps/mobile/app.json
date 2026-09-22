@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Arogya",
-    "slug": "arogya-customer",
+    "slug": "arogya",
+    "owner": "revanthvelagas-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -36,6 +37,11 @@
           "locationWhenInUsePermission": "Arogya uses your location to find diagnostic centers near you."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3ea894c8-80f0-4def-adb1-514a917eec2e"
+      }
+    }
   }
 }
