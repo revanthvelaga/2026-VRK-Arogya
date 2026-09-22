@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import Anthropic from '@anthropic-ai/sdk';
 import { Report } from './entities/report.entity';
 import { ReportValue } from './entities/report-value.entity';
 import { AddReportValuesDto } from './dto/add-report-values.dto';
@@ -35,6 +37,9 @@ export interface ReportValueWithTrend extends ReportValue {
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+  private readonly anthropic: Anthropic | null;
+
   constructor(
     @InjectRepository(Report)
     private readonly reportsRepo: Repository<Report>,
@@ -43,7 +48,14 @@ export class ReportsService {
     private readonly bookingsService: BookingsService,
     private readonly notificationsService: NotificationsService,
     private readonly testsService: TestsService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
+    this.anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+    if (!this.anthropic) {
+      this.logger.warn('ANTHROPIC_API_KEY not set — health recommendations will fail until configured.');
+    }
+  }
 
   async upload(
     bookingId: string,
@@ -236,6 +248,69 @@ export class ReportsService {
         };
       }),
     );
+  }
+
+  // A short, plain-language health recommendation generated from the
+  // patient's latest report only — same "current snapshot" rule as the
+  // frontend's health score, so a value that's since normalized doesn't
+  // keep shaping today's advice. Nothing here is persisted; it's
+  // regenerated fresh on each request.
+  async getHealthRecommendation(
+    customerId: string,
+    patientId?: string,
+  ): Promise<{ recommendation: string; basedOn: { reportFileName: string; reportGeneratedAt: Date } | null }> {
+    if (!this.anthropic) {
+      throw new BadRequestException(
+        'Health recommendations are not configured on this server (missing ANTHROPIC_API_KEY)',
+      );
+    }
+
+    const values = await this.findAllValuesForCustomer(customerId, patientId);
+    if (values.length === 0) {
+      return {
+        recommendation:
+          "Once a lab report is uploaded for this patient, we'll generate a personalized recommendation here.",
+        basedOn: null,
+      };
+    }
+
+    const latestReportId = values[0].reportId;
+    const latest = values.filter((v) => v.reportId === latestReportId);
+
+    const lines = latest.map((v) => {
+      const range =
+        v.normalLow != null && v.normalHigh != null ? ` (normal ${v.normalLow}-${v.normalHigh} ${v.unit ?? ''})` : '';
+      return `- ${v.testName}: ${v.value} ${v.unit ?? ''}${range} — ${v.isAbnormal ? 'OUT OF RANGE' : 'normal'}`;
+    });
+
+    const prompt = `Here are a patient's latest lab results:\n${lines.join('\n')}\n\nWrite a short, friendly health recommendation based on these results.`;
+
+    try {
+      const message = await this.anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 350,
+        system:
+          'You are a friendly health assistant inside a diagnostic lab booking app, summarizing a lab report for a patient. ' +
+          'Write 3-5 short sentences or bullet points of practical, general lifestyle guidance based on which parameters are ' +
+          'out of range. Never name or suggest a specific diagnosis, medication, or dosage. Keep the tone warm and simple, no ' +
+          'jargon. Always end with one line recommending they discuss the full results with their doctor.',
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const recommendation = message.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n')
+        .trim();
+
+      return {
+        recommendation,
+        basedOn: { reportFileName: latest[0].reportFileName, reportGeneratedAt: latest[0].reportGeneratedAt },
+      };
+    } catch (err) {
+      this.logger.error('Anthropic recommendation request failed', err instanceof Error ? err.stack : err);
+      throw new BadRequestException('Could not generate a recommendation right now — please try again in a moment.');
+    }
   }
 
   async findValues(id: string, user: AuthenticatedUser): Promise<ReportValueWithTrend[]> {

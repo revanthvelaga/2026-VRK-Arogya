@@ -2022,6 +2022,19 @@ tbody tr:hover {
   font-size: 13.5px;
 }
 
+/* ---------- AI health recommendation ---------- */
+.ai-recommendation-card {
+  background: linear-gradient(160deg, var(--surface), var(--accent-soft) 220%);
+}
+
+.ai-recommendation-text {
+  white-space: pre-line;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
 /* ---------- Report list + detail ---------- */
 .report-list {
   display: flex;

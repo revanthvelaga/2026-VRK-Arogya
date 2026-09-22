@@ -15,6 +15,7 @@ import {
   IconMapPin,
   IconPhone,
   IconShieldCheck,
+  IconSparkle,
   IconUser,
 } from '../components/Icons';
 import { formatDateTime, formatNumber } from '../lib/format';
@@ -292,6 +293,86 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
   );
 }
 
+interface RecommendationResponse {
+  recommendation: string;
+  basedOn: { reportFileName: string; reportGeneratedAt: string } | null;
+}
+
+// Generated on demand (not auto-fetched) since each generation is a real
+// API call to Claude — the patient sees exactly when a new one is being
+// requested rather than it silently firing on every page visit.
+function HealthRecommendationCard({ patientId }: { patientId: string }) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<RecommendationResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setData(null);
+    setError(null);
+  }, [patientId]);
+
+  const generate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await api.get<RecommendationResponse>(`/reports/mine/recommendation?patientId=${patientId}`);
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not generate a recommendation right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card ai-recommendation-card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <IconSparkle size={16} style={{ color: 'var(--accent-ink)' }} />
+        AI health recommendation
+      </div>
+
+      {!data && !loading && !error && (
+        <>
+          <p className="page-sub" style={{ margin: '0 0 12px' }}>
+            Get a short, personalized recommendation based on this patient's latest report.
+          </p>
+          <button type="button" className="btn btn-primary btn-small" onClick={generate}>
+            <IconSparkle size={13} />
+            Generate recommendation
+          </button>
+        </>
+      )}
+
+      {loading && <LoadingLine label="Thinking…" />}
+
+      {error && (
+        <div>
+          <div className="error-banner" style={{ marginBottom: 10 }}>
+            {error}
+          </div>
+          <button type="button" className="btn btn-small" onClick={generate}>
+            Try again
+          </button>
+        </div>
+      )}
+
+      {data && (
+        <>
+          <p className="ai-recommendation-text">{data.recommendation}</p>
+          {data.basedOn && (
+            <p className="page-sub" style={{ margin: '10px 0 0', fontSize: 11.5 }}>
+              Based on {data.basedOn.reportFileName} · {formatDateTime(data.basedOn.reportGeneratedAt)}
+            </p>
+          )}
+          <button type="button" className="btn btn-small" style={{ marginTop: 12 }} onClick={generate} disabled={loading}>
+            Regenerate
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Everything that hangs off a patient's report results: the health score
 // (scored off the latest report only, so an old abnormal value doesn't
 // keep dragging the score down after it's been resolved), the list of
@@ -403,6 +484,8 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
       </div>
 
       {selectedGroup && <ReportDetailCard group={selectedGroup} />}
+
+      <HealthRecommendationCard patientId={patientId} />
     </>
   );
 }

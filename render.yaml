@@ -46,6 +46,11 @@ services:
         sync: false
       - key: RAZORPAY_KEY_SECRET
         sync: false
+      # Optional — powers the AI health recommendation on Insights. Leave
+      # blank to skip it (everything else still works). Get a free key at
+      # console.anthropic.com > API Keys.
+      - key: ANTHROPIC_API_KEY
+        sync: false
 
   - type: web
     name: arogya-admin-web

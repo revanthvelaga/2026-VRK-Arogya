@@ -57,6 +57,11 @@ export class ReportsController {
     return this.reportsService.findAllValuesForCustomer(user.userId, patientId);
   }
 
+  @Get('reports/mine/recommendation')
+  getRecommendation(@CurrentUser() user: AuthenticatedUser, @Query('patientId') patientId?: string) {
+    return this.reportsService.getHealthRecommendation(user.userId, patientId);
+  }
+
   // `?view=1` renders the PDF in the browser tab (Content-Disposition:
   // inline) instead of forcing a save-to-disk prompt — the same bytes,
   // same endpoint, same auth check either way.

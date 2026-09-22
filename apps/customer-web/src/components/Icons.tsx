@@ -226,6 +226,13 @@ export const IconFileText = icon(
   </>,
 );
 
+export const IconSparkle = icon(
+  <>
+    <path d="M12 3.2l1.9 5.4 5.4 1.9-5.4 1.9-1.9 5.4-1.9-5.4-5.4-1.9 5.4-1.9L12 3.2z" />
+    <path d="M19 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z" />
+  </>,
+);
+
 export const IconCreditCard = icon(
   <>
     <rect x="2.5" y="5" width="19" height="14" rx="2" />
