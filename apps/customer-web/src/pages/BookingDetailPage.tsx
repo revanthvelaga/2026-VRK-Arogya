@@ -9,7 +9,15 @@ import { openRazorpayCheckout } from '../lib/razorpay';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleProgress } from '../components/SampleProgress';
 import { LoadingLine } from '../components/Spinner';
-import { IconArrowLeft, IconClock, IconCreditCard, IconFileText, IconMessage } from '../components/Icons';
+import {
+  IconArrowLeft,
+  IconClock,
+  IconCreditCard,
+  IconFileText,
+  IconMapPin,
+  IconMessage,
+  IconTruck,
+} from '../components/Icons';
 import {
   bookingStatusVariant,
   formatCurrency,
@@ -19,6 +27,64 @@ import {
   sampleStatusVariant,
   statusLabel,
 } from '../lib/format';
+
+function collectionLocationLine(booking: Booking): string {
+  if (booking.collectionMode === 'HOME_VISIT') {
+    return booking.homeAddressLine
+      ? `${booking.homeAddressLine}${booking.homeAddressPincode ? ` · ${booking.homeAddressPincode}` : ''}`
+      : 'Home visit';
+  }
+  if (booking.collectionMode === 'PICKUP_POINT') {
+    return booking.pickupPointName ?? 'Pickup point';
+  }
+  return booking.centerName ?? 'Walk-in at center';
+}
+
+// Where the sample is being collected from, and — once staff assign one —
+// who's coming to collect it. Read-only here; only admin/staff can change
+// the assignment.
+function CollectionCard({ booking }: { booking: Booking }) {
+  return (
+    <div className="card">
+      <div className="card-title">Collection</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <IconMapPin size={16} style={{ marginTop: 2, flexShrink: 0, color: 'var(--teal)' }} />
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13.5 }}>{statusLabel(booking.collectionMode)}</div>
+          <p className="page-sub" style={{ margin: '2px 0 0' }}>{collectionLocationLine(booking)}</p>
+          {booking.collectionMode !== 'HOME_VISIT' && booking.centerAddress && (
+            <p className="page-sub" style={{ margin: '2px 0 0' }}>
+              {booking.centerAddress}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {booking.assignedAgent && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            marginTop: 14,
+            borderTop: '1px solid var(--line)',
+            paddingTop: 14,
+          }}
+        >
+          <IconTruck size={16} style={{ marginTop: 2, flexShrink: 0, color: 'var(--teal)' }} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13.5 }}>Your agent: {booking.assignedAgent.fullName}</div>
+            {booking.assignedAgent.phone && (
+              <a href={`tel:+91${booking.assignedAgent.phone}`} style={{ fontSize: 12.5 }}>
+                Call {booking.assignedAgent.phone}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SampleCard({ sample }: { sample: Sample }) {
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -394,6 +460,8 @@ export function BookingDetailPage() {
           </button>
         )}
       </div>
+
+      <CollectionCard booking={booking} />
 
       <div className="section-title">Sample tracking</div>
       {samplesApi.loading && <LoadingLine label="Loading samples…" />}

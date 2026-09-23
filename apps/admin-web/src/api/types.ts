@@ -66,7 +66,10 @@ export interface Booking {
   patientId?: string;
   centerId: string;
   pickupPointId?: string;
+  assignedAgentId?: string;
   collectionMode: CollectionMode;
+  homeAddressLine?: string;
+  homeAddressPincode?: string;
   scheduledAt: string;
   status: BookingStatus;
   subtotal: string | number;
@@ -78,7 +81,12 @@ export interface Booking {
   // Filled in by the API for admin/staff requests only.
   customer?: BookingCustomer;
   patient?: BookingPatient;
+  // Filled in for every caller, the booking's own customer included —
+  // where the sample is collected from and who's collecting it.
   centerName?: string;
+  centerAddress?: string;
+  pickupPointName?: string;
+  assignedAgent?: BookingAgent;
 }
 
 export interface BookingCustomer {
@@ -93,6 +101,22 @@ export interface BookingPatient {
   gender?: string;
   dateOfBirth?: string;
   phone?: string;
+}
+
+export interface BookingAgent {
+  id: string;
+  fullName: string;
+  phone?: string;
+}
+
+export interface StaffMember {
+  id: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface Sample {

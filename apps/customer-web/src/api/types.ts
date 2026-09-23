@@ -86,6 +86,7 @@ export interface Booking {
   patientId?: string;
   centerId: string;
   pickupPointId?: string;
+  assignedAgentId?: string;
   collectionMode: CollectionMode;
   homeAddressLine?: string;
   homeAddressPincode?: string;
@@ -98,6 +99,18 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   createdAt: string;
   items: BookingItem[];
+  // Where the sample is collected from and who's collecting it — always
+  // present for the booking's own customer, same as centerName below.
+  centerName?: string;
+  centerAddress?: string;
+  pickupPointName?: string;
+  assignedAgent?: BookingAgent;
+}
+
+export interface BookingAgent {
+  id: string;
+  fullName: string;
+  phone?: string;
 }
 
 export interface Sample {

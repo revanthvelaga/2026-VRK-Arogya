@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, downloadFile, uploadFile, viewFile } from '../api/client';
@@ -15,6 +15,7 @@ import type {
   Sample,
   SampleStatus,
   SampleStatusHistoryEntry,
+  StaffMember,
   Test,
 } from '../api/types';
 import { SAMPLE_TRANSITIONS } from '../api/types';
@@ -559,6 +560,116 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
   );
 }
 
+// Where the sample is (or will be) collected from, and who's assigned to
+// collect/deliver it. The agent dropdown lists every STAFF/ADMIN account
+// (see UsersController#listStaff) — there's no separate "agent" role.
+function CollectionCard({ booking, onUpdated }: { booking: Booking; onUpdated: () => void }) {
+  const staffApi = useApi<StaffMember[]>(() => api.get('/users/staff'), []);
+  const [agentId, setAgentId] = useState(booking.assignedAgent?.id ?? '');
+  const [assigning, setAssigning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Keep the dropdown in sync if the booking reloads with a different
+  // agent (e.g. after a save, or someone else changed it).
+  useEffect(() => {
+    setAgentId(booking.assignedAgent?.id ?? '');
+  }, [booking.assignedAgent?.id]);
+
+  const assign = async () => {
+    setAssigning(true);
+    setError(null);
+    try {
+      await api.patch(`/bookings/${booking.id}/agent`, { agentId: agentId || null });
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update the assigned agent');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const locationLine = (): string => {
+    if (booking.collectionMode === 'HOME_VISIT') {
+      return booking.homeAddressLine
+        ? `${booking.homeAddressLine}${booking.homeAddressPincode ? ` · ${booking.homeAddressPincode}` : ''}`
+        : 'Home visit (address not on file)';
+    }
+    if (booking.collectionMode === 'PICKUP_POINT') {
+      return booking.pickupPointName ?? 'Pickup point';
+    }
+    return booking.centerName ?? 'Walk-in at center';
+  };
+
+  const changed = agentId !== (booking.assignedAgent?.id ?? '');
+
+  return (
+    <div className="card people-card">
+      <div className="people-kicker">Collection</div>
+      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{statusLabel(booking.collectionMode)}</div>
+      <p className="page-sub" style={{ margin: '4px 0 0' }}>{locationLine()}</p>
+      {booking.collectionMode !== 'HOME_VISIT' && booking.centerAddress && (
+        <p className="page-sub" style={{ margin: '2px 0 0' }}>
+          {booking.centerAddress}
+        </p>
+      )}
+
+      <div className="people-contact" style={{ display: 'block' }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: 'var(--ink-faint)',
+            marginBottom: 8,
+          }}
+        >
+          Assigned agent
+        </div>
+        {booking.assignedAgent ? (
+          <div className="person-cell" style={{ marginBottom: 10 }}>
+            <span className="person-avatar person-avatar-alt">
+              {booking.assignedAgent.fullName.charAt(0).toUpperCase()}
+            </span>
+            <span>
+              <b>{booking.assignedAgent.fullName}</b>
+              {booking.assignedAgent.phone && <small>{booking.assignedAgent.phone}</small>}
+            </span>
+          </div>
+        ) : (
+          <p className="page-sub" style={{ margin: '0 0 10px' }}>
+            Not assigned yet.
+          </p>
+        )}
+        {error && (
+          <div className="error-banner" style={{ marginBottom: 8 }}>
+            {error}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+            style={{ flex: 1 }}
+            disabled={staffApi.loading}
+          >
+            <option value="">Unassigned</option>
+            {(staffApi.data ?? []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.fullName}
+                {s.phone ? ` · ${s.phone}` : ''}
+              </option>
+            ))}
+          </select>
+          <button className="btn btn-small btn-primary" onClick={assign} disabled={!changed || assigning}>
+            {assigning ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ageFromDob(dob?: string): string | undefined {
   if (!dob) return undefined;
   const d = new Date(dob);
@@ -702,6 +813,7 @@ export function BookingDetailPage() {
             {booking.centerName && <span>Center: {booking.centerName}</span>}
           </div>
         </div>
+        <CollectionCard booking={booking} onUpdated={() => bookingApi.reload()} />
       </div>
 
       <div className="card">

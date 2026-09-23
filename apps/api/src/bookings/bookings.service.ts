@@ -23,6 +23,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { toGeoPoint } from '../common/utils/geo.util';
 import { PatientsService } from '../patients/patients.service';
+import { UsersService } from '../users/users.service';
 
 interface PricedItem {
   testId?: string;
@@ -44,10 +45,22 @@ export interface BookingPatient {
   phone?: string;
 }
 
+export interface BookingAgent {
+  id: string;
+  fullName: string;
+  phone?: string;
+}
+
 export type BookingWithPeople = Booking & {
   customer?: BookingCustomer;
   patient?: BookingPatient;
   centerName?: string;
+  // Where the sample is (or will be) collected from and who's collecting
+  // it — visible to the customer too, unlike `customer`/`patient` above,
+  // which are staff/admin-only.
+  centerAddress?: string;
+  pickupPointName?: string;
+  assignedAgent?: BookingAgent;
 };
 
 // Applied on top of item prices at booking time — illustrative until real
@@ -66,6 +79,7 @@ export class BookingsService {
     private readonly packagesService: PackagesService,
     private readonly notificationsService: NotificationsService,
     private readonly patientsService: PatientsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -194,38 +208,45 @@ export class BookingsService {
     return items;
   }
 
-  findAllForCustomer(customerId: string, patientId?: string): Promise<Booking[]> {
-    return this.bookingsRepo.find({
+  async findAllForCustomer(customerId: string, patientId?: string): Promise<BookingWithPeople[]> {
+    const bookings = await this.bookingsRepo.find({
       where: patientId ? { customerId, patientId } : { customerId },
       relations: ['items'],
       order: { createdAt: 'DESC' },
     });
+    return this.attachLogistics(bookings);
   }
 
   async findAll(): Promise<BookingWithPeople[]> {
     const bookings = await this.bookingsRepo.find({ relations: ['items'], order: { createdAt: 'DESC' } });
-    return this.attachPeople(bookings);
+    const withPeople = await this.attachPeople(bookings);
+    return this.attachLogistics(withPeople);
   }
 
   // Staff opening a booking need to know who booked it and who it's for;
-  // a customer viewing their own booking already knows both.
+  // a customer viewing their own booking already knows both. Everyone —
+  // customer included — gets the logistics fields (where it's being
+  // collected, who's assigned): that's their own booking's own collection
+  // trip, not someone else's private data.
   async findOneDetailed(id: string, user: AuthenticatedUser): Promise<BookingWithPeople> {
     const booking = await this.findOneForUser(id, user);
-    if (user.role !== Role.ADMIN && user.role !== Role.STAFF) return booking;
-    const [withPeople] = await this.attachPeople([booking]);
-    return withPeople;
+    const isStaffOrAdmin = user.role === Role.ADMIN || user.role === Role.STAFF;
+    const base = isStaffOrAdmin ? (await this.attachPeople([booking]))[0] : booking;
+    const [withLogistics] = await this.attachLogistics([base]);
+    return withLogistics;
   }
 
-  // A booking row only stores ids. Two or three bulk lookups (not one per
-  // row) with a deliberately narrow column list — never the password hash.
+  // A booking row only stores ids. Two bulk lookups (not one per row) with
+  // a deliberately narrow column list — never the password hash. Staff/admin
+  // only: this is the customer's and patient's own identity, not the
+  // assigned booking's own business.
   private async attachPeople(bookings: Booking[]): Promise<BookingWithPeople[]> {
     if (bookings.length === 0) return [];
     const unique = (ids: (string | undefined)[]) => [...new Set(ids.filter((id): id is string => !!id))];
     const customerIds = unique(bookings.map((b) => b.customerId));
     const patientIds = unique(bookings.map((b) => b.patientId));
-    const centerIds = unique(bookings.map((b) => b.centerId));
 
-    const [users, patients, centers] = await Promise.all([
+    const [users, patients] = await Promise.all([
       this.dataSource.query(
         `SELECT id, full_name, phone, email FROM users WHERE id = ANY($1::uuid[])`,
         [customerIds],
@@ -246,14 +267,10 @@ export class BookingsService {
             }>
           >)
         : Promise.resolve([]),
-      this.dataSource.query(`SELECT id, name FROM diagnostic_centers WHERE id = ANY($1::uuid[])`, [
-        centerIds,
-      ]) as Promise<Array<{ id: string; name: string }>>,
     ]);
 
     const userById = new Map(users.map((u) => [u.id, u]));
     const patientById = new Map(patients.map((p) => [p.id, p]));
-    const centerById = new Map(centers.map((c) => [c.id, c]));
 
     return bookings.map((b) => {
       const u = userById.get(b.customerId);
@@ -269,7 +286,51 @@ export class BookingsService {
               phone: p.phone ?? undefined,
             }
           : undefined,
+      });
+    });
+  }
+
+  // Where the sample is collected from and who's collecting it — every
+  // caller gets this, the booking's own customer included, so they know
+  // where to expect a visit and who's coming.
+  private async attachLogistics(bookings: BookingWithPeople[]): Promise<BookingWithPeople[]> {
+    if (bookings.length === 0) return [];
+    const unique = (ids: (string | undefined)[]) => [...new Set(ids.filter((id): id is string => !!id))];
+    const centerIds = unique(bookings.map((b) => b.centerId));
+    const pickupPointIds = unique(bookings.map((b) => b.pickupPointId));
+    const agentIds = unique(bookings.map((b) => b.assignedAgentId));
+
+    const [centers, pickupPoints, agents] = await Promise.all([
+      this.dataSource.query(
+        `SELECT id, name, address FROM diagnostic_centers WHERE id = ANY($1::uuid[])`,
+        [centerIds],
+      ) as Promise<Array<{ id: string; name: string; address: string | null }>>,
+      pickupPointIds.length
+        ? (this.dataSource.query(`SELECT id, name FROM pickup_points WHERE id = ANY($1::uuid[])`, [
+            pickupPointIds,
+          ]) as Promise<Array<{ id: string; name: string }>>)
+        : Promise.resolve([]),
+      agentIds.length
+        ? (this.dataSource.query(
+            `SELECT id, full_name, phone FROM users WHERE id = ANY($1::uuid[])`,
+            [agentIds],
+          ) as Promise<Array<{ id: string; full_name: string; phone: string | null }>>)
+        : Promise.resolve([]),
+    ]);
+
+    const centerById = new Map(centers.map((c) => [c.id, c]));
+    const pickupPointById = new Map(pickupPoints.map((p) => [p.id, p]));
+    const agentById = new Map(agents.map((a) => [a.id, a]));
+
+    return bookings.map((b) => {
+      const agent = b.assignedAgentId ? agentById.get(b.assignedAgentId) : undefined;
+      return Object.assign(b, {
         centerName: centerById.get(b.centerId)?.name,
+        centerAddress: centerById.get(b.centerId)?.address ?? undefined,
+        pickupPointName: b.pickupPointId ? pickupPointById.get(b.pickupPointId)?.name : undefined,
+        assignedAgent: agent
+          ? { id: agent.id, fullName: agent.full_name, phone: agent.phone ?? undefined }
+          : undefined,
       });
     });
   }
@@ -302,6 +363,24 @@ export class BookingsService {
     const booking = await this.findOne(id);
     booking.status = dto.status;
     return this.bookingsRepo.save(booking);
+  }
+
+  // Assigns (or, with agentId null, clears) the field agent responsible
+  // for this booking's collection/delivery. Only a STAFF or ADMIN user can
+  // be assigned — never a customer — checked here rather than trusted from
+  // the client, same as every other role check in this service.
+  async assignAgent(id: string, agentId: string | null): Promise<BookingWithPeople> {
+    const booking = await this.findOne(id);
+    if (agentId) {
+      const agent = await this.usersService.findById(agentId);
+      if (!agent || (agent.role !== Role.STAFF && agent.role !== Role.ADMIN)) {
+        throw new BadRequestException('Assigned agent must be an existing staff or admin user');
+      }
+    }
+    booking.assignedAgentId = agentId ?? undefined;
+    const saved = await this.bookingsRepo.save(booking);
+    const [withLogistics] = await this.attachLogistics([saved]);
+    return withLogistics;
   }
 
   // Called by PaymentsService once Razorpay confirms (or rejects) payment.

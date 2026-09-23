@@ -9,6 +9,7 @@ import {
   IconMapPin,
   IconMessage,
   IconPlus,
+  IconTruck,
 } from './Icons';
 
 const NAV_ITEMS = [
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/catalog', label: 'Catalog', icon: IconBox },
   { to: '/centers', label: 'Centers', icon: IconMapPin },
   { to: '/partner-labs', label: 'Partner Labs', icon: IconFlask },
+  { to: '/agents', label: 'Agents', icon: IconTruck },
   { to: '/issues', label: 'Issues', icon: IconMessage },
 ];
 

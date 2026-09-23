@@ -31,6 +31,14 @@ export class Booking {
   @Column({ name: 'pickup_point_id', nullable: true })
   pickupPointId?: string;
 
+  // The staff/admin user (field agent) responsible for collecting this
+  // booking's sample and getting it to the center — set by an admin via
+  // BookingsService.assignAgent, not by the agent themselves. Nullable:
+  // most bookings go unassigned until staff picks one, and a WALK_IN
+  // booking may never need one at all.
+  @Column({ name: 'assigned_agent_id', nullable: true })
+  assignedAgentId?: string;
+
   @Column({ name: 'collection_mode', type: 'enum', enum: CollectionMode })
   collectionMode: CollectionMode;
 

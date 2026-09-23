@@ -8,6 +8,7 @@ import { CatalogModule } from '../catalog/catalog.module';
 import { CentersModule } from '../centers/centers.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PatientsModule } from '../patients/patients.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PatientsModule } from '../patients/patients.module';
     CentersModule,
     NotificationsModule,
     PatientsModule,
+    UsersModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],
