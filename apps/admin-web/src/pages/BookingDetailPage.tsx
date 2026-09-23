@@ -559,6 +559,16 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
   );
 }
 
+function ageFromDob(dob?: string): string | undefined {
+  if (!dob) return undefined;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return undefined;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+  return `${age} yrs`;
+}
+
 export function BookingDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const bookingApi = useApi<Booking>(() => api.get(`/bookings/${id}`), [id]);
@@ -649,6 +659,50 @@ export function BookingDetailPage() {
       </div>
 
       {actionError && <div className="error-banner">{actionError}</div>}
+
+      <div className="people-grid">
+        <div className="card people-card">
+          <div className="people-kicker">Booked by</div>
+          <div className="person-cell person-cell-lg">
+            <span className="person-avatar">{(booking.customer?.fullName ?? '?').charAt(0).toUpperCase()}</span>
+            <span>
+              <b>{booking.customer?.fullName ?? 'Unknown customer'}</b>
+              <small>Account holder</small>
+            </span>
+          </div>
+          <div className="people-contact">
+            {booking.customer?.phone && <a href={`tel:+91${booking.customer.phone}`}>Call {booking.customer.phone}</a>}
+            {booking.customer?.email && <a href={`mailto:${booking.customer.email}`}>Email {booking.customer.email}</a>}
+            {!booking.customer?.phone && !booking.customer?.email && <span className="page-sub">No contact on file</span>}
+          </div>
+        </div>
+        <div className="card people-card">
+          <div className="people-kicker">Patient</div>
+          <div className="person-cell person-cell-lg">
+            <span className="person-avatar person-avatar-alt">
+              {(booking.patient?.fullName ?? '?').charAt(0).toUpperCase()}
+            </span>
+            <span>
+              <b>{booking.patient?.fullName ?? 'Not recorded'}</b>
+              <small>
+                {booking.patient
+                  ? [
+                      booking.patient.relationship === 'SELF' ? 'Self' : statusLabel(booking.patient.relationship).toLowerCase(),
+                      booking.patient.gender && statusLabel(booking.patient.gender).toLowerCase(),
+                      ageFromDob(booking.patient.dateOfBirth),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : 'Booked before patient profiles existed'}
+              </small>
+            </span>
+          </div>
+          <div className="people-contact">
+            {booking.patient?.phone && <a href={`tel:+91${booking.patient.phone}`}>Call {booking.patient.phone}</a>}
+            {booking.centerName && <span>Center: {booking.centerName}</span>}
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <div className="card-title">Details</div>

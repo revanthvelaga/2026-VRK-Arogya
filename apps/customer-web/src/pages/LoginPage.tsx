@@ -34,7 +34,7 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(phone.trim(), password);
+      await login(phone.replace(/\D/g, '').slice(-10), password);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -68,6 +68,7 @@ export function LoginPage() {
             <label htmlFor="phone">Phone</label>
             <input
               id="phone"
+              autoComplete="tel-national"
               inputMode="numeric"
               placeholder="9999999999"
               value={phone}
@@ -79,6 +80,7 @@ export function LoginPage() {
             <label htmlFor="password">Password</label>
             <input
               id="password"
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

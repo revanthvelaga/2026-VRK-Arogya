@@ -1,10 +1,13 @@
+import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { Role } from '../../common/enums/role.enum';
+import { normalizeIndianPhone } from '../../common/utils/phone.util';
 
 export class RegisterDto {
   @IsString()
   fullName: string;
 
+  @Transform(({ value }) => normalizeIndianPhone(value))
   @Matches(/^[0-9]{10}$/, { message: 'phone must be a 10-digit number' })
   phone: string;
 

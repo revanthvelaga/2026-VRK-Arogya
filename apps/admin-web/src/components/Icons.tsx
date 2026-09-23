@@ -91,6 +91,35 @@ export const IconArrowLeft = icon(
   </>,
 );
 
+export const IconArrowRight = icon(
+  <>
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </>,
+);
+
+export const IconXCircle = icon(
+  <>
+    <circle cx="12" cy="12" r="9.2" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </>,
+);
+
+export const IconUser = icon(
+  <>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M4.5 20.2a7.5 7.5 0 0115 0" />
+  </>,
+);
+
+export const IconSearch = icon(
+  <>
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <line x1="20" y1="20" x2="15.3" y2="15.3" />
+  </>,
+);
+
 export const IconClock = icon(
   <>
     <circle cx="12" cy="12" r="9.2" />
@@ -163,3 +192,19 @@ export const IconUpload = icon(
 export const IconMessage = icon(
   <path d="M3.5 12.5a8.5 8.5 0 1111 8.1l-4.6 1.4 1.4-4.1a8.46 8.46 0 01-7.8-5.4z" />,
 );
+
+export const IconTrendUp = icon(
+  <>
+    <polyline points="3 17 10 10 14 14 21 7" />
+    <polyline points="15 7 21 7 21 13" />
+  </>,
+);
+
+export const IconTrendDown = icon(
+  <>
+    <polyline points="3 7 10 14 14 10 21 17" />
+    <polyline points="15 17 21 17 21 11" />
+  </>,
+);
+
+export const IconTrendFlat = icon(<line x1="3" y1="12" x2="21" y2="12" />);

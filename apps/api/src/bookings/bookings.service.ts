@@ -30,6 +30,26 @@ interface PricedItem {
   price: number;
 }
 
+export interface BookingCustomer {
+  fullName: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface BookingPatient {
+  fullName: string;
+  relationship: string;
+  gender?: string;
+  dateOfBirth?: string;
+  phone?: string;
+}
+
+export type BookingWithPeople = Booking & {
+  customer?: BookingCustomer;
+  patient?: BookingPatient;
+  centerName?: string;
+};
+
 // Applied on top of item prices at booking time — illustrative until real
 // invoicing rules replace it.
 const GST_RATE = 0.18;
@@ -182,8 +202,76 @@ export class BookingsService {
     });
   }
 
-  findAll(): Promise<Booking[]> {
-    return this.bookingsRepo.find({ relations: ['items'], order: { createdAt: 'DESC' } });
+  async findAll(): Promise<BookingWithPeople[]> {
+    const bookings = await this.bookingsRepo.find({ relations: ['items'], order: { createdAt: 'DESC' } });
+    return this.attachPeople(bookings);
+  }
+
+  // Staff opening a booking need to know who booked it and who it's for;
+  // a customer viewing their own booking already knows both.
+  async findOneDetailed(id: string, user: AuthenticatedUser): Promise<BookingWithPeople> {
+    const booking = await this.findOneForUser(id, user);
+    if (user.role !== Role.ADMIN && user.role !== Role.STAFF) return booking;
+    const [withPeople] = await this.attachPeople([booking]);
+    return withPeople;
+  }
+
+  // A booking row only stores ids. Two or three bulk lookups (not one per
+  // row) with a deliberately narrow column list — never the password hash.
+  private async attachPeople(bookings: Booking[]): Promise<BookingWithPeople[]> {
+    if (bookings.length === 0) return [];
+    const unique = (ids: (string | undefined)[]) => [...new Set(ids.filter((id): id is string => !!id))];
+    const customerIds = unique(bookings.map((b) => b.customerId));
+    const patientIds = unique(bookings.map((b) => b.patientId));
+    const centerIds = unique(bookings.map((b) => b.centerId));
+
+    const [users, patients, centers] = await Promise.all([
+      this.dataSource.query(
+        `SELECT id, full_name, phone, email FROM users WHERE id = ANY($1::uuid[])`,
+        [customerIds],
+      ) as Promise<Array<{ id: string; full_name: string; phone: string | null; email: string | null }>>,
+      patientIds.length
+        ? (this.dataSource.query(
+            `SELECT id, full_name, relationship, gender, date_of_birth::text AS date_of_birth, phone
+               FROM patients WHERE id = ANY($1::uuid[])`,
+            [patientIds],
+          ) as Promise<
+            Array<{
+              id: string;
+              full_name: string;
+              relationship: string;
+              gender: string | null;
+              date_of_birth: string | null;
+              phone: string | null;
+            }>
+          >)
+        : Promise.resolve([]),
+      this.dataSource.query(`SELECT id, name FROM diagnostic_centers WHERE id = ANY($1::uuid[])`, [
+        centerIds,
+      ]) as Promise<Array<{ id: string; name: string }>>,
+    ]);
+
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const patientById = new Map(patients.map((p) => [p.id, p]));
+    const centerById = new Map(centers.map((c) => [c.id, c]));
+
+    return bookings.map((b) => {
+      const u = userById.get(b.customerId);
+      const p = b.patientId ? patientById.get(b.patientId) : undefined;
+      return Object.assign(b, {
+        customer: u ? { fullName: u.full_name, phone: u.phone ?? undefined, email: u.email ?? undefined } : undefined,
+        patient: p
+          ? {
+              fullName: p.full_name,
+              relationship: p.relationship,
+              gender: p.gender ?? undefined,
+              dateOfBirth: p.date_of_birth ?? undefined,
+              phone: p.phone ?? undefined,
+            }
+          : undefined,
+        centerName: centerById.get(b.centerId)?.name,
+      });
+    });
   }
 
   async findOne(id: string): Promise<Booking> {

@@ -75,6 +75,24 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   createdAt: string;
   items: BookingItem[];
+  // Filled in by the API for admin/staff requests only.
+  customer?: BookingCustomer;
+  patient?: BookingPatient;
+  centerName?: string;
+}
+
+export interface BookingCustomer {
+  fullName: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface BookingPatient {
+  fullName: string;
+  relationship: string;
+  gender?: string;
+  dateOfBirth?: string;
+  phone?: string;
 }
 
 export interface Sample {

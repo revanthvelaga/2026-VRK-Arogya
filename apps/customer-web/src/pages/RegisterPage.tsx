@@ -36,7 +36,7 @@ export function RegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await register({ fullName: fullName.trim(), phone: phone.trim(), email: email.trim() || undefined, password });
+      await register({ fullName: fullName.trim(), phone: phone.replace(/\D/g, '').slice(-10), email: email.trim() || undefined, password });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -74,6 +74,7 @@ export function RegisterPage() {
             <label htmlFor="phone">Phone</label>
             <input
               id="phone"
+              autoComplete="tel-national"
               inputMode="numeric"
               placeholder="9999999999"
               value={phone}
@@ -89,6 +90,7 @@ export function RegisterPage() {
             <label htmlFor="password">Password</label>
             <input
               id="password"
+              autoComplete="new-password"
               type="password"
               minLength={6}
               value={password}

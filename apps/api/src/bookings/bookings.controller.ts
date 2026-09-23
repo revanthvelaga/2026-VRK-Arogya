@@ -43,7 +43,7 @@ export class BookingsController {
 
   @Get(':id')
   findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.bookingsService.findOneForUser(id, user);
+    return this.bookingsService.findOneDetailed(id, user);
   }
 
   @Patch(':id/cancel')
