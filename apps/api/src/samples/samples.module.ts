@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Sample } from './entities/sample.entity';
 import { SampleStatusHistory } from './entities/sample-status-history.entity';
+import { SampleImage } from './entities/sample-image.entity';
 import { SamplesService } from './samples.service';
 import { SamplesController } from './samples.controller';
 import { BookingsModule } from '../bookings/bookings.module';
@@ -10,7 +11,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Sample, SampleStatusHistory]),
+    TypeOrmModule.forFeature([Sample, SampleStatusHistory, SampleImage]),
     BookingsModule,
     PartnerLabsModule,
     NotificationsModule,

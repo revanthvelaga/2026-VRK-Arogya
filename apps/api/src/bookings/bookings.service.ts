@@ -217,6 +217,24 @@ export class BookingsService {
     return this.attachLogistics(bookings);
   }
 
+  // A field agent's own queue — every booking assigned to them that isn't
+  // finished, oldest scheduled first (today's/overdue pickups surface
+  // before tomorrow's). Needs the same customer/patient contact details
+  // ADMIN/STAFF already see on the full booking detail page — an agent
+  // can't collect from someone they don't know how to reach.
+  async findAllForAgent(agentId: string): Promise<BookingWithPeople[]> {
+    const bookings = await this.bookingsRepo.find({
+      where: { assignedAgentId: agentId },
+      relations: ['items'],
+      order: { scheduledAt: 'ASC' },
+    });
+    const active = bookings.filter(
+      (b) => b.status === BookingStatus.PENDING || b.status === BookingStatus.CONFIRMED,
+    );
+    const withPeople = await this.attachPeople(active);
+    return this.attachLogistics(withPeople);
+  }
+
   async findAll(): Promise<BookingWithPeople[]> {
     const bookings = await this.bookingsRepo.find({ relations: ['items'], order: { createdAt: 'DESC' } });
     const withPeople = await this.attachPeople(bookings);

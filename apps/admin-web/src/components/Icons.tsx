@@ -208,3 +208,28 @@ export const IconTrendDown = icon(
 );
 
 export const IconTrendFlat = icon(<line x1="3" y1="12" x2="21" y2="12" />);
+
+export const IconCamera = icon(
+  <>
+    <path d="M4 8.5a2 2 0 012-2h1.5l1-2h7l1 2H18a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9z" />
+    <circle cx="12" cy="13" r="3.7" />
+  </>,
+);
+
+export const IconShieldCheck = icon(
+  <>
+    <path d="M12 2.5l7.5 3.2v5.6c0 4.9-3.2 8.9-7.5 10.2-4.3-1.3-7.5-5.3-7.5-10.2V5.7L12 2.5z" />
+    <polyline points="8.5 12 11 14.5 15.5 9.5" />
+  </>,
+);
+
+export const IconBarcode = icon(
+  <>
+    <line x1="4" y1="5" x2="4" y2="19" />
+    <line x1="8" y1="5" x2="8" y2="19" />
+    <line x1="11.5" y1="5" x2="11.5" y2="19" />
+    <line x1="15" y1="5" x2="15" y2="19" strokeWidth="3" />
+    <line x1="18" y1="5" x2="18" y2="19" />
+    <line x1="20.5" y1="5" x2="20.5" y2="19" />
+  </>,
+);

@@ -34,6 +34,14 @@ export class User {
   @Column({ type: 'enum', enum: Role, default: Role.CUSTOMER })
   role: Role;
 
+  // Only meaningful for STAFF (field agent) accounts — e.g. "Phlebotomy",
+  // "Home collection", "Pediatric draw". Free text rather than an enum:
+  // there's no fixed catalog of specialties an agent roster needs to pick
+  // from, and admin should be able to type whatever the agent is actually
+  // trained in.
+  @Column({ length: 150, nullable: true })
+  specialization?: string;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

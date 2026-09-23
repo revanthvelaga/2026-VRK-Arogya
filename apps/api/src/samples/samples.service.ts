@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Sample } from './entities/sample.entity';
 import { SampleStatusHistory } from './entities/sample-status-history.entity';
+import { SampleImage, SampleImageKind } from './entities/sample-image.entity';
 import { UpdateSampleStatusDto } from './dto/update-sample-status.dto';
 import { SampleStatus } from '../common/enums/sample-status.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
@@ -40,6 +41,10 @@ const ALLOWED_TRANSITIONS: Record<SampleStatus, SampleStatus[]> = {
   [SampleStatus.DELIVERED]: [],
 };
 
+// How much slack either side of the scheduled slot still counts as "on
+// time" for an agent's performance record.
+const ON_TIME_GRACE_MS = 30 * 60 * 1000;
+
 @Injectable()
 export class SamplesService {
   constructor(
@@ -47,6 +52,8 @@ export class SamplesService {
     private readonly samplesRepo: Repository<Sample>,
     @InjectRepository(SampleStatusHistory)
     private readonly historyRepo: Repository<SampleStatusHistory>,
+    @InjectRepository(SampleImage)
+    private readonly imagesRepo: Repository<SampleImage>,
     private readonly dataSource: DataSource,
     private readonly bookingsService: BookingsService,
     private readonly partnerLabsService: PartnerLabsService,
@@ -110,9 +117,26 @@ export class SamplesService {
     }
 
     sample.status = dto.status;
+    // Fetched once here (not just for the notification below) so the
+    // on-time check below has the booking's scheduledAt to compare against.
+    let booking = dto.status === SampleStatus.COLLECTED || dto.status === SampleStatus.RESULT_READY
+      ? await this.bookingsService.findOne(sample.bookingId)
+      : undefined;
+
     if (dto.status === SampleStatus.COLLECTED) {
       sample.collectedBy = staffUserId;
       sample.collectedAt = new Date();
+      // "On time" means within half an hour of the scheduled slot, either
+      // side — a strict "at or after" would penalize an agent for arriving
+      // early, which isn't the failure mode this is meant to catch.
+      sample.onTimeCollection =
+        Math.abs(sample.collectedAt.getTime() - booking!.scheduledAt.getTime()) <= ON_TIME_GRACE_MS;
+      // Each defaults to false (not left unset) when omitted — an agent who
+      // skips the checklist shows up as non-compliant, not "unknown".
+      sample.safetyIdVerified = dto.idVerified ?? false;
+      sample.safetyPpeUsed = dto.ppeUsed ?? false;
+      sample.safetyHygieneFollowed = dto.hygieneFollowed ?? false;
+      if (dto.barcode) sample.sampleBarcode = dto.barcode;
     }
 
     if (dto.status === SampleStatus.ROUTED_TO_PARTNER_LAB) {
@@ -151,7 +175,7 @@ export class SamplesService {
     // Only the two milestones a customer actually cares about — not every
     // intermediate transit/at-center step.
     if (dto.status === SampleStatus.COLLECTED || dto.status === SampleStatus.RESULT_READY) {
-      const booking = await this.bookingsService.findOne(saved.bookingId);
+      booking ??= await this.bookingsService.findOne(saved.bookingId);
       const type =
         dto.status === SampleStatus.COLLECTED
           ? NotificationType.SAMPLE_COLLECTED
@@ -170,6 +194,50 @@ export class SamplesService {
     const sample = await this.findOne(id);
     await this.bookingsService.findOneForUser(sample.bookingId, user);
     return this.historyRepo.find({ where: { sampleId: id }, order: { changedAt: 'ASC' } });
+  }
+
+  // Proof photos an agent captures in the field — a collection shot (the
+  // sample/label at pickup) or a drop-off shot (handoff at the center).
+  // STAFF/ADMIN only, same as updateStatus — the agent UI calls this right
+  // alongside the status transition it documents.
+  async uploadImage(
+    sampleId: string,
+    kind: SampleImageKind,
+    uploadedBy: string,
+    file: Express.Multer.File,
+  ): Promise<Omit<SampleImage, 'imageData' | 'sample'>> {
+    await this.findOne(sampleId); // 404s if the sample doesn't exist
+    const image = await this.imagesRepo.save(
+      this.imagesRepo.create({
+        sampleId,
+        kind,
+        imageData: file.buffer,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        uploadedBy,
+      }),
+    );
+    const { imageData: _imageData, ...rest } = image;
+    return rest;
+  }
+
+  async listImages(sampleId: string, user: AuthenticatedUser): Promise<Array<Omit<SampleImage, 'imageData' | 'sample'>>> {
+    const sample = await this.findOne(sampleId);
+    await this.bookingsService.findOneForUser(sample.bookingId, user); // ownership check
+    const images = await this.imagesRepo.find({
+      where: { sampleId },
+      select: ['id', 'sampleId', 'kind', 'mimeType', 'sizeBytes', 'uploadedBy', 'createdAt'],
+      order: { createdAt: 'ASC' },
+    });
+    return images;
+  }
+
+  async getImageForDownload(imageId: string, user: AuthenticatedUser): Promise<SampleImage> {
+    const image = await this.imagesRepo.findOne({ where: { id: imageId } });
+    if (!image) throw new NotFoundException('Image not found');
+    const sample = await this.findOne(image.sampleId);
+    await this.bookingsService.findOneForUser(sample.bookingId, user); // ownership check
+    return image;
   }
 
   // Turnaround time, target vs. actual, for every sample ever routed to one

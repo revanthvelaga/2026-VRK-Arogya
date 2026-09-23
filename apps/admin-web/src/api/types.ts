@@ -115,8 +115,41 @@ export interface StaffMember {
   phone?: string;
   email?: string;
   role: Role;
+  specialization?: string;
   isActive: boolean;
   createdAt: string;
+}
+
+export interface AgentCollectionRecord {
+  sampleId: string;
+  bookingId: string;
+  scheduledAt: string;
+  collectedAt: string;
+  onTime: boolean | null;
+  safetyIdVerified: boolean | null;
+  safetyPpeUsed: boolean | null;
+  safetyHygieneFollowed: boolean | null;
+}
+
+export interface AgentUpcomingBooking {
+  bookingId: string;
+  scheduledAt: string;
+  status: BookingStatus;
+  collectionMode: CollectionMode;
+  centerName?: string;
+}
+
+export interface AgentDetail {
+  agent: StaffMember;
+  performance: {
+    totalCollections: number;
+    onTimeCount: number;
+    onTimeRate: number;
+    safetyCompliantCount: number;
+    safetyComplianceRate: number;
+    recent: AgentCollectionRecord[];
+  };
+  upcoming: AgentUpcomingBooking[];
 }
 
 export interface Sample {
@@ -129,6 +162,23 @@ export interface Sample {
   routedToPartnerLabId?: string;
   expectedResultAt?: string;
   updatedAt: string;
+  onTimeCollection?: boolean;
+  safetyIdVerified?: boolean;
+  safetyPpeUsed?: boolean;
+  safetyHygieneFollowed?: boolean;
+  sampleBarcode?: string;
+}
+
+export type SampleImageKind = 'COLLECTION' | 'DROP_OFF';
+
+export interface SampleImage {
+  id: string;
+  sampleId: string;
+  kind: SampleImageKind;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  createdAt: string;
 }
 
 export interface SampleStatusHistoryEntry {

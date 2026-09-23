@@ -12,7 +12,7 @@ import {
   IconTruck,
 } from './Icons';
 
-const NAV_ITEMS = [
+const ADMIN_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: IconDashboard },
   { to: '/bookings', label: 'Bookings', icon: IconCalendar },
   { to: '/catalog', label: 'Catalog', icon: IconBox },
@@ -22,8 +22,20 @@ const NAV_ITEMS = [
   { to: '/issues', label: 'Issues', icon: IconMessage },
 ];
 
+// A field agent's own portal — deliberately just two links, not the whole
+// back-office console. Nothing here is a new permission (STAFF could
+// already reach /bookings before this existed); it's a narrower front
+// door so the job an agent actually does isn't buried in an admin nav
+// built for a completely different role.
+const AGENT_NAV_ITEMS = [
+  { to: '/', label: 'My Collections', end: true, icon: IconTruck },
+  { to: '/bookings', label: 'All Bookings', icon: IconCalendar },
+];
+
 export function Layout() {
   const { user, logout } = useAuth();
+  const isAgent = user?.role === 'STAFF';
+  const navItems = isAgent ? AGENT_NAV_ITEMS : ADMIN_NAV_ITEMS;
 
   return (
     <div className="app-shell">
@@ -34,10 +46,10 @@ export function Layout() {
           </div>
           <div className="sidebar-brand-text">
             Arogya
-            <span>Admin Console</span>
+            <span>{isAgent ? 'Agent Portal' : 'Admin Console'}</span>
           </div>
         </div>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

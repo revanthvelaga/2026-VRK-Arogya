@@ -34,6 +34,16 @@ export class BookingsController {
     return this.bookingsService.findAllForCustomer(user.userId, patientId);
   }
 
+  // An agent's own collection queue. Registered before ':id' for the same
+  // reason as the comment below — 'assigned' would otherwise be read as a
+  // booking id.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('assigned/mine')
+  findAssignedToMe(@CurrentUser() user: AuthenticatedUser) {
+    return this.bookingsService.findAllForAgent(user.userId);
+  }
+
   // Registered before ':id' so it isn't swallowed by that param route.
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)

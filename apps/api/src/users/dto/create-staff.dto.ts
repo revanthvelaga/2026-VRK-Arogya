@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, Matches, MinLength } from 'class-validator';
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { normalizeIndianPhone } from '../../common/utils/phone.util';
 
 export class CreateStaffDto {
@@ -12,4 +12,10 @@ export class CreateStaffDto {
 
   @MinLength(6)
   password: string;
+
+  // e.g. "Phlebotomy", "Home collection" — free text, see User.specialization.
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  specialization?: string;
 }

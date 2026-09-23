@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { StaffMember } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -14,6 +15,7 @@ function AddAgentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [specialization, setSpecialization] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +28,7 @@ function AddAgentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         fullName: fullName.trim(),
         phone: phone.replace(/\D/g, '').slice(-10),
         password,
+        specialization: specialization.trim() || undefined,
       });
       onSaved();
       onClose();
@@ -56,6 +59,15 @@ function AddAgentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
             />
           </div>
           <div className="field field-full">
+            <label>Specialization</label>
+            <input
+              value={specialization}
+              onChange={(e) => setSpecialization(e.target.value)}
+              placeholder="e.g. Phlebotomy, Home collection, Pediatric draw"
+            />
+            <span className="field-hint">What this agent is trained/certified for — shown on their profile.</span>
+          </div>
+          <div className="field field-full">
             <label>Password</label>
             <input
               type="password"
@@ -64,7 +76,7 @@ function AddAgentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <span className="field-hint">The agent signs in to the admin console with this phone and password.</span>
+            <span className="field-hint">The agent signs in with this phone and password.</span>
           </div>
         </div>
         <div className="modal-actions">
@@ -81,6 +93,7 @@ function AddAgentModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 }
 
 export function AgentsPage() {
+  const navigate = useNavigate();
   const { data: staff, loading, error, reload } = useApi<StaffMember[]>(() => api.get('/users/staff'), []);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -109,6 +122,7 @@ export function AgentsPage() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Specialization</th>
                 <th>Phone</th>
                 <th>Role</th>
                 <th>Status</th>
@@ -117,13 +131,14 @@ export function AgentsPage() {
             </thead>
             <tbody>
               {(staff ?? []).map((s) => (
-                <tr key={s.id}>
+                <tr key={s.id} className="row-link" onClick={() => navigate(`/agents/${s.id}`)}>
                   <td>
                     <span className="person-cell">
                       <span className="person-avatar">{s.fullName.charAt(0).toUpperCase()}</span>
                       <b>{s.fullName}</b>
                     </span>
                   </td>
+                  <td>{s.specialization ?? '—'}</td>
                   <td>{s.phone ?? '—'}</td>
                   <td>{s.role}</td>
                   <td>
@@ -134,7 +149,7 @@ export function AgentsPage() {
               ))}
               {(staff ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <EmptyState
                       icon={<IconTruck size={20} />}
                       title="No agents yet"
