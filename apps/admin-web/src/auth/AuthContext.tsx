@@ -11,7 +11,7 @@ export interface CurrentUser {
 
 interface AuthContextValue {
   user: CurrentUser | null;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (phone: string, password: string, expectedRole?: 'ADMIN' | 'STAFF') => Promise<void>;
   logout: () => void;
 }
 
@@ -31,13 +31,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => setUser(null));
   }, []);
 
-  const login = async (phone: string, password: string) => {
+  const login = async (phone: string, password: string, expectedRole?: 'ADMIN' | 'STAFF') => {
     const session = await api.post<AuthSession>('/auth/login', { phone, password });
     const nextUser = sessionToUser(session);
     // The API issues a token for any valid login — CUSTOMER accounts
     // included. This console is staff/admin-only, so gate it here too.
     if (!nextUser || (nextUser.role !== 'ADMIN' && nextUser.role !== 'STAFF')) {
       throw new Error("This account doesn't have admin dashboard access.");
+    }
+    // The login page's Admin/Agent tab is a real check, not just a label —
+    // picking the wrong one refuses the session rather than silently
+    // logging someone into a portal built for the other role.
+    if (expectedRole && nextUser.role !== expectedRole) {
+      throw new Error(
+        expectedRole === 'ADMIN'
+          ? 'This is an agent account — use the Agent Login tab instead.'
+          : 'This is an admin account — use the Admin Login tab instead.',
+      );
     }
     setSession(session);
     setUser(nextUser);

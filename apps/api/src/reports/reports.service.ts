@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,9 +6,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Report } from './entities/report.entity';
 import { ReportValue } from './entities/report-value.entity';
 import { AddReportValuesDto } from './dto/add-report-values.dto';
+import { Booking } from '../bookings/entities/booking.entity';
 import { BookingsService } from '../bookings/bookings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
+import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { TestsService } from '../catalog/tests.service';
 
@@ -88,8 +90,20 @@ export class ReportsService {
     return this.toPublic(report);
   }
 
+  // Reports carry clinical results — unlike sample-collection duties, a
+  // field agent (STAFF) has no legitimate reason to read them. Only the
+  // booking's own customer or an ADMIN can view report metadata, values,
+  // or bytes. STAFF keeps upload/addValues access elsewhere (that's a
+  // back-office action, not a field-agent one) — this only locks down
+  // the read side, on purpose.
+  private async assertCanViewReports(bookingId: string, user: AuthenticatedUser): Promise<Booking> {
+    const booking = await this.bookingsService.findOne(bookingId); // 404s if the booking doesn't exist
+    if (user.role === Role.ADMIN || booking.customerId === user.userId) return booking;
+    throw new ForbiddenException('Not authorized to view reports for this booking');
+  }
+
   async findForBooking(bookingId: string, user: AuthenticatedUser): Promise<PublicReport[]> {
-    await this.bookingsService.findOneForUser(bookingId, user); // ownership check — owner or ADMIN/STAFF
+    await this.assertCanViewReports(bookingId, user);
     const reports = await this.reportsRepo.find({
       where: { bookingId },
       select: METADATA_COLUMNS,
@@ -101,7 +115,7 @@ export class ReportsService {
   async getForDownload(id: string, user: AuthenticatedUser): Promise<Report & { fileData: Buffer }> {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');
-    await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
+    await this.assertCanViewReports(report.bookingId, user);
     // A row created before the switch to bytea storage has no bytes to
     // serve — ask staff to re-upload rather than send an empty file.
     if (!report.fileData) {
@@ -316,7 +330,7 @@ export class ReportsService {
   async findValues(id: string, user: AuthenticatedUser): Promise<ReportValueWithTrend[]> {
     const report = await this.reportsRepo.findOne({ where: { id } });
     if (!report) throw new NotFoundException('Report not found');
-    const booking = await this.bookingsService.findOneForUser(report.bookingId, user); // ownership check
+    const booking = await this.assertCanViewReports(report.bookingId, user);
 
     const values = await this.reportValuesRepo.find({ where: { reportId: id }, order: { createdAt: 'ASC' } });
 

@@ -7,12 +7,14 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AgentHomePage } from './pages/AgentHomePage';
 import { BookingsPage } from './pages/BookingsPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
+import { AgentBookingPage } from './pages/AgentBookingPage';
 import { CatalogPage } from './pages/CatalogPage';
 import { CentersPage } from './pages/CentersPage';
 import { PartnerLabsPage } from './pages/PartnerLabsPage';
 import { IssuesPage } from './pages/IssuesPage';
 import { AgentsPage } from './pages/AgentsPage';
 import { AgentDetailPage } from './pages/AgentDetailPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 // STAFF (a field agent) lands on their own queue; ADMIN gets the full
 // console dashboard. Same route, different home, decided by who's
@@ -20,6 +22,15 @@ import { AgentDetailPage } from './pages/AgentDetailPage';
 function HomeRoute() {
   const { user } = useAuth();
   return user?.role === 'STAFF' ? <AgentHomePage /> : <DashboardPage />;
+}
+
+// A STAFF login always gets the lean, job-scoped view of a booking — call
+// the patient, see where to go, update sample status/checklist/barcode/
+// photos. No pricing, reports, issues, or booking-status editor; ADMIN
+// still gets the full console page.
+function BookingDetailRoute() {
+  const { user } = useAuth();
+  return user?.role === 'STAFF' ? <AgentBookingPage /> : <BookingDetailPage />;
 }
 
 export function App() {
@@ -32,13 +43,14 @@ export function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<HomeRoute />} />
               <Route path="/bookings" element={<BookingsPage />} />
-              <Route path="/bookings/:id" element={<BookingDetailPage />} />
+              <Route path="/bookings/:id" element={<BookingDetailRoute />} />
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/centers" element={<CentersPage />} />
               <Route path="/partner-labs" element={<PartnerLabsPage />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/agents/:id" element={<AgentDetailPage />} />
               <Route path="/issues" element={<IssuesPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
         </Routes>

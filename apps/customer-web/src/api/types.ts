@@ -14,6 +14,24 @@ export interface JwtPayload {
   exp: number;
 }
 
+export interface ProfileResponse {
+  id: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: Role;
+  dateOfBirth?: string;
+  gender?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  isActive: boolean;
+  createdAt: string;
+  completionPercent: number;
+  missingFields: string[];
+}
+
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 export type CollectionMode = 'WALK_IN' | 'PICKUP_POINT' | 'HOME_VISIT';
 export type Relationship = 'SELF' | 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';

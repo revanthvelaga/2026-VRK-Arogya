@@ -13,6 +13,7 @@ import { BookingPage } from './pages/BookingPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
 import { InsightsPage } from './pages/InsightsPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 export function App() {
   return (
@@ -33,6 +34,7 @@ export function App() {
                 <Route path="/bookings" element={<MyBookingsPage />} />
                 <Route path="/bookings/:id" element={<BookingDetailPage />} />
                 <Route path="/insights" element={<InsightsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
               </Route>
             </Route>
           </Routes>

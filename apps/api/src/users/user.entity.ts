@@ -42,6 +42,49 @@ export class User {
   @Column({ length: 150, nullable: true })
   specialization?: string;
 
+  // Common profile fields — every role (customer, staff, admin) can fill
+  // these in on their own "My Profile" page. All nullable: existing rows
+  // predate this, and nothing here is required to sign in or place/take a
+  // booking; only ProfileService's completion-percentage calc treats an
+  // empty one as "missing".
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  dateOfBirth?: string;
+
+  @Column({ length: 20, nullable: true })
+  gender?: string;
+
+  @Column({ name: 'address_line', type: 'text', nullable: true })
+  addressLine?: string;
+
+  @Column({ length: 100, nullable: true })
+  city?: string;
+
+  @Column({ length: 100, nullable: true })
+  state?: string;
+
+  @Column({ length: 10, nullable: true })
+  pincode?: string;
+
+  // Agent-only (STAFF) — the academic side of their profile. A customer
+  // or admin profile never sets these; ProfileService's completion calc
+  // only counts them against a STAFF account.
+  @Column({ length: 150, nullable: true })
+  qualification?: string;
+
+  @Column({ length: 150, nullable: true })
+  institution?: string;
+
+  @Column({ name: 'graduation_year', type: 'int', nullable: true })
+  graduationYear?: number;
+
+  // Admin-set, never self-reported — an agent's own profile update can
+  // never touch this column (see UsersService.updateProfile, which only
+  // ever writes the fields UpdateProfileDto exposes). Only
+  // UsersService.updateStaffAccount, the admin-only staff-edit path, can
+  // set it.
+  @Column({ name: 'monthly_salary', type: 'numeric', precision: 10, scale: 2, nullable: true })
+  monthlySalary?: number;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

@@ -1,9 +1,15 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './user.entity';
+import { AgentCertificate } from './entities/agent-certificate.entity';
+import { AgentLeave } from './entities/agent-leave.entity';
 import { Role } from '../common/enums/role.enum';
+import { LeaveStatus } from '../common/enums/leave-status.enum';
+import { AuthenticatedUser } from '../common/types/authenticated-user';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RequestLeaveDto } from './dto/request-leave.dto';
 
 // Never the password hash — this is what a staff roster listing or a
 // just-created account is allowed to hand back over HTTP.
@@ -15,6 +21,56 @@ export interface StaffSummary {
   role: Role;
   specialization?: string;
   isActive: boolean;
+  createdAt: Date;
+}
+
+// The common fields every role can edit on their own profile — dob,
+// gender, address — plus the agent-only academic fields, which only ever
+// count toward a STAFF account's completion percentage.
+const COMMON_PROFILE_FIELDS = ['fullName', 'phone', 'email', 'dateOfBirth', 'gender', 'addressLine', 'city', 'state', 'pincode'] as const;
+const AGENT_PROFILE_FIELDS = ['qualification', 'institution', 'graduationYear'] as const;
+
+export interface CertificateSummary {
+  id: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: Date;
+}
+
+export interface ProfileResponse {
+  id: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: Role;
+  specialization?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  qualification?: string;
+  institution?: string;
+  graduationYear?: number;
+  isActive: boolean;
+  createdAt: Date;
+  // Only meaningful (and only computed) for STAFF — a customer/admin
+  // profile is never "incomplete" in a way that blocks anything.
+  completionPercent: number;
+  missingFields: string[];
+  certificateCount: number;
+}
+
+export interface LeaveRecord {
+  id: string;
+  startDate: string;
+  endDate: string;
+  leaveType: string;
+  reason?: string;
+  status: LeaveStatus;
   createdAt: Date;
 }
 
@@ -39,6 +95,10 @@ export interface AgentUpcomingBooking {
 
 export interface AgentDetail {
   agent: StaffSummary;
+  profile: ProfileResponse;
+  monthlySalary?: number;
+  certificates: CertificateSummary[];
+  leaves: LeaveRecord[];
   performance: {
     totalCollections: number;
     onTimeCount: number;
@@ -63,11 +123,88 @@ function toStaffSummary(user: User): StaffSummary {
   };
 }
 
+function toCertificateSummary(cert: AgentCertificate): CertificateSummary {
+  return {
+    id: cert.id,
+    title: cert.title,
+    fileName: cert.fileName,
+    mimeType: cert.mimeType,
+    sizeBytes: cert.sizeBytes,
+    createdAt: cert.createdAt,
+  };
+}
+
+function toLeaveRecord(leave: AgentLeave): LeaveRecord {
+  return {
+    id: leave.id,
+    startDate: leave.startDate,
+    endDate: leave.endDate,
+    leaveType: leave.leaveType,
+    reason: leave.reason,
+    status: leave.status,
+    createdAt: leave.createdAt,
+  };
+}
+
+// Every common field, plus the academic ones for a STAFF account, plus
+// (for STAFF) "has at least one certificate uploaded" as its own check.
+// Missing = falsy/empty — an empty string counts as not filled in, not
+// just null/undefined, since that's what a cleared form field leaves.
+function computeCompletion(user: User, certificateCount: number): { percent: number; missing: string[] } {
+  const fields: readonly string[] =
+    user.role === Role.STAFF ? [...COMMON_PROFILE_FIELDS, ...AGENT_PROFILE_FIELDS] : COMMON_PROFILE_FIELDS;
+  const missing: string[] = [];
+  let filled = 0;
+  for (const field of fields) {
+    const value = (user as unknown as Record<string, unknown>)[field];
+    if (value !== null && value !== undefined && value !== '') filled += 1;
+    else missing.push(field);
+  }
+  let totalChecks = fields.length;
+  if (user.role === Role.STAFF) {
+    totalChecks += 1;
+    if (certificateCount > 0) filled += 1;
+    else missing.push('certificate');
+  }
+  const percent = totalChecks ? Math.round((filled / totalChecks) * 100) : 100;
+  return { percent, missing };
+}
+
+function toProfileResponse(user: User, certificateCount: number): ProfileResponse {
+  const { percent, missing } = computeCompletion(user, certificateCount);
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    role: user.role,
+    specialization: user.specialization,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
+    addressLine: user.addressLine,
+    city: user.city,
+    state: user.state,
+    pincode: user.pincode,
+    qualification: user.qualification,
+    institution: user.institution,
+    graduationYear: user.graduationYear,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    completionPercent: percent,
+    missingFields: missing,
+    certificateCount,
+  };
+}
+
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    @InjectRepository(AgentCertificate)
+    private readonly certificatesRepo: Repository<AgentCertificate>,
+    @InjectRepository(AgentLeave)
+    private readonly leavesRepo: Repository<AgentLeave>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -135,6 +272,132 @@ export class UsersService {
     return bcrypt.compare(password, user.passwordHash);
   }
 
+  // ---------------------------------------------------------------------
+  // Self-service profile — any authenticated role, their own account only.
+  // ---------------------------------------------------------------------
+
+  async getProfile(userId: string): Promise<ProfileResponse> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('Account not found');
+    const certificateCount = await this.certificatesRepo.count({ where: { userId } });
+    return toProfileResponse(user, certificateCount);
+  }
+
+  // Deliberately narrow: only the fields UpdateProfileDto exposes ever get
+  // written here — salary, role, isActive, phone and password all stay
+  // untouched no matter what a client sends, since none of those belong
+  // to "editing your own profile".
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<ProfileResponse> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('Account not found');
+    if (dto.email !== undefined && dto.email !== user.email) {
+      const existing = await this.findByEmail(dto.email);
+      if (existing && existing.id !== userId) {
+        throw new ConflictException('Email address already in use');
+      }
+      user.email = dto.email;
+    }
+    if (dto.fullName !== undefined) user.fullName = dto.fullName;
+    if (dto.dateOfBirth !== undefined) user.dateOfBirth = dto.dateOfBirth;
+    if (dto.gender !== undefined) user.gender = dto.gender;
+    if (dto.addressLine !== undefined) user.addressLine = dto.addressLine;
+    if (dto.city !== undefined) user.city = dto.city;
+    if (dto.state !== undefined) user.state = dto.state;
+    if (dto.pincode !== undefined) user.pincode = dto.pincode;
+    // Academic fields are real columns on every role's row, but only a
+    // STAFF account's completion percentage ever looks at them — a
+    // customer setting them is harmless, just never counted.
+    if (dto.qualification !== undefined) user.qualification = dto.qualification;
+    if (dto.institution !== undefined) user.institution = dto.institution;
+    if (dto.graduationYear !== undefined) user.graduationYear = dto.graduationYear;
+    const saved = await this.usersRepo.save(user);
+    const certificateCount = await this.certificatesRepo.count({ where: { userId } });
+    return toProfileResponse(saved, certificateCount);
+  }
+
+  // Certificates are an agent (STAFF) concept — checked here, not just by
+  // hiding the button client-side, since this is the actual write path.
+  async uploadCertificate(
+    userId: string,
+    role: string,
+    title: string,
+    file: Express.Multer.File,
+  ): Promise<CertificateSummary> {
+    if (role !== Role.STAFF) {
+      throw new ForbiddenException('Only agent accounts upload certificates');
+    }
+    const cert = await this.certificatesRepo.save(
+      this.certificatesRepo.create({
+        userId,
+        title,
+        fileData: file.buffer,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+      }),
+    );
+    return toCertificateSummary(cert);
+  }
+
+  async listCertificates(userId: string): Promise<CertificateSummary[]> {
+    const certs = await this.certificatesRepo.find({ where: { userId }, order: { createdAt: 'DESC' } });
+    return certs.map(toCertificateSummary);
+  }
+
+  // The certificate's own owner, or an ADMIN doing oversight — never
+  // another agent, never a customer.
+  async getCertificateForDownload(id: string, user: AuthenticatedUser): Promise<AgentCertificate> {
+    const cert = await this.certificatesRepo.findOne({ where: { id } });
+    if (!cert) throw new NotFoundException('Certificate not found');
+    if (cert.userId !== user.userId && user.role !== Role.ADMIN) {
+      throw new ForbiddenException('Not authorized to view this certificate');
+    }
+    return cert;
+  }
+
+  // ---------------------------------------------------------------------
+  // Leave requests — an agent raises one from their own portal; an admin
+  // approves/rejects from the staff roster.
+  // ---------------------------------------------------------------------
+
+  async requestLeave(userId: string, role: string, dto: RequestLeaveDto): Promise<LeaveRecord> {
+    if (role !== Role.STAFF) {
+      throw new ForbiddenException('Only agent accounts request leave');
+    }
+    if (new Date(dto.endDate) < new Date(dto.startDate)) {
+      throw new BadRequestException('endDate cannot be before startDate');
+    }
+    const leave = await this.leavesRepo.save(
+      this.leavesRepo.create({
+        userId,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        leaveType: dto.leaveType,
+        reason: dto.reason,
+        status: LeaveStatus.PENDING,
+      }),
+    );
+    return toLeaveRecord(leave);
+  }
+
+  async listOwnLeaves(userId: string): Promise<LeaveRecord[]> {
+    const leaves = await this.leavesRepo.find({ where: { userId }, order: { startDate: 'DESC' } });
+    return leaves.map(toLeaveRecord);
+  }
+
+  async reviewLeave(leaveId: string, reviewerId: string, status: LeaveStatus.APPROVED | LeaveStatus.REJECTED): Promise<LeaveRecord> {
+    const leave = await this.leavesRepo.findOne({ where: { id: leaveId } });
+    if (!leave) throw new NotFoundException('Leave request not found');
+    leave.status = status;
+    leave.reviewedBy = reviewerId;
+    const saved = await this.leavesRepo.save(leave);
+    return toLeaveRecord(saved);
+  }
+
+  // ---------------------------------------------------------------------
+  // Admin-only staff roster management.
+  // ---------------------------------------------------------------------
+
   // The field agents (and back-office admins) a booking can be assigned
   // to. Anyone who can log in as staff/admin is a valid assignment target —
   // there's no separate "agent" role, STAFF already means exactly this.
@@ -167,30 +430,35 @@ export class UsersService {
     return user;
   }
 
-  // Editing an existing agent's profile — currently just name/specialization
-  // and whether they're still active. Never touches phone or password here;
-  // that's still whatever the agent (or an admin resetting it) sets at login.
+  // Editing an existing agent's profile from the admin side — name,
+  // specialization, active status, and salary (never self-reported by the
+  // agent — see updateProfile above, which never touches monthlySalary).
   async updateStaffAccount(
     id: string,
-    params: { fullName?: string; specialization?: string; isActive?: boolean },
+    params: { fullName?: string; specialization?: string; isActive?: boolean; monthlySalary?: number },
   ): Promise<StaffSummary> {
     const user = await this.findStaffOrAdmin(id);
     if (params.fullName !== undefined) user.fullName = params.fullName;
     if (params.specialization !== undefined) user.specialization = params.specialization || undefined;
     if (params.isActive !== undefined) user.isActive = params.isActive;
+    if (params.monthlySalary !== undefined) user.monthlySalary = params.monthlySalary;
     const saved = await this.usersRepo.save(user);
     return toStaffSummary(saved);
   }
 
-  // One agent's full picture for the admin console: who they are, how
-  // they've performed on every collection actually attributed to them
+  // One agent's full picture for the admin console: who they are (profile,
+  // address, academic details, certificates, salary), how they've
+  // performed on every collection actually attributed to them
   // (booking.assigned_agent_id, not just whoever happened to tap "mark
-  // collected" — see BookingsService.assignAgent), and what's still ahead
-  // of them. Two bulk queries via raw SQL, same pattern as
-  // BookingsService.attachLogistics, rather than pulling every sample/
+  // collected" — see BookingsService.assignAgent), their leave record, and
+  // what's still ahead of them. Two bulk queries via raw SQL, same pattern
+  // as BookingsService.attachLogistics, rather than pulling every sample/
   // booking row into memory to filter in JS.
   async getAgentDetail(id: string): Promise<AgentDetail> {
     const agent = await this.findStaffOrAdmin(id);
+    const certificateCount = await this.certificatesRepo.count({ where: { userId: id } });
+    const certificates = await this.certificatesRepo.find({ where: { userId: id }, order: { createdAt: 'DESC' } });
+    const leaves = await this.leavesRepo.find({ where: { userId: id }, order: { startDate: 'DESC' } });
 
     const collectedRows = (await this.dataSource.query(
       `SELECT s.id AS sample_id, s.booking_id, b.scheduled_at, s.collected_at,
@@ -235,6 +503,10 @@ export class UsersService {
 
     return {
       agent: toStaffSummary(agent),
+      profile: toProfileResponse(agent, certificateCount),
+      monthlySalary: agent.monthlySalary,
+      certificates: certificates.map(toCertificateSummary),
+      leaves: leaves.map(toLeaveRecord),
       performance: {
         totalCollections: total,
         onTimeCount,

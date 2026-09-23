@@ -19,13 +19,23 @@ export function SampleCollectionCard({
   bookingItem,
   partnerLabs,
   onUpdated,
+  allowedNextStatuses,
+  endOfJobMessage,
 }: {
   sample: Sample;
   bookingItem?: BookingItem;
   partnerLabs: PartnerLab[];
   onUpdated: () => void;
+  // The agent view passes a narrower set (through AT_CENTER only) — lab
+  // routing/processing is a back-office decision, not a field agent's.
+  // Omitted, every valid next status is offered (the admin view).
+  allowedNextStatuses?: SampleStatus[];
+  // Shown instead of "Delivered — end of the line." when nextOptions is
+  // empty for a reason other than the sample actually being DELIVERED
+  // (i.e. the agent-allowed set ran out at AT_CENTER).
+  endOfJobMessage?: string;
 }) {
-  const nextOptions = SAMPLE_TRANSITIONS[sample.status];
+  const nextOptions = allowedNextStatuses ?? SAMPLE_TRANSITIONS[sample.status];
   const [nextStatus, setNextStatus] = useState<SampleStatus | ''>('');
   const [partnerLabId, setPartnerLabId] = useState('');
   const [turnaround, setTurnaround] = useState('');
@@ -264,7 +274,7 @@ export function SampleCollectionCard({
         </form>
       ) : (
         <p className="page-sub" style={{ marginTop: 12, marginBottom: 0 }}>
-          Delivered — end of the line.
+          {sample.status === 'DELIVERED' ? 'Delivered — end of the line.' : endOfJobMessage ?? 'Delivered — end of the line.'}
         </p>
       )}
 

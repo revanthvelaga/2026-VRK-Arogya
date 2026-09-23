@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, Min, MaxLength } from 'class-validator';
 
 export class UpdateStaffDto {
   @IsOptional()
@@ -15,4 +15,11 @@ export class UpdateStaffDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  // Admin-only — never exposed on UpdateProfileDto, which an agent uses to
+  // edit their own profile.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  monthlySalary?: number;
 }

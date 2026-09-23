@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
-import { IconActivity, IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus } from './Icons';
+import { IconActivity, IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus, IconUser } from './Icons';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
@@ -50,6 +50,13 @@ export function TopNav() {
               >
                 <IconActivity size={16} />
                 Insights
+              </NavLink>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              >
+                <IconUser size={16} />
+                Profile
               </NavLink>
             </>
           )}

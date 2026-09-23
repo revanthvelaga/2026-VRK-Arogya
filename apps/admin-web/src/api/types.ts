@@ -139,8 +139,56 @@ export interface AgentUpcomingBooking {
   centerName?: string;
 }
 
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface LeaveRecord {
+  id: string;
+  startDate: string;
+  endDate: string;
+  leaveType: string;
+  reason?: string;
+  status: LeaveStatus;
+  createdAt: string;
+}
+
+export interface CertificateSummary {
+  id: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface ProfileResponse {
+  id: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: Role;
+  specialization?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  qualification?: string;
+  institution?: string;
+  graduationYear?: number;
+  isActive: boolean;
+  createdAt: string;
+  completionPercent: number;
+  missingFields: string[];
+  certificateCount: number;
+}
+
 export interface AgentDetail {
   agent: StaffMember;
+  profile: ProfileResponse;
+  monthlySalary?: string | number;
+  certificates: CertificateSummary[];
+  leaves: LeaveRecord[];
   performance: {
     totalCollections: number;
     onTimeCount: number;
