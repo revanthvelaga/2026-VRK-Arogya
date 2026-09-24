@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { TopNav } from './TopNav';
 import { Footer } from './Footer';
 import { CartBar } from './CartBar';
+import { BottomTabBar } from './BottomTabBar';
 
 export function Layout() {
   return (
@@ -12,6 +13,7 @@ export function Layout() {
       </main>
       <Footer />
       <CartBar />
+      <BottomTabBar />
     </div>
   );
 }

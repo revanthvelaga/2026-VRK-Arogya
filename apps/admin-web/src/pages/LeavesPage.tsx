@@ -43,6 +43,7 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
   }, [holidaysData]);
 
   const approved = leaves.filter((l) => l.status === 'APPROVED');
+  const todayStr = toDateOnly(new Date());
 
   const cells: Array<{ day: number; dateStr: string; onLeave: AgentLeaveRecord[]; holiday?: Holiday } | null> = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -56,37 +57,55 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
     });
   }
 
+  // The month as a list — on a phone the grid only has room for dots, so
+  // this is where the names actually get read.
+  const agenda = cells
+    .filter((c): c is NonNullable<typeof c> => c != null && (c.holiday != null || c.onLeave.length > 0))
+    .map((c) => ({
+      ...c,
+      label: new Date(year, month, c.day).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    }));
+
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 10,
+          marginBottom: 6,
+        }}
+      >
         <div className="card-title" style={{ marginBottom: 0 }}>
           {monthLabel}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn btn-small" onClick={() => setMonthOffset((m) => m - 1)}>
-            ← Prev
+          <button className="btn btn-small" onClick={() => setMonthOffset((m) => m - 1)} aria-label="Previous month">
+            ←
           </button>
           <button className="btn btn-small" onClick={() => setMonthOffset(0)} disabled={monthOffset === 0}>
             Today
           </button>
-          <button className="btn btn-small" onClick={() => setMonthOffset((m) => m + 1)}>
-            Next →
+          <button className="btn btn-small" onClick={() => setMonthOffset((m) => m + 1)} aria-label="Next month">
+            →
           </button>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)', display: 'inline-block' }} />
+          <span className="cal-dot" style={{ background: 'var(--gold)', display: 'inline-block' }} />
           India public holiday
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--amber)', display: 'inline-block' }} />
+          <span className="cal-dot" style={{ background: 'var(--amber)', display: 'inline-block' }} />
           Agent on leave
         </span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+      <div className="cal-grid">
         {WEEKDAYS.map((w) => (
-          <div key={w} style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-faint)', textAlign: 'center', padding: '4px 0' }}>
+          <div key={w} className="cal-weekday">
             {w}
           </div>
         ))}
@@ -95,49 +114,27 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
             <div
               key={cell.dateStr}
               title={[cell.holiday?.name, ...cell.onLeave.map((l) => l.agentName)].filter(Boolean).join(' · ')}
-              style={{
-                minHeight: 64,
-                borderRadius: 8,
-                border: cell.holiday ? '1px solid var(--gold)' : '1px solid var(--line)',
-                background: cell.holiday ? 'var(--gold-soft)' : cell.onLeave.length > 0 ? 'var(--amber-soft)' : 'var(--surface)',
-                padding: '6px 6px',
-                fontSize: 11,
-              }}
+              className={[
+                'cal-cell',
+                cell.holiday ? 'is-holiday' : cell.onLeave.length > 0 ? 'is-leave' : '',
+                cell.dateStr === todayStr ? 'is-today' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
-              <div style={{ fontWeight: 700, color: 'var(--ink-soft)' }}>{cell.day}</div>
-              {cell.holiday && (
-                <div
-                  style={{
-                    marginTop: 2,
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: 'var(--gold)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {cell.holiday.name}
-                </div>
-              )}
+              <div className="cal-day">{cell.day}</div>
+              {cell.holiday && <div className="cal-tag holiday">{cell.holiday.name}</div>}
               {cell.onLeave.slice(0, 2).map((l) => (
-                <div
-                  key={l.id}
-                  style={{
-                    marginTop: 2,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--amber)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
+                <div key={l.id} className="cal-tag leave">
                   {l.agentName}
                 </div>
               ))}
-              {cell.onLeave.length > 2 && (
-                <div style={{ fontSize: 10, color: 'var(--ink-faint)' }}>+{cell.onLeave.length - 2} more</div>
+              {cell.onLeave.length > 2 && <div className="cal-tag">+{cell.onLeave.length - 2} more</div>}
+              {(cell.holiday || cell.onLeave.length > 0) && (
+                <div className="cal-dots">
+                  {cell.holiday && <span className="cal-dot" style={{ background: 'var(--gold)' }} />}
+                  {cell.onLeave.length > 0 && <span className="cal-dot" style={{ background: 'var(--amber)' }} />}
+                </div>
               )}
             </div>
           ) : (
@@ -145,6 +142,29 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
           ),
         )}
       </div>
+
+      {agenda.length > 0 && (
+        <div className="cal-agenda">
+          {agenda.map((a) => (
+            <div key={a.dateStr} className="cal-agenda-row">
+              <span className="cal-agenda-date">{a.label}</span>
+              <span
+                className="cal-agenda-bar"
+                style={{ background: a.holiday ? 'var(--gold)' : 'var(--amber)' }}
+              />
+              <span style={{ minWidth: 0 }}>
+                {a.holiday && <b style={{ color: 'var(--gold)' }}>{a.holiday.name}</b>}
+                {a.holiday && a.onLeave.length > 0 && ' · '}
+                {a.onLeave.length > 0 && (
+                  <span style={{ color: 'var(--ink-soft)' }}>
+                    {a.onLeave.map((l) => l.agentName).join(', ')} on leave
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

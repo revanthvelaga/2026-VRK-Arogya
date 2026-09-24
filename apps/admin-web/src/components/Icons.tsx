@@ -223,6 +223,21 @@ export const IconShieldCheck = icon(
   </>,
 );
 
+export const IconMenu = icon(
+  <>
+    <line x1="4" y1="7" x2="20" y2="7" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="17" x2="20" y2="17" />
+  </>,
+);
+
+export const IconX = icon(
+  <>
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+  </>,
+);
+
 export const IconWallet = icon(
   <>
     <path d="M3 7.5A2.5 2.5 0 015.5 5h11A2.5 2.5 0 0119 7.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 013 16.5v-9z" />

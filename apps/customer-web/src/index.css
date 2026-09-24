@@ -185,6 +185,7 @@ code {
   text-decoration: none;
   font-weight: 600;
   font-size: 13.5px;
+  white-space: nowrap;
   border: 1px solid transparent;
   transition:
     background 0.15s ease,
@@ -372,6 +373,10 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* Plenty of these are <Link>s styled as buttons — without this they
+     pick up the browser's default link underline. */
+  text-decoration: none;
+  white-space: nowrap;
   transition:
     transform 0.15s ease,
     background 0.15s ease,
@@ -1835,9 +1840,197 @@ tbody tr:hover {
   }
 }
 
+/* ---------- Phone layer: bottom tab bar + card layouts ---------- */
+.bottom-tabbar {
+  display: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.booking-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.booking-card {
+  display: block;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.booking-card:active {
+  transform: scale(0.99);
+}
+
+.booking-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.booking-card-name {
+  font-weight: 800;
+  font-size: 15px;
+  font-family: 'Sora', sans-serif;
+}
+
+.booking-card-meta {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.booking-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.booking-card-foot b {
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+}
+
+.booking-card-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Used together with .segment-photo (which sets the 68px circle) when a
+   category photo fails to load — a branded initial instead of the
+   browser's broken-image icon. */
+.segment-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+}
+
 @media (max-width: 720px) {
+  /* Header collapses to one tidy row: brand on the left, cart/account on
+     the right. Primary navigation moves to the bottom tab bar. */
+  .site-header-inner {
+    flex-wrap: nowrap;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+  .site-nav {
+    display: none;
+  }
+  .site-header-actions {
+    margin-left: auto;
+    gap: 8px;
+  }
+  .site-brand-text {
+    font-size: 18px;
+  }
+
+  .bottom-tabbar {
+    display: grid;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -10px 30px -22px rgba(16, 24, 44, 0.45);
+  }
+  .bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 2px 4px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink-faint);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease;
+  }
+  .bottom-tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 28px;
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+  .bottom-tab.active {
+    color: var(--accent-ink);
+  }
+  .bottom-tab.active .bottom-tab-icon {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* Room for the fixed tab bar, so the footer and last card aren't hidden
+     under it; the cart bar docks just above it instead of behind it. */
+  .site-shell {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  .cart-bar {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  .cart-bar-inner {
+    padding: 12px 16px;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+  .desktop-only {
+    display: none;
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+  }
+
+  /* Short label/value pairs (booking details) read better two-up than
+     as one long single column. */
+  .form-grid.detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .site-main {
-    padding: 24px 16px 48px;
+    padding: 20px 16px 32px;
   }
   .form-grid {
     grid-template-columns: 1fr;

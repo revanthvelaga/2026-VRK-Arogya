@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Package, Test } from '../api/types';
@@ -119,6 +119,21 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
   );
 }
 
+// Remote category photo with a branded fallback — if the image CDN is slow
+// or blocked on someone's network, they see a clean initial, not the
+// browser's broken-image icon with the alt text spilling out of it.
+function SegmentPhoto({ src, label }: { src: string; label: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className="segment-photo segment-fallback" aria-hidden="true">
+        {label.charAt(0)}
+      </span>
+    );
+  }
+  return <img className="segment-photo" src={src} alt={label} loading="lazy" onError={() => setFailed(true)} />;
+}
+
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -162,7 +177,7 @@ export function HomePage() {
       <div className="segment-row">
         {SEGMENTS.map((s) => (
           <Link className="segment-tile" to={`/catalog?audience=${s.audience}`} key={s.audience}>
-            <img className="segment-photo" src={s.photo} alt={s.label} loading="lazy" />
+            <SegmentPhoto src={s.photo} label={s.label} />
             <span>{s.label}</span>
           </Link>
         ))}

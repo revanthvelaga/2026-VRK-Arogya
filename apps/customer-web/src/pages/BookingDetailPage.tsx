@@ -199,14 +199,21 @@ function PaymentButton({ booking, onPaid }: { booking: Booking; onPaid: () => vo
     }
   };
 
+  // Rendered inside the parent's .action-row, next to Cancel — the error
+  // banner takes a full row of its own there (width: 100% in a wrapping
+  // flex row) rather than squeezing beside the buttons.
   return (
-    <div style={{ marginTop: 12 }}>
-      {payError && <div className="error-banner">{payError}</div>}
-      <button className="btn btn-primary btn-small" onClick={pay} disabled={paying}>
-        <IconCreditCard size={13} />
+    <>
+      {payError && (
+        <div className="error-banner" style={{ width: '100%' }}>
+          {payError}
+        </div>
+      )}
+      <button className="btn btn-primary" onClick={pay} disabled={paying}>
+        <IconCreditCard size={14} />
         {paying ? 'Opening payment…' : `Pay ${formatCurrency(booking.totalAmount)}`}
       </button>
-    </div>
+    </>
   );
 }
 
@@ -421,7 +428,7 @@ export function BookingDetailPage() {
 
       <div className="card">
         <div className="card-title">Details</div>
-        <div className="form-grid" style={{ fontSize: 13.5 }}>
+        <div className="form-grid detail-grid" style={{ fontSize: 13.5 }}>
           <div className="field">
             <label>Scheduled</label>
             {formatDateTime(booking.scheduledAt)}
@@ -448,16 +455,24 @@ export function BookingDetailPage() {
           </div>
           <div className="field">
             <label>Payment</label>
-            <StatusBadge status={booking.paymentStatus} variant={paymentStatusVariant(booking.paymentStatus)} />
+            {/* Wrapped so the pill keeps its natural width instead of
+                stretching across the whole column. */}
+            <div>
+              <StatusBadge status={booking.paymentStatus} variant={paymentStatusVariant(booking.paymentStatus)} />
+            </div>
           </div>
         </div>
-        {booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED' && (
-          <PaymentButton booking={booking} onPaid={() => bookingApi.reload()} />
-        )}
-        {canCancel && (
-          <button className="btn btn-danger btn-small" onClick={cancel} disabled={cancelling}>
-            {cancelling ? 'Cancelling…' : 'Cancel booking'}
-          </button>
+        {((booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED') || canCancel) && (
+          <div className="action-row">
+            {booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED' && (
+              <PaymentButton booking={booking} onPaid={() => bookingApi.reload()} />
+            )}
+            {canCancel && (
+              <button className="btn btn-danger" onClick={cancel} disabled={cancelling}>
+                {cancelling ? 'Cancelling…' : 'Cancel booking'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

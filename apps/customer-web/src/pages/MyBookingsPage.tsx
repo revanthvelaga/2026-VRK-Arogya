@@ -65,7 +65,37 @@ export function MyBookingsPage() {
           subtitle="Book your first test to see it tracked here."
         />
       ) : (
-        <div className="table-wrap">
+        <>
+        {/* Phones get one tappable card per booking instead of a seven-
+            column table squeezed to 390px. */}
+        <div className="booking-cards mobile-only">
+          {sorted.map((b) => (
+            <Link key={b.id} to={`/bookings/${b.id}`} className="booking-card">
+              <div className="booking-card-top">
+                <div>
+                  <div className="booking-card-name">{patientName(b.patientId)}</div>
+                  <div className="booking-card-meta">
+                    {formatDateTime(b.scheduledAt)} · {statusLabel(b.collectionMode)}
+                  </div>
+                </div>
+                <StatusBadge status={b.status} variant={bookingStatusVariant(b.status)} />
+              </div>
+              <div className="booking-card-foot">
+                <span>
+                  <b>{formatCurrency(b.totalAmount)}</b>
+                  <span style={{ color: 'var(--ink-faint)' }}>
+                    {' '}
+                    · {b.items?.length ?? 0} item{(b.items?.length ?? 0) === 1 ? '' : 's'}
+                  </span>
+                </span>
+                <span className="booking-card-track">
+                  Track <IconArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="table-wrap desktop-only">
           <table>
             <thead>
               <tr>
@@ -100,6 +130,7 @@ export function MyBookingsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );
