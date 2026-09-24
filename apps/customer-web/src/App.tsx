@@ -17,6 +17,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SmartBookPage } from './pages/SmartBookPage';
 import { ComparePage } from './pages/ComparePage';
 import { InvoicePage } from './pages/InvoicePage';
+import { SharedReportPage } from './pages/SharedReportPage';
 
 export function App() {
   return (
@@ -34,6 +35,7 @@ export function App() {
               <Route path="/centers" element={<CentersPage />} />
               <Route path="/find-tests" element={<SmartBookPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              <Route path="/shared/:token" element={<SharedReportPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="/book" element={<BookingPage />} />
                 <Route path="/bookings" element={<MyBookingsPage />} />

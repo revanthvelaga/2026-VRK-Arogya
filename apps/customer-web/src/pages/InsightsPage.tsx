@@ -7,6 +7,17 @@ import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
 import { TrendChart } from '../components/TrendChart';
+import { GoalsCard, MedicinesCard, VitalsCard } from '../components/HealthTracking';
+import { HealthTimeline, RetestCard } from '../components/HealthHistory';
+import { ShareReportButton } from '../components/ShareReport';
+import { JumpBar } from '../components/JumpBar';
+
+const JUMP_TARGETS = [
+  { id: 'sec-results', label: 'Results' },
+  { id: 'sec-trends', label: 'Trends' },
+  { id: 'sec-everyday', label: 'Everyday health' },
+  { id: 'sec-history', label: 'History' },
+];
 import {
   IconActivity,
   IconAlertTriangle,
@@ -396,6 +407,7 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
           <button className="btn btn-small" onClick={download} disabled={downloading}>
             {downloading ? 'Downloading…' : 'Download'}
           </button>
+          <ShareReportButton reportId={group.reportId} />
           <Link className="btn btn-small" to={`/bookings/${group.bookingId}`}>
             View booking
           </Link>
@@ -581,6 +593,10 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
           title="No results yet"
           subtitle="Once a report is uploaded for this patient, results will appear here."
         />
+        <VitalsCard patientId={patientId} />
+        <GoalsCard patientId={patientId} labValues={[]} />
+        <MedicinesCard patientId={patientId} />
+        <HealthTimeline patientId={patientId} values={[]} />
       </>
     );
   }
@@ -591,7 +607,12 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
 
   return (
     <>
+      <JumpBar targets={JUMP_TARGETS} />
+
+      <div id="sec-results" />
       <HealthScoreGauge score={healthStats.score} normal={healthStats.normal} total={healthStats.total} />
+
+      <RetestCard patientId={patientId} />
 
       <div className="card">
         <div className="insight-summary" style={{ margin: 0 }}>
@@ -656,7 +677,18 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
 
       {selectedGroup && <ReportDetailCard group={selectedGroup} />}
 
+      <div id="sec-trends" />
       <TrendsCard values={values} />
+
+      <div className="section-title" id="sec-everyday">
+        Everyday health
+      </div>
+      <VitalsCard patientId={patientId} />
+      <GoalsCard patientId={patientId} labValues={values} />
+      <MedicinesCard patientId={patientId} />
+
+      <div id="sec-history" />
+      <HealthTimeline patientId={patientId} values={values} />
 
       <HealthRecommendationCard patientId={patientId} />
     </>

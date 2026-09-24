@@ -412,3 +412,73 @@ export interface WalletSummary {
   canApplyReferral: boolean;
   transactions: WalletTransaction[];
 }
+
+export type VitalType = 'BP' | 'SUGAR_FASTING' | 'SUGAR_RANDOM' | 'WEIGHT' | 'PULSE';
+
+export interface VitalReading {
+  id: string;
+  patientId: string;
+  type: VitalType;
+  value: number;
+  value2: number | null;
+  recordedAt: string;
+  note?: string | null;
+}
+
+export interface HealthGoal {
+  id: string;
+  patientId: string;
+  metric: string;
+  label: string;
+  direction: 'BELOW' | 'ABOVE';
+  target: number;
+  unit?: string | null;
+  createdAt: string;
+}
+
+export interface Medicine {
+  id: string;
+  patientId: string;
+  name: string;
+  dosage?: string | null;
+  schedule?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface RetestItem {
+  testId: string;
+  testName: string;
+  price: number;
+  lastTestedAt: string;
+  intervalDays: number;
+  dueAt: string;
+  status: 'OVERDUE' | 'DUE_SOON' | 'OK' | 'BOOKED';
+}
+
+export interface ReportShare {
+  id: string;
+  token: string;
+  reportId: string;
+  expiresAt: string;
+  viewCount: number;
+  createdAt: string;
+}
+
+export interface SharedReport {
+  patientName: string;
+  patientGender: string | null;
+  patientAge: number | null;
+  reportFileName: string;
+  reportDate: string;
+  expiresAt: string;
+  values: Array<{
+    testName: string;
+    category?: string;
+    value: number;
+    unit?: string;
+    normalLow: number | null;
+    normalHigh: number | null;
+    isAbnormal: boolean;
+  }>;
+}

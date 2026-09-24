@@ -20,6 +20,7 @@ import { PatientsModule } from './patients/patients.module';
 import { HolidaysModule } from './holidays/holidays.module';
 import { AiModule } from './ai/ai.module';
 import { RewardsModule } from './rewards/rewards.module';
+import { HealthTrackingModule } from './health/health.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -81,6 +82,7 @@ import { HealthController } from './health.controller';
     PatientsModule,
     AiModule,
     RewardsModule,
+    HealthTrackingModule,
   ],
   controllers: [HealthController],
 })
