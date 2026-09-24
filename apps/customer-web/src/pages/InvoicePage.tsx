@@ -86,6 +86,7 @@ export function InvoicePage() {
             <div className="invoice-label">Patient</div>
             <b>{patient?.fullName ?? '—'}</b>
             {patient && <div className="invoice-muted">{statusLabel(patient.relationship)}</div>}
+            {patient?.abhaNumber && <div className="invoice-muted">ABHA: {patient.abhaNumber}</div>}
             <div className="invoice-muted">
               Collection: {statusLabel(b.collectionMode)} · {formatDateTime(b.scheduledAt)}
             </div>

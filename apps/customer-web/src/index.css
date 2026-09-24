@@ -3672,6 +3672,161 @@ a.suggest-name:hover {
   }
 }
 
+
+/* ---------- Family access, passkeys, ABHA ---------- */
+.family-invite {
+  display: flex;
+  gap: 8px;
+}
+
+.family-invite input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+}
+
+.family-list {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.family-list-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+}
+
+.family-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+}
+
+.person-dot {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  background: var(--gradient);
+}
+
+.person-dot.alt {
+  background: linear-gradient(120deg, #f59e0b, #ef4444);
+}
+
+.family-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+}
+
+.family-name small {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.family-remove {
+  border: 0;
+  background: var(--surface-2);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.passkey-ok {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.passkey-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 18px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.passkey-btn:hover {
+  transform: translateY(-1px);
+}
+
+.passkey-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.abha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.abha-row svg {
+  color: var(--accent-ink);
+}
+
+.abha-row small {
+  color: var(--ink-soft);
+}
+
+.abha-form {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 10px;
+}
+
+.abha-form .field {
+  margin-bottom: 0;
+}
+
+.abha-help {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  text-decoration: none;
+  align-self: center;
+}
+
 /* ---------- Insights: explanations, doctor note, trends ---------- */
 .explain-btn {
   display: inline-flex;

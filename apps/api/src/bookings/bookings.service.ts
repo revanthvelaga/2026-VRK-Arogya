@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { BookingItem } from './entities/booking-item.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -235,13 +235,27 @@ export class BookingsService {
     return items;
   }
 
+  // Bookings the customer made, plus any made for a patient they can act
+  // for (their own family booked by a caregiver, or — as a caregiver — the
+  // family they look after).
   async findAllForCustomer(customerId: string, patientId?: string): Promise<BookingWithPeople[]> {
-    const bookings = await this.bookingsRepo.find({
-      where: patientId ? { customerId, patientId } : { customerId },
-      relations: ['items'],
-      order: { createdAt: 'DESC' },
-    });
+    let where: FindOptionsWhere<Booking> | FindOptionsWhere<Booking>[];
+    if (patientId) {
+      await this.patientsService.findOneForAccount(patientId, customerId); // access check
+      where = { patientId };
+    } else {
+      const ids = await this.patientsService.accessiblePatientIds(customerId);
+      where = ids.length ? [{ customerId }, { patientId: In(ids) }] : { customerId };
+    }
+    const bookings = await this.bookingsRepo.find({ where, relations: ['items'], order: { createdAt: 'DESC' } });
     return this.attachLogistics(bookings);
+  }
+
+  // The customer-side "is this my booking" rule used everywhere: who paid
+  // for it, or anyone who can act for the patient it's for.
+  async isCustomerSide(booking: Booking, userId: string): Promise<boolean> {
+    if (booking.customerId === userId) return true;
+    return booking.patientId ? this.patientsService.canAccessPatient(booking.patientId, userId) : false;
   }
 
   // A field agent's own queue — every booking assigned to them that isn't
@@ -389,7 +403,7 @@ export class BookingsService {
   async findOneForUser(id: string, user: AuthenticatedUser): Promise<Booking> {
     const booking = await this.findOne(id);
     const isStaffOrAdmin = user.role === Role.ADMIN || user.role === Role.STAFF;
-    if (!isStaffOrAdmin && booking.customerId !== user.userId) {
+    if (!isStaffOrAdmin && !(await this.isCustomerSide(booking, user.userId))) {
       throw new ForbiddenException('Not your booking');
     }
     return booking;

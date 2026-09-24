@@ -129,7 +129,9 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
 
   async rateAgent(bookingId: string, rating: number, comment: string | undefined, user: AuthenticatedUser) {
     const booking = await this.bookingsService.findOne(bookingId);
-    if (booking.customerId !== user.userId) throw new ForbiddenException('Not your booking');
+    if (user.role !== Role.CUSTOMER || !(await this.bookingsService.isCustomerSide(booking, user.userId))) {
+      throw new ForbiddenException('Not your booking');
+    }
     if (!booking.assignedAgentId) throw new BadRequestException('No agent was assigned to this booking');
 
     const [{ collected }] = (await this.dataSource.query(
@@ -146,7 +148,7 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
         ...(existing ?? {}),
         bookingId,
         agentId: booking.assignedAgentId,
-        customerId: user.userId,
+        customerId: booking.customerId,
         rating,
         comment: comment?.trim() || undefined,
       }),
@@ -172,7 +174,11 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
   // how to prepare.
   async decorateForCustomer(booking: BookingWithPeople, user: AuthenticatedUser): Promise<CustomerBookingView> {
     const preparation = await this.getPreparation(booking.id);
-    if (booking.customerId !== user.userId) return { ...booking, preparation };
+    // The door code and rating belong to the customer side — the payer,
+    // the patient's own account, or a caregiver — never to staff.
+    if (user.role !== Role.CUSTOMER || !(await this.bookingsService.isCustomerSide(booking, user.userId))) {
+      return { ...booking, preparation };
+    }
 
     const [otpRow, rating] = await Promise.all([
       booking.agentEnRouteAt && !booking.agentArrivedAt

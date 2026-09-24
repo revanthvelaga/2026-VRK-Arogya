@@ -25,7 +25,9 @@ export class ReportSharesService {
     });
     if (!report) throw new NotFoundException('Report not found');
     const booking = await this.bookingsService.findOne(report.bookingId);
-    if (booking.customerId !== user.userId) throw new ForbiddenException('Only the patient can share this report');
+    if (user.role !== 'CUSTOMER' || !(await this.bookingsService.isCustomerSide(booking, user.userId))) {
+      throw new ForbiddenException('Only the patient or their family can share this report');
+    }
     return report;
   }
 

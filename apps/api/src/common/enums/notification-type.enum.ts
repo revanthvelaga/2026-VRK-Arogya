@@ -9,4 +9,5 @@ export enum NotificationType {
   AGENT_ON_THE_WAY = 'AGENT_ON_THE_WAY',
   PREP_REMINDER = 'PREP_REMINDER',
   RETEST_DUE = 'RETEST_DUE',
+  CARE_INVITE = 'CARE_INVITE',
 }

@@ -52,6 +52,15 @@ export class Patient {
   })
   location?: GeoPoint;
 
+  // Ayushman Bharat Health Account — the national health ID (14 digits)
+  // and/or the ABHA address (name@abdm). Stored per person so it can be
+  // printed on reports and invoices and used for ABDM record linking.
+  @Column({ name: 'abha_number', type: 'varchar', length: 17, nullable: true })
+  abhaNumber?: string | null;
+
+  @Column({ name: 'abha_address', type: 'varchar', length: 60, nullable: true })
+  abhaAddress?: string | null;
+
   @Column({ length: 15, nullable: true })
   phone?: string;
 

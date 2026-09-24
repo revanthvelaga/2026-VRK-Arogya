@@ -96,6 +96,10 @@ export interface Patient {
   alternatePhone?: string;
   isActive: boolean;
   createdAt: string;
+  abhaNumber?: string | null;
+  abhaAddress?: string | null;
+  // Set when this person belongs to a family you look after (family access).
+  sharedBy?: { accountId: string; name: string };
 }
 
 export interface Booking {
@@ -481,4 +485,29 @@ export interface SharedReport {
     normalHigh: number | null;
     isAbnormal: boolean;
   }>;
+}
+
+export interface CarePerson {
+  id: string;
+  fullName: string;
+  phone?: string;
+}
+
+export interface CareLinkView {
+  id: string;
+  status: 'PENDING' | 'ACTIVE';
+  createdAt: string;
+  person: CarePerson;
+}
+
+export interface CareOverview {
+  caregivers: CareLinkView[];
+  caringFor: CareLinkView[];
+}
+
+export interface PasskeyInfo {
+  id: string;
+  deviceName: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
 }

@@ -14,6 +14,7 @@ import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { TestsService } from '../catalog/tests.service';
 import { AiService } from '../ai/ai.service';
+import { PatientsService } from '../patients/patients.service';
 
 export type PublicReport = Omit<Report, 'fileData' | 'booking'>;
 
@@ -53,6 +54,7 @@ export class ReportsService {
     private readonly testsService: TestsService,
     private readonly config: ConfigService,
     private readonly ai: AiService,
+    private readonly patientsService: PatientsService,
   ) {
     const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
     this.anthropic = apiKey ? new Anthropic({ apiKey }) : null;
@@ -100,7 +102,8 @@ export class ReportsService {
   // the read side, on purpose.
   private async assertCanViewReports(bookingId: string, user: AuthenticatedUser): Promise<Booking> {
     const booking = await this.bookingsService.findOne(bookingId); // 404s if the booking doesn't exist
-    if (user.role === Role.ADMIN || booking.customerId === user.userId) return booking;
+    if (user.role === Role.ADMIN) return booking;
+    if (user.role === Role.CUSTOMER && (await this.bookingsService.isCustomerSide(booking, user.userId))) return booking;
     throw new ForbiddenException('Not authorized to view reports for this booking');
   }
 
@@ -197,15 +200,12 @@ export class ReportsService {
       .createQueryBuilder('rv')
       .innerJoin('reports', 'r', 'r.id = rv.report_id')
       .innerJoin('bookings', 'b', 'b.id = r.booking_id')
-      .where('b.customer_id = :customerId', { customerId })
+      .where(patientId ? 'b.patient_id = :patientId' : 'b.customer_id = :customerId', { customerId, patientId })
       .andWhere('r.generated_at < :before', { before: beforeGeneratedAt })
       .andWhere('rv.report_id != :currentReportId', { currentReportId })
       .orderBy('r.generated_at', 'DESC')
       .limit(1);
 
-    if (patientId) {
-      qb.andWhere('b.patient_id = :patientId', { patientId });
-    }
     if (value.testId) {
       qb.andWhere('rv.test_id = :testId', { testId: value.testId });
     } else {
@@ -225,11 +225,14 @@ export class ReportsService {
   async findAllValuesForCustomer(customerId: string, patientId?: string): Promise<
     Array<ReportValueWithTrend & { bookingId: string; reportGeneratedAt: Date; reportFileName: string }>
   > {
+    // One patient's results are theirs whoever paid for the booking (a
+    // caregiver, say) — so with a patient, filter on the patient after
+    // checking this account may see them; without one, the customer's own.
+    if (patientId) await this.patientsService.findOneForAccount(patientId, customerId);
     const qb = this.reportValuesRepo
       .createQueryBuilder('rv')
       .innerJoin('reports', 'r', 'r.id = rv.report_id')
       .innerJoin('bookings', 'b', 'b.id = r.booking_id')
-      .where('b.customer_id = :customerId', { customerId })
       .addSelect('r.booking_id', 'booking_id')
       .addSelect('r.generated_at', 'report_generated_at')
       .addSelect('r.file_name', 'report_file_name')
@@ -238,7 +241,9 @@ export class ReportsService {
       .addOrderBy('rv.created_at', 'ASC');
 
     if (patientId) {
-      qb.andWhere('b.patient_id = :patientId', { patientId });
+      qb.where('b.patient_id = :patientId', { patientId });
+    } else {
+      qb.where('b.customer_id = :customerId', { customerId });
     }
 
     const rows = await qb.getRawAndEntities();

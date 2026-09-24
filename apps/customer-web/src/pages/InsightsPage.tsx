@@ -11,6 +11,7 @@ import { GoalsCard, MedicinesCard, VitalsCard } from '../components/HealthTracki
 import { HealthTimeline, RetestCard } from '../components/HealthHistory';
 import { ShareReportButton } from '../components/ShareReport';
 import { JumpBar } from '../components/JumpBar';
+import { AbhaBlock } from '../components/AbhaBlock';
 
 const JUMP_TARGETS = [
   { id: 'sec-results', label: 'Results' },
@@ -46,7 +47,7 @@ function calculateAge(dateOfBirth: string): number {
   return age;
 }
 
-function PatientProfileCard({ patient }: { patient: Patient }) {
+function PatientProfileCard({ patient, onChanged }: { patient: Patient; onChanged: () => void }) {
   const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
   const address = [patient.fullAddress, patient.landmark, patient.areaAddress, patient.pincode]
     .filter(Boolean)
@@ -72,7 +73,14 @@ function PatientProfileCard({ patient }: { patient: Patient }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ fontWeight: 700, fontSize: 16 }}>{patient.fullName}</div>
-            <span className="badge badge-accent">{relationshipLabel(patient.relationship)}</span>
+            {!(patient.sharedBy && patient.relationship === 'SELF') && (
+              <span className="badge badge-accent">{relationshipLabel(patient.relationship)}</span>
+            )}
+            {patient.sharedBy && (
+              <span className="badge badge-amber">
+                {patient.relationship === 'SELF' ? 'Family access' : `${patient.sharedBy.name.split(' ')[0]}'s family`}
+              </span>
+            )}
           </div>
           <div className="page-sub" style={{ margin: '4px 0 0' }}>
             {[
@@ -103,6 +111,8 @@ function PatientProfileCard({ patient }: { patient: Patient }) {
           )}
         </div>
       )}
+
+      <AbhaBlock key={patient.id} patient={patient} onSaved={onChanged} />
     </div>
   );
 }
@@ -744,7 +754,7 @@ export function InsightsPage() {
         )}
       </div>
 
-      {selectedPatient && <PatientProfileCard patient={selectedPatient} />}
+      {selectedPatient && <PatientProfileCard patient={selectedPatient} onChanged={reloadPatients} />}
 
       {patientId && (
         <>

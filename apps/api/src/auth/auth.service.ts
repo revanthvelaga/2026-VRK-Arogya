@@ -44,6 +44,14 @@ export class AuthService {
     return this.issueTokens(user.id, user.phone, user.role);
   }
 
+  // A session for a user who has already proven who they are some other
+  // way (a verified passkey).
+  async loginAsUser(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.isActive) throw new UnauthorizedException('This account is not active');
+    return this.issueTokens(user.id, user.phone, user.role);
+  }
+
   async login(dto: LoginDto) {
     const user = await this.usersService.findByPhone(dto.phone);
     if (!user) throw new UnauthorizedException('Invalid credentials');

@@ -149,7 +149,13 @@ export function PatientPicker({
               <div className="patient-card-avatar">{p.fullName.charAt(0).toUpperCase()}</div>
               <div className="patient-card-text">
                 <div className="patient-card-name">{p.fullName}</div>
-                <div className="patient-card-rel">{relationshipLabel(p.relationship)}</div>
+                <div className="patient-card-rel">
+                  {p.sharedBy
+                    ? p.relationship === 'SELF'
+                      ? 'Family access'
+                      : `${relationshipLabel(p.relationship)} · ${p.sharedBy.name.split(' ')[0]}'s family`
+                    : relationshipLabel(p.relationship)}
+                </div>
               </div>
             </button>
           ))}
@@ -183,7 +189,11 @@ export function PatientPicker({
             {patients.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.fullName}
-                {p.relationship !== 'SELF' ? ` · ${relationshipLabel(p.relationship)}` : ''}
+                {p.sharedBy
+                  ? ' · Family access'
+                  : p.relationship !== 'SELF'
+                    ? ` · ${relationshipLabel(p.relationship)}`
+                    : ''}
               </option>
             ))}
           </select>

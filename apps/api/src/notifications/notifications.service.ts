@@ -15,6 +15,7 @@ const SUBJECTS: Record<NotificationType, string> = {
   [NotificationType.AGENT_ON_THE_WAY]: 'Your sample collector is on the way',
   [NotificationType.PREP_REMINDER]: 'How to prepare for your test tomorrow',
   [NotificationType.RETEST_DUE]: 'A recheck is due',
+  [NotificationType.CARE_INVITE]: 'You have been invited to family access',
 };
 
 @Injectable()
@@ -50,7 +51,30 @@ export class NotificationsService {
       );
     });
 
+    // Family access: caregivers get a copy of everything the account they
+    // look after is told (bookings, agent on the way, reports, reminders).
+    if (type !== NotificationType.CARE_INVITE) {
+      this.mirrorToCaregivers(userId, type, message).catch((err) =>
+        this.logger.warn(`Caregiver copy failed for ${userId}: ${(err as Error).message}`),
+      );
+    }
+
     return notification;
+  }
+
+  private async mirrorToCaregivers(ownerId: string, type: NotificationType, message: string): Promise<void> {
+    const rows = (await this.notificationsRepo.query(
+      `SELECT cl.caregiver_id, u.full_name
+         FROM care_links cl JOIN users u ON u.id::text = cl.owner_id
+        WHERE cl.owner_id = $1 AND cl.status = 'ACTIVE'`,
+      [ownerId],
+    )) as Array<{ caregiver_id: string; full_name: string }>;
+    for (const r of rows) {
+      const copy = await this.notificationsRepo.save(
+        this.notificationsRepo.create({ userId: r.caregiver_id, type, message: `For ${r.full_name}: ${message}` }),
+      );
+      this.deliverEmail(copy, type).catch(() => undefined);
+    }
   }
 
   private async deliverEmail(notification: Notification, type: NotificationType): Promise<void> {

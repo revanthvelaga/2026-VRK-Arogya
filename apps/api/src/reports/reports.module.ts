@@ -11,6 +11,7 @@ import { BookingsModule } from '../bookings/bookings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { AiModule } from '../ai/ai.module';
+import { PatientsModule } from '../patients/patients.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AiModule } from '../ai/ai.module';
     NotificationsModule,
     CatalogModule,
     AiModule,
+    PatientsModule,
   ],
   controllers: [ReportsController, ReportSharesController],
   providers: [ReportsService, ReportSharesService],

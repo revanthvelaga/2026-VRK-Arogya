@@ -10,6 +10,10 @@ import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { UsersModule } from '../users/users.module';
 import { PatientsModule } from '../patients/patients.module';
 import { RewardsModule } from '../rewards/rewards.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Passkey } from './entities/passkey.entity';
+import { PasskeysService } from './passkeys.service';
+import { PasskeysController } from './passkeys.controller';
 
 @Module({
   imports: [
@@ -18,6 +22,7 @@ import { RewardsModule } from '../rewards/rewards.module';
     RewardsModule,
     PassportModule,
     ConfigModule,
+    TypeOrmModule.forFeature([Passkey]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -26,7 +31,7 @@ import { RewardsModule } from '../rewards/rewards.module';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService],
+  controllers: [AuthController, PasskeysController],
+  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService, PasskeysService],
 })
 export class AuthModule {}
