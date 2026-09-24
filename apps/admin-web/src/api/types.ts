@@ -437,3 +437,18 @@ export interface PrescriptionRecord {
   status: 'NEW' | 'REVIEWED';
   createdAt: string;
 }
+
+export interface Coupon {
+  id: string;
+  code: string;
+  description: string;
+  discountType: 'PERCENT' | 'FLAT';
+  value: string | number;
+  maxDiscount?: string | number | null;
+  minOrder: string | number;
+  validUntil?: string | null;
+  usageLimit?: number | null;
+  perCustomerLimit: number;
+  isActive: boolean;
+  createdAt: string;
+}

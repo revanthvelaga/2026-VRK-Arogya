@@ -16,6 +16,7 @@ import { AgentsPage } from './pages/AgentsPage';
 import { AgentDetailPage } from './pages/AgentDetailPage';
 import { SalaryPage } from './pages/SalaryPage';
 import { PrescriptionsPage } from './pages/PrescriptionsPage';
+import { OffersPage } from './pages/OffersPage';
 import { LeavesPage } from './pages/LeavesPage';
 import { ProfilePage } from './pages/ProfilePage';
 
@@ -56,6 +57,7 @@ export function App() {
               <Route path="/leaves" element={<LeavesPage />} />
               <Route path="/issues" element={<IssuesPage />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
+              <Route path="/offers" element={<OffersPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>

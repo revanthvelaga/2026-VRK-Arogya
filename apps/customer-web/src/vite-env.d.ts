@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
   readonly VITE_SUPPORT_PHONE?: string;
+  readonly VITE_LAB_GSTIN?: string;
   readonly VITE_GOOGLE_CLIENT_ID?: string;
   readonly VITE_FIREBASE_API_KEY?: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN?: string;

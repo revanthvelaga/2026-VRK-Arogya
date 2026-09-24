@@ -1,6 +1,7 @@
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsLatitude,
@@ -8,6 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -57,4 +59,15 @@ export class CreateBookingDto {
   @ValidateNested({ each: true })
   @Type(() => BookingItemDto)
   items: BookingItemDto[];
+
+  // Offer code from checkout — re-validated and re-priced server-side.
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  couponCode?: string;
+
+  // Spend available wallet credit on this booking.
+  @IsOptional()
+  @IsBoolean()
+  useWallet?: boolean;
 }

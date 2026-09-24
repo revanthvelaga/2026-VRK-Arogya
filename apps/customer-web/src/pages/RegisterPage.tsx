@@ -20,6 +20,10 @@ export function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Arriving through a friend's share link (/register?ref=CODE) fills it in.
+  const [referralCode, setReferralCode] = useState(
+    () => new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '',
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,7 +40,7 @@ export function RegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await register({ fullName: fullName.trim(), phone: phone.replace(/\D/g, '').slice(-10), email: email.trim() || undefined, password });
+      await register({ fullName: fullName.trim(), phone: phone.replace(/\D/g, '').slice(-10), email: email.trim() || undefined, password, referralCode: referralCode.trim() || undefined });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -96,6 +100,16 @@ export function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="referral">Referral code (optional)</label>
+            <input
+              id="referral"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              maxLength={12}
+              placeholder="From a friend? You both get ₹100"
             />
           </div>
           <button

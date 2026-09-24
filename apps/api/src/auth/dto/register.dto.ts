@@ -23,4 +23,9 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(Role)
   role?: Role;
+
+  // A friend's referral code, if they signed up through one.
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }

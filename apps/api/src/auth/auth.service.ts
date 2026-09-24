@@ -8,6 +8,7 @@ import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
+import { WalletService } from '../rewards/wallet.service';
 
 @Injectable()
 export class AuthService {
@@ -18,13 +19,15 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly googleAuthService: GoogleAuthService,
     private readonly firebasePhoneAuthService: FirebasePhoneAuthService,
+    private readonly walletService: WalletService,
   ) {}
 
   async register(dto: RegisterDto) {
     // Public self-registration is always CUSTOMER; ADMIN/STAFF accounts
     // should be created through a separate admin-only endpoint later.
+    const { referralCode, ...fields } = dto;
     const user = await this.usersService.create({
-      ...dto,
+      ...fields,
       role: Role.CUSTOMER,
     });
     // Every account gets a SELF patient profile immediately — bookings are
@@ -32,6 +35,11 @@ export class AuthService {
     // always at least one to pick without extra setup before a first booking.
     if (user.role === Role.CUSTOMER) {
       await this.patientsService.createSelf(user.id, user.fullName);
+    }
+    // A bad referral code shouldn't block creating the account — the
+    // customer can still add a valid one from their wallet afterwards.
+    if (referralCode?.trim()) {
+      await this.walletService.applyReferral(user.id, referralCode).catch(() => undefined);
     }
     return this.issueTokens(user.id, user.phone, user.role);
   }

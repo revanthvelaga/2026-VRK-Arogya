@@ -16,6 +16,7 @@ import { InsightsPage } from './pages/InsightsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SmartBookPage } from './pages/SmartBookPage';
 import { ComparePage } from './pages/ComparePage';
+import { InvoicePage } from './pages/InvoicePage';
 
 export function App() {
   return (
@@ -37,6 +38,7 @@ export function App() {
                 <Route path="/book" element={<BookingPage />} />
                 <Route path="/bookings" element={<MyBookingsPage />} />
                 <Route path="/bookings/:id" element={<BookingDetailPage />} />
+                <Route path="/bookings/:id/invoice" element={<InvoicePage />} />
                 <Route path="/insights" element={<InsightsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

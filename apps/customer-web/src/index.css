@@ -2686,6 +2686,473 @@ a.suggest-name:hover {
   }
 }
 
+
+/* ---------- Offers + wallet at checkout ---------- */
+.offers-box {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.offer-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  padding: 4px 4px 4px 10px;
+  color: var(--ink-faint);
+}
+
+.offer-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: transparent;
+}
+
+.offer-input button {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--gradient);
+  cursor: pointer;
+}
+
+.offer-input button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.offer-applied {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--green);
+  background: var(--green-soft);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+
+.offer-applied span {
+  flex: 1;
+  color: var(--ink);
+}
+
+.offer-applied button {
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.offer-error {
+  font-size: 12px;
+  color: var(--red);
+}
+
+.offer-chips {
+  display: grid;
+  gap: 6px;
+}
+
+.offer-chip {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.offer-chip b {
+  color: var(--accent-ink);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.offer-chip:hover {
+  border-color: var(--accent-soft-strong);
+}
+
+.wallet-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.wallet-toggle svg {
+  color: var(--gold);
+}
+
+.wallet-toggle b {
+  color: var(--ink);
+}
+
+.summary-line.saving span:last-child {
+  color: var(--green);
+  font-weight: 700;
+}
+
+
+/* ---------- Refer & earn ---------- */
+.refer-card {
+  background: linear-gradient(135deg, #fff8ea, #ffffff 55%, #eef3fe);
+  border: 1px solid #f3e2bd;
+}
+
+.refer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.refer-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.refer-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.refer-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.wallet-pill {
+  flex-shrink: 0;
+  text-align: right;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.wallet-pill span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wallet-pill b {
+  font-size: 18px;
+}
+
+.refer-code-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.refer-code {
+  flex: 1;
+  min-width: 140px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  border: 1.5px dashed var(--gold);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 8px 12px;
+}
+
+@media (max-width: 720px) {
+  .refer-code {
+    flex-basis: 100%;
+  }
+  .refer-code-row .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .refer-title {
+    font-size: 18px;
+  }
+}
+
+.refer-apply {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.refer-apply input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+}
+
+.wallet-history {
+  margin-top: 14px;
+}
+
+.wallet-history summary {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.wallet-tx {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.wallet-tx small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.wallet-tx b.plus {
+  color: var(--green);
+}
+
+.wallet-tx b.minus {
+  color: var(--ink);
+}
+
+
+/* ---------- Invoice ---------- */
+.invoice-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.invoice {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.invoice-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.invoice-brand {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+
+.invoice-muted {
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.invoice-meta {
+  text-align: right;
+  line-height: 1.6;
+}
+
+.invoice-title {
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.invoice-stamp {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-size: 11.5px;
+}
+
+.invoice-stamp.paid {
+  color: var(--green);
+}
+
+.invoice-stamp.due {
+  color: var(--amber);
+}
+
+.invoice-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 18px 0;
+}
+
+.invoice-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-table th,
+.invoice-table td {
+  text-align: left;
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--line);
+  white-space: normal;
+}
+
+.invoice-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.invoice-table th:last-child,
+.invoice-table td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-table td:first-child {
+  width: 28px;
+  color: var(--ink-faint);
+}
+
+.invoice-totals {
+  margin: 14px 0 0 auto;
+  max-width: 300px;
+  display: grid;
+  gap: 6px;
+}
+
+.invoice-totals div {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-totals .grand {
+  border-top: 2px solid var(--ink);
+  padding-top: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.invoice-note {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.invoice-foot {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .invoice {
+    padding: 18px;
+  }
+  .invoice-parties {
+    grid-template-columns: 1fr;
+  }
+  .invoice-meta {
+    text-align: left;
+  }
+}
+
+@media print {
+  .site-header,
+  .bottom-tabbar,
+  .cart-bar,
+  .site-footer,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body,
+  .site-shell,
+  .site-main {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .invoice {
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
 /* ---------- Insights: explanations, doctor note, trends ---------- */
 .explain-btn {
   display: inline-flex;

@@ -2,13 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CollectionMode, DiagnosticCenter, GeocodeResult, Package, Patient, PickupPoint, Test } from '../api/types';
+import type {
+  CollectionMode,
+  CouponQuote,
+  DiagnosticCenter,
+  GeocodeResult,
+  Package,
+  Patient,
+  PickupPoint,
+  Test,
+  WalletSummary,
+} from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PickupPointPicker } from '../components/PickupPointPicker';
 import { PatientPicker } from '../components/PatientPicker';
+import { OffersBox } from '../components/OffersBox';
 import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 import type { SlotPeriod } from '../lib/geo';
@@ -32,6 +43,8 @@ interface SelectableItem {
 // Displayed as its own line in the order summary rather than folded into
 // item prices, so the breakdown is transparent.
 const GST_RATE = 0.18;
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const COLLECTION_MODES: { value: CollectionMode; label: string; hint: string }[] = [
   { value: 'WALK_IN', label: 'Walk in', hint: 'Visit the diagnostic center yourself' },
@@ -58,6 +71,9 @@ export function BookingPage() {
     reload: reloadPatients,
   } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientId, setPatientId] = useState('');
+  const [coupon, setCoupon] = useState<CouponQuote | null>(null);
+  const [useWallet, setUseWallet] = useState(false);
+  const walletApi = useApi<WalletSummary>(() => api.get('/wallet/mine'), []);
 
   const cartTestIds = cart.items.filter((i) => i.kind === 'test').map((i) => i.id);
   const cartPackageIds = cart.items.filter((i) => i.kind === 'package').map((i) => i.id);
@@ -276,8 +292,15 @@ export function BookingPage() {
   // Illustrative rate — swap for whatever the real invoicing/tax setup
   // turns out to be; the point here is showing the breakdown, not the
   // exact figure.
-  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
-  const total = subtotal + gst;
+  // Mirrors the server's pricing exactly: offer off the subtotal, GST on
+  // what's left, then wallet credit off the total.
+  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
+  const taxable = round2(subtotal - discount);
+  const gst = round2(taxable * GST_RATE);
+  const gross = round2(taxable + gst);
+  const walletBalance = walletApi.data?.balance ?? 0;
+  const walletUsed = useWallet ? round2(Math.min(walletBalance, gross)) : 0;
+  const total = round2(gross - walletUsed);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -324,6 +347,8 @@ export function BookingPage() {
         homeLongitude: collectionMode === 'HOME_VISIT' ? homeAddress?.lng : undefined,
         scheduledAt: iso,
         items: selected.map((i) => (i.kind === 'test' ? { testId: i.id } : { packageId: i.id })),
+        couponCode: coupon?.code,
+        useWallet: walletUsed > 0 ? true : undefined,
       });
       cart.clear();
       navigate(`/bookings/${booking.id}`);
@@ -724,14 +749,34 @@ export function BookingPage() {
             )}
             {selected.length > 0 && (
               <>
+                <OffersBox
+                  subtotal={subtotal}
+                  applied={coupon}
+                  onApply={setCoupon}
+                  walletBalance={walletBalance}
+                  useWallet={useWallet}
+                  onUseWallet={setUseWallet}
+                />
                 <div className="summary-line">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="summary-line saving">
+                    <span>Offer {coupon?.code}</span>
+                    <span>−{formatCurrency(discount)}</span>
+                  </div>
+                )}
                 <div className="summary-line">
                   <span>GST ({Math.round(GST_RATE * 100)}%)</span>
                   <span>{formatCurrency(gst)}</span>
                 </div>
+                {walletUsed > 0 && (
+                  <div className="summary-line saving">
+                    <span>Wallet credit</span>
+                    <span>−{formatCurrency(walletUsed)}</span>
+                  </div>
+                )}
               </>
             )}
             <div className="summary-total">

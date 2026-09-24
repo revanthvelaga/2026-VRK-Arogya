@@ -24,6 +24,9 @@ import { NotificationType } from '../common/enums/notification-type.enum';
 import { toGeoPoint } from '../common/utils/geo.util';
 import { PatientsService } from '../patients/patients.service';
 import { UsersService } from '../users/users.service';
+import { CouponsService } from '../rewards/coupons.service';
+import { WalletService } from '../rewards/wallet.service';
+import { PaymentStatus } from '../common/enums/payment-status.enum';
 
 interface PricedItem {
   testId?: string;
@@ -67,6 +70,8 @@ export type BookingWithPeople = Booking & {
 // invoicing rules replace it.
 const GST_RATE = 0.18;
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -80,6 +85,8 @@ export class BookingsService {
     private readonly notificationsService: NotificationsService,
     private readonly patientsService: PatientsService,
     private readonly usersService: UsersService,
+    private readonly couponsService: CouponsService,
+    private readonly walletService: WalletService,
   ) {}
 
   async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -137,11 +144,25 @@ export class BookingsService {
     }
 
     const items = await this.priceItems(dto.items);
-    const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+    const subtotal = round2(items.reduce((sum, item) => sum + item.price, 0));
+    // Offer first (GST is charged on the discounted amount), then wallet
+    // credit comes off the final total like a partial payment. Every
+    // figure is recomputed here — the checkout preview is only a preview.
+    const coupon = dto.couponCode?.trim()
+      ? await this.couponsService.quote(dto.couponCode, subtotal, customerId)
+      : null;
+    const discountAmount = coupon?.discount ?? 0;
+    const taxable = round2(subtotal - discountAmount);
     // Rounded to paise — GST_RATE is illustrative; swap for the real
     // invoicing rules whenever those land.
-    const gstAmount = Math.round(subtotal * GST_RATE * 100) / 100;
-    const totalAmount = subtotal + gstAmount;
+    const gstAmount = round2(taxable * GST_RATE);
+    const gross = round2(taxable + gstAmount);
+    const walletUsed = dto.useWallet
+      ? round2(Math.min(await this.walletService.balanceOf(customerId), gross))
+      : 0;
+    const totalAmount = round2(gross - walletUsed);
+    // Fully covered by offer + wallet: nothing left to pay online.
+    const fullyCovered = totalAmount === 0;
 
     const savedBooking = await this.dataSource.transaction(async (manager) => {
       const isHomeVisit = dto.collectionMode === CollectionMode.HOME_VISIT;
@@ -158,10 +179,15 @@ export class BookingsService {
         scheduledAt,
         status: BookingStatus.PENDING,
         subtotal,
+        couponCode: coupon?.code ?? null,
+        discountAmount,
+        walletUsed,
         gstAmount,
         totalAmount,
+        paymentStatus: fullyCovered ? PaymentStatus.PAID : PaymentStatus.PENDING,
       });
       const inserted = await manager.save(booking);
+      await this.walletService.debit(manager, customerId, walletUsed, 'Used on a booking', inserted.id);
 
       const bookingItems = items.map((item) =>
         manager.create(BookingItem, { bookingId: inserted.id, ...item }),
@@ -177,6 +203,7 @@ export class BookingsService {
       NotificationType.BOOKING_CREATED,
       `Your booking for ${savedBooking.scheduledAt.toLocaleString('en-IN')} is confirmed. Total: ₹${totalAmount}.`,
     );
+    if (fullyCovered) await this.walletService.rewardReferralIfDue(customerId, savedBooking.id);
 
     return savedBooking;
   }
@@ -374,7 +401,10 @@ export class BookingsService {
       throw new BadRequestException(`Cannot cancel a booking with status ${booking.status}`);
     }
     booking.status = BookingStatus.CANCELLED;
-    return this.bookingsRepo.save(booking);
+    const saved = await this.bookingsRepo.save(booking);
+    // Wallet credit spent on it goes straight back.
+    await this.walletService.refundBooking(booking.customerId, Number(booking.walletUsed), booking.id);
+    return saved;
   }
 
   async updateStatus(id: string, dto: UpdateBookingStatusDto): Promise<Booking> {
@@ -406,8 +436,13 @@ export class BookingsService {
   // as a side effect of a verified payment event.
   async setPaymentStatus(id: string, status: Booking['paymentStatus']): Promise<Booking> {
     const booking = await this.findOne(id);
+    const wasPaid = booking.paymentStatus === PaymentStatus.PAID;
     booking.paymentStatus = status;
-    return this.bookingsRepo.save(booking);
+    const saved = await this.bookingsRepo.save(booking);
+    if (status === PaymentStatus.PAID && !wasPaid) {
+      await this.walletService.rewardReferralIfDue(booking.customerId, booking.id);
+    }
+    return saved;
   }
 
   // Same PostGIS geography distance calculation PickupPointsService uses

@@ -78,6 +78,19 @@ export class Booking {
   gstAmount: number;
 
   // subtotal + gstAmount — what Razorpay actually charges (payments.service.ts).
+  // Offer code applied at checkout and what it took off the subtotal
+  // (GST is charged on the discounted amount).
+  @Column({ name: 'coupon_code', type: 'varchar', length: 30, nullable: true })
+  couponCode?: string | null;
+
+  @Column({ name: 'discount_amount', type: 'numeric', precision: 10, scale: 2, default: 0 })
+  discountAmount: number;
+
+  // Wallet credit spent on this booking — already deducted from
+  // totalAmount, and refunded to the wallet if the booking is cancelled.
+  @Column({ name: 'wallet_used', type: 'numeric', precision: 10, scale: 2, default: 0 })
+  walletUsed: number;
+
   @Column({ name: 'total_amount', type: 'numeric', precision: 10, scale: 2 })
   totalAmount: number;
 

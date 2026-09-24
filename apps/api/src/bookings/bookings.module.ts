@@ -11,6 +11,7 @@ import { CentersModule } from '../centers/centers.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PatientsModule } from '../patients/patients.module';
 import { UsersModule } from '../users/users.module';
+import { RewardsModule } from '../rewards/rewards.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from '../users/users.module';
     NotificationsModule,
     PatientsModule,
     UsersModule,
+    RewardsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService, VisitService],

@@ -255,3 +255,10 @@ export const IconBarcode = icon(
     <line x1="20.5" y1="5" x2="20.5" y2="19" />
   </>,
 );
+
+export const IconTag = icon(
+  <>
+    <path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z" />
+    <circle cx="7.5" cy="7.5" r="1.3" />
+  </>,
+);

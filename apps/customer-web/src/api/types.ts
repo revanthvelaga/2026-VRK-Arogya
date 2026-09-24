@@ -111,6 +111,9 @@ export interface Booking {
   homeLocation?: GeoPoint;
   scheduledAt: string;
   status: BookingStatus;
+  couponCode?: string | null;
+  discountAmount?: string | number;
+  walletUsed?: string | number;
   subtotal: string | number;
   gstAmount: string | number;
   totalAmount: string | number;
@@ -373,4 +376,39 @@ export interface TestFinderResult {
   urgentMessage: string | null;
   suggestions: TestSuggestion[];
   advice: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  description: string;
+  discountType: 'PERCENT' | 'FLAT';
+  value: string | number;
+  maxDiscount?: string | number | null;
+  minOrder: string | number;
+  validUntil?: string | null;
+}
+
+export interface CouponQuote {
+  code: string;
+  description: string;
+  discount: number;
+}
+
+export interface WalletTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  bookingId?: string | null;
+  createdAt: string;
+}
+
+export interface WalletSummary {
+  balance: number;
+  referralCode: string;
+  referralReward: number;
+  referredCount: number;
+  referredBy: boolean;
+  canApplyReferral: boolean;
+  transactions: WalletTransaction[];
 }

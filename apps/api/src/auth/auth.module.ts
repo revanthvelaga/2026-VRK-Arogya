@@ -9,11 +9,13 @@ import { GoogleAuthService } from './google-auth.service';
 import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { UsersModule } from '../users/users.module';
 import { PatientsModule } from '../patients/patients.module';
+import { RewardsModule } from '../rewards/rewards.module';
 
 @Module({
   imports: [
     UsersModule,
     PatientsModule,
+    RewardsModule,
     PassportModule,
     ConfigModule,
     JwtModule.registerAsync({

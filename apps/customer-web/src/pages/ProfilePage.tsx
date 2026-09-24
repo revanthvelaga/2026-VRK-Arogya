@@ -5,6 +5,7 @@ import type { ProfileResponse } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { IconCheckCircle } from '../components/Icons';
+import { ReferEarnCard } from '../components/ReferEarnCard';
 
 export function ProfilePage() {
   const { data: profile, loading, error, reload } = useApi<ProfileResponse>(() => api.get('/users/me'), []);
@@ -115,6 +116,8 @@ export function ProfilePage() {
           {submitting ? 'Saving…' : 'Save profile'}
         </button>
       </form>
+
+      <ReferEarnCard />
     </>
   );
 }

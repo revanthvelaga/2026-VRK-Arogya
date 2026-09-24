@@ -454,10 +454,22 @@ export function BookingDetailPage() {
             <label>Subtotal</label>
             {formatCurrency(booking.subtotal)}
           </div>
+          {Number(booking.discountAmount ?? 0) > 0 && (
+            <div className="field">
+              <label>Offer {booking.couponCode}</label>
+              <span style={{ color: 'var(--green)', fontWeight: 700 }}>−{formatCurrency(booking.discountAmount!)}</span>
+            </div>
+          )}
           <div className="field">
             <label>GST</label>
             {formatCurrency(booking.gstAmount)}
           </div>
+          {Number(booking.walletUsed ?? 0) > 0 && (
+            <div className="field">
+              <label>Wallet credit</label>
+              <span style={{ color: 'var(--green)', fontWeight: 700 }}>−{formatCurrency(booking.walletUsed!)}</span>
+            </div>
+          )}
           <div className="field">
             <label>Total</label>
             <strong>{formatCurrency(booking.totalAmount)}</strong>
@@ -475,9 +487,12 @@ export function BookingDetailPage() {
             </div>
           </div>
         </div>
-        {((booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED') || canCancel) && (
+        {booking.status !== 'CANCELLED' && (
           <div className="action-row">
-            {booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED' && (
+            <Link className="btn" to={`/bookings/${booking.id}/invoice`}>
+              <IconFileText size={15} /> Invoice / 80D receipt
+            </Link>
+            {booking.paymentStatus !== 'PAID' && (
               <PaymentButton booking={booking} onPaid={() => bookingApi.reload()} />
             )}
             {canCancel && (

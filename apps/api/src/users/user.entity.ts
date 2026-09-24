@@ -85,6 +85,21 @@ export class User {
   @Column({ name: 'monthly_salary', type: 'numeric', precision: 10, scale: 2, nullable: true })
   monthlySalary?: number;
 
+  // Refer-and-earn. The code is generated the first time the customer
+  // opens their wallet; the balance only ever moves through
+  // WalletService, which records a WalletTransaction for every change.
+  @Column({ name: 'referral_code', type: 'varchar', length: 12, nullable: true, unique: true })
+  referralCode?: string | null;
+
+  @Column({ name: 'referred_by_id', type: 'varchar', nullable: true })
+  referredById?: string | null;
+
+  @Column({ name: 'referral_rewarded_at', type: 'timestamptz', nullable: true })
+  referralRewardedAt?: Date | null;
+
+  @Column({ name: 'wallet_balance', type: 'numeric', precision: 10, scale: 2, default: 0 })
+  walletBalance: number;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
