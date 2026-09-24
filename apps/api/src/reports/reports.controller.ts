@@ -94,4 +94,9 @@ export class ReportsController {
   findValues(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.reportsService.findValues(id, user);
   }
+
+  @Post('report-values/:id/explain')
+  explain(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.reportsService.explainValue(id, user);
+  }
 }

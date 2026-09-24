@@ -239,3 +239,102 @@ export const IconCreditCard = icon(
     <line x1="2.5" y1="10" x2="21.5" y2="10" />
   </>,
 );
+
+export const IconUpload = icon(
+  <>
+    <path d="M4 15.5v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+    <polyline points="7.5 8 12 3.5 16.5 8" />
+    <line x1="12" y1="3.5" x2="12" y2="15" />
+  </>,
+);
+
+export const IconStethoscope = icon(
+  <>
+    <path d="M5 3.5v5a5 5 0 0010 0v-5" />
+    <path d="M10 13.5v2a4.5 4.5 0 009 0v-2" />
+    <circle cx="19" cy="11.5" r="2" />
+  </>,
+);
+
+export const IconTrend = icon(
+  <>
+    <polyline points="3 17 9 11 13 15 21 7" />
+    <polyline points="15 7 21 7 21 13" />
+  </>,
+);
+
+export const IconUsers = icon(
+  <>
+    <circle cx="9" cy="8" r="3.4" />
+    <path d="M2.5 20a6.5 6.5 0 0113 0" />
+    <path d="M16 4.8a3.4 3.4 0 010 6.4" />
+    <path d="M18.5 14.2a6.5 6.5 0 013 5.8" />
+  </>,
+);
+
+export const IconHeart = icon(
+  <path d="M20.3 5.6a5 5 0 00-7.1 0L12 6.8l-1.2-1.2a5 5 0 00-7.1 7.1l1.2 1.2L12 21l7.1-7.1 1.2-1.2a5 5 0 000-7.1z" />,
+);
+
+export const IconPill = icon(
+  <>
+    <rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)" />
+    <line x1="8.6" y1="8.6" x2="15.4" y2="15.4" />
+  </>,
+);
+
+export const IconTarget = icon(
+  <>
+    <circle cx="12" cy="12" r="9.2" />
+    <circle cx="12" cy="12" r="5.2" />
+    <circle cx="12" cy="12" r="1.3" />
+  </>,
+);
+
+export const IconGift = icon(
+  <>
+    <rect x="3" y="8" width="18" height="4" rx="1" />
+    <path d="M5 12v8h14v-8" />
+    <line x1="12" y1="8" x2="12" y2="20" />
+    <path d="M12 8H8.5a2.3 2.3 0 010-4.5C11 3.5 12 8 12 8z" />
+    <path d="M12 8h3.5a2.3 2.3 0 000-4.5C13 3.5 12 8 12 8z" />
+  </>,
+);
+
+export const IconTag = icon(
+  <>
+    <path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z" />
+    <circle cx="7.5" cy="7.5" r="1.3" />
+  </>,
+);
+
+export const IconShare = icon(
+  <>
+    <circle cx="18" cy="5.5" r="2.7" />
+    <circle cx="6" cy="12" r="2.7" />
+    <circle cx="18" cy="18.5" r="2.7" />
+    <line x1="8.4" y1="13.4" x2="15.6" y2="17.1" />
+    <line x1="15.6" y1="6.9" x2="8.4" y2="10.6" />
+  </>,
+);
+
+export const IconStar = icon(
+  <polygon points="12 2.8 14.8 8.6 21.2 9.5 16.6 14 17.7 20.3 12 17.3 6.3 20.3 7.4 14 2.8 9.5 9.2 8.6 12 2.8" />,
+);
+
+export const IconKey = icon(
+  <>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="M10.7 12.3L20 3" />
+    <path d="M16.5 6.5l3 3" />
+    <path d="M14 9l2 2" />
+  </>,
+);
+
+export const IconPrinter = icon(
+  <>
+    <polyline points="6 9 6 2.5 18 2.5 18 9" />
+    <path d="M6 18H4.5a2 2 0 01-2-2v-5a2 2 0 012-2h15a2 2 0 012 2v5a2 2 0 01-2 2H18" />
+    <rect x="6" y="14" width="12" height="7.5" />
+  </>,
+);

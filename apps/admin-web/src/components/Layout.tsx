@@ -8,6 +8,7 @@ import {
   IconBox,
   IconCalendar,
   IconDashboard,
+  IconFileText,
   IconFlask,
   IconLogout,
   IconMapPin,
@@ -23,6 +24,7 @@ import {
 const ADMIN_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: IconDashboard },
   { to: '/bookings', label: 'Bookings', icon: IconCalendar },
+  { to: '/prescriptions', label: 'Prescriptions', icon: IconFileText },
   { to: '/catalog', label: 'Catalog', icon: IconBox },
   { to: '/centers', label: 'Centers', icon: IconMapPin },
   { to: '/partner-labs', label: 'Partner Labs', icon: IconFlask },

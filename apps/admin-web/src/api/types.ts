@@ -404,3 +404,26 @@ export interface Issue {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface PrescriptionMatch {
+  writtenAs: string;
+  kind: 'test' | 'package' | null;
+  catalogId: string | null;
+  name: string | null;
+  price: number | null;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface PrescriptionRecord {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  fileName: string;
+  mimeType: string;
+  matches: PrescriptionMatch[];
+  notes?: string;
+  doctorName?: string;
+  status: 'NEW' | 'REVIEWED';
+  createdAt: string;
+}

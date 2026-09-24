@@ -326,3 +326,40 @@ export interface RazorpayOrder {
   currency: string;
   keyId: string;
 }
+
+export interface PrescriptionMatch {
+  writtenAs: string;
+  kind: 'test' | 'package' | null;
+  catalogId: string | null;
+  name: string | null;
+  price: number | null;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface Prescription {
+  id: string;
+  customerId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  matches: PrescriptionMatch[];
+  notes?: string;
+  doctorName?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface TestSuggestion {
+  kind: 'test' | 'package';
+  catalogId: string;
+  name: string;
+  price: number;
+  reason: string;
+}
+
+export interface TestFinderResult {
+  urgent: boolean;
+  urgentMessage: string | null;
+  suggestions: TestSuggestion[];
+  advice: string;
+}

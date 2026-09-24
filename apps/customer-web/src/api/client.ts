@@ -58,8 +58,11 @@ async function extractErrorMessage(res: Response, fallback: string): Promise<str
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const session = getSession();
+  // FormData sets its own multipart Content-Type (with the boundary) —
+  // forcing JSON on it would make the upload unparseable server-side.
+  const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isForm ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string> | undefined),
   };
   const hadToken = Boolean(session?.accessToken);
@@ -111,6 +114,7 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
   delete: <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' }),
+  upload: <T>(path: string, form: FormData) => apiRequest<T>(path, { method: 'POST', body: form }),
 };
 
 // Report downloads/views need the same Bearer token as any other

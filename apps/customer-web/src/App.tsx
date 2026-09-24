@@ -14,6 +14,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { SmartBookPage } from './pages/SmartBookPage';
 
 export function App() {
   return (
@@ -29,6 +30,7 @@ export function App() {
               <Route path="/catalog/tests/:id" element={<TestDetailPage />} />
               <Route path="/catalog/packages/:id" element={<PackageDetailPage />} />
               <Route path="/centers" element={<CentersPage />} />
+              <Route path="/find-tests" element={<SmartBookPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="/book" element={<BookingPage />} />
                 <Route path="/bookings" element={<MyBookingsPage />} />

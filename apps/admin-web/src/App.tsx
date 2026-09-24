@@ -15,6 +15,7 @@ import { IssuesPage } from './pages/IssuesPage';
 import { AgentsPage } from './pages/AgentsPage';
 import { AgentDetailPage } from './pages/AgentDetailPage';
 import { SalaryPage } from './pages/SalaryPage';
+import { PrescriptionsPage } from './pages/PrescriptionsPage';
 import { LeavesPage } from './pages/LeavesPage';
 import { ProfilePage } from './pages/ProfilePage';
 
@@ -54,6 +55,7 @@ export function App() {
               <Route path="/salary" element={<SalaryPage />} />
               <Route path="/leaves" element={<LeavesPage />} />
               <Route path="/issues" element={<IssuesPage />} />
+              <Route path="/prescriptions" element={<PrescriptionsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>

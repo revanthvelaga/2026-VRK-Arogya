@@ -6,6 +6,7 @@ import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
+import { TrendChart } from '../components/TrendChart';
 import {
   IconActivity,
   IconAlertTriangle,
@@ -16,6 +17,7 @@ import {
   IconPhone,
   IconShieldCheck,
   IconSparkle,
+  IconTrend,
   IconUser,
 } from '../components/Icons';
 import { formatDateTime, formatNumber } from '../lib/format';
@@ -204,6 +206,152 @@ function HealthScoreGauge({ score, normal, total }: { score: number; normal: num
   );
 }
 
+// "What does this mean?" under a result: a short plain-language
+// explanation written for this exact value. Fetched only when asked for,
+// and kept once loaded.
+function ExplainValue({ valueId }: { valueId: string }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = async () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    if (text) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post<{ explanation: string }>(`/report-values/${valueId}/explain`);
+      setText(res.explanation);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load an explanation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button type="button" className="explain-btn" onClick={toggle}>
+        <IconSparkle size={12} />
+        {open ? 'Hide explanation' : 'What does this mean?'}
+      </button>
+      {open && <div className="explain-box">{loading ? <LoadingLine label="Explaining…" /> : error ?? text}</div>}
+    </>
+  );
+}
+
+interface TrendSeries {
+  key: string;
+  name: string;
+  unit?: string;
+  normalLow?: number;
+  normalHigh?: number;
+  points: Array<{ date: string; value: number; isAbnormal: boolean }>;
+}
+
+// Every parameter measured on two or more reports, oldest reading first.
+function buildTrendSeries(values: MyReportValue[]): TrendSeries[] {
+  const byKey = new Map<string, TrendSeries>();
+  for (const v of values) {
+    const key = v.testId ?? v.testName;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        name: v.testName,
+        unit: v.unit,
+        normalLow: v.normalLow != null ? Number(v.normalLow) : undefined,
+        normalHigh: v.normalHigh != null ? Number(v.normalHigh) : undefined,
+        points: [],
+      });
+    }
+    byKey.get(key)!.points.push({ date: v.reportGeneratedAt, value: Number(v.value), isAbnormal: v.isAbnormal });
+  }
+  return Array.from(byKey.values())
+    .filter((s) => s.points.length >= 2)
+    .map((s) => ({ ...s, points: s.points.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) }));
+}
+
+function TrendsCard({ values }: { values: MyReportValue[] }) {
+  const series = useMemo(() => buildTrendSeries(values), [values]);
+  if (series.length === 0) return null;
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <IconTrend size={16} style={{ color: 'var(--accent-ink)' }} />
+        Your trends
+      </div>
+      <p className="page-sub" style={{ margin: '-4px 0 14px' }}>
+        How each result has changed across reports. Shaded band = normal range.
+      </p>
+      <div className="trend-grid">
+        {series.map((s) => {
+          const latest = s.points[s.points.length - 1];
+          const first = s.points[0];
+          const change = latest.value - first.value;
+          return (
+            <div className="trend-card" key={s.key}>
+              <div className="trend-card-head">
+                <div className="trend-card-name">{s.name}</div>
+                <div className="trend-card-latest">
+                  {formatNumber(latest.value)}
+                  <small>{s.unit ?? ''}</small>
+                </div>
+              </div>
+              <div className="trend-card-sub">
+                {latest.isAbnormal ? (
+                  <>
+                    <IconAlertTriangle size={11} style={{ color: 'var(--red)' }} /> Out of range now
+                  </>
+                ) : (
+                  'Within range now'
+                )}
+                {' · '}
+                {change === 0 ? 'no change' : `${change > 0 ? '+' : ''}${formatNumber(Number(change.toFixed(2)))} since first test`}
+              </div>
+              <TrendChart
+                points={s.points}
+                normalLow={s.normalLow}
+                normalHigh={s.normalHigh}
+                unit={s.unit}
+                label={s.name}
+              />
+              <details>
+                <summary>View as table</summary>
+                <table className="trend-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.points.map((p, i) => (
+                      <tr key={p.date + i}>
+                        <td>{formatDateTime(p.date).split(',')[0]}</td>
+                        <td>{p.isAbnormal ? 'Out of range' : 'Normal'}</td>
+                        <td>
+                          {formatNumber(p.value)} {s.unit ?? ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ReportDetailCard({ group }: { group: ReportGroup }) {
   const [downloading, setDownloading] = useState(false);
   const [viewing, setViewing] = useState(false);
@@ -273,6 +421,7 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
                   </div>
                 )}
                 {v.category && <div className="insight-param-category">{v.category}</div>}
+                <ExplainValue valueId={v.id} />
               </div>
               <div className="insight-value-trend">
                 {hasTrend && (
@@ -506,6 +655,8 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
       </div>
 
       {selectedGroup && <ReportDetailCard group={selectedGroup} />}
+
+      <TrendsCard values={values} />
 
       <HealthRecommendationCard patientId={patientId} />
     </>

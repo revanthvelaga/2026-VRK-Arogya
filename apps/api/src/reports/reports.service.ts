@@ -13,6 +13,7 @@ import { NotificationType } from '../common/enums/notification-type.enum';
 import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { TestsService } from '../catalog/tests.service';
+import { AiService } from '../ai/ai.service';
 
 export type PublicReport = Omit<Report, 'fileData' | 'booking'>;
 
@@ -51,6 +52,7 @@ export class ReportsService {
     private readonly notificationsService: NotificationsService,
     private readonly testsService: TestsService,
     private readonly config: ConfigService,
+    private readonly ai: AiService,
   ) {
     const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
     this.anthropic = apiKey ? new Anthropic({ apiKey }) : null;
@@ -345,5 +347,50 @@ export class ReportsService {
         };
       }),
     );
+  }
+
+  // An explanation is the same for everyone looking at the same value, so
+  // it's cached for the life of the process rather than paid for each time
+  // the card is opened.
+  private readonly explanationCache = new Map<string, string>();
+
+  // "What does this number mean?" for one result, in plain words. General
+  // education only — no diagnosis, no drugs.
+  async explainValue(valueId: string, user: AuthenticatedUser): Promise<{ explanation: string }> {
+    const value = await this.reportValuesRepo.findOne({ where: { id: valueId } });
+    if (!value) throw new NotFoundException('Result not found');
+    const report = await this.reportsRepo.findOne({ where: { id: value.reportId }, select: METADATA_COLUMNS });
+    if (!report) throw new NotFoundException('Report not found');
+    await this.assertCanViewReports(report.bookingId, user);
+
+    const cached = this.explanationCache.get(valueId);
+    if (cached) return { explanation: cached };
+
+    const range =
+      value.normalLow != null && value.normalHigh != null
+        ? `normal range ${value.normalLow}–${value.normalHigh} ${value.unit ?? ''}`
+        : 'no reference range recorded';
+    const status = value.isAbnormal
+      ? Number(value.value) < Number(value.normalLow ?? -Infinity)
+        ? 'BELOW the normal range'
+        : 'ABOVE the normal range'
+      : 'within the normal range';
+
+    const explanation = await this.ai.text({
+      system:
+        'You explain one lab result to a patient of an Indian diagnostic lab in simple, warm language a ' +
+        'non-medical reader understands. Structure: what this test measures (1 sentence); what their value ' +
+        'means (1-2 sentences); 2-3 short general lifestyle tips if it is out of range; one line suggesting ' +
+        'questions to ask their doctor. Never diagnose, never name medicines or doses, no alarming tone. ' +
+        'Under 120 words. Plain text with short lines, no markdown headings.',
+      prompt: `Test: ${value.testName}${value.category ? ` (${value.category})` : ''}
+Result: ${value.value} ${value.unit ?? ''}
+${range}
+This result is ${status}.`,
+      maxTokens: 1200,
+    });
+
+    this.explanationCache.set(valueId, explanation);
+    return { explanation };
   }
 }

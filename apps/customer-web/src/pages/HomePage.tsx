@@ -21,6 +21,8 @@ import {
   IconPlus,
   IconSearch,
   IconShieldCheck,
+  IconStethoscope,
+  IconUpload,
 } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 
@@ -151,6 +153,27 @@ export function HomePage() {
       <div className="search-bar" onClick={() => navigate('/catalog')}>
         <IconSearch size={16} />
         Search for a test, package, or center…
+      </div>
+
+      <div className="smart-cta-row">
+        <Link className="smart-cta rx" to="/find-tests?tab=rx">
+          <span className="smart-cta-icon">
+            <IconUpload size={20} />
+          </span>
+          <span>
+            <b>Upload prescription</b>
+            <small>We read it and add the right tests</small>
+          </span>
+        </Link>
+        <Link className="smart-cta symptoms" to="/find-tests?tab=symptoms">
+          <span className="smart-cta-icon">
+            <IconStethoscope size={20} />
+          </span>
+          <span>
+            <b>Not sure which test?</b>
+            <small>Describe symptoms, get suggestions</small>
+          </span>
+        </Link>
       </div>
 
       <div className="quick-actions">
