@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
@@ -9,6 +9,7 @@ import { openRazorpayCheckout } from '../lib/razorpay';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleProgress } from '../components/SampleProgress';
 import { LoadingLine } from '../components/Spinner';
+import { GuaranteeNote, PreparationCard, RateAgentCard, VisitStatusCard } from '../components/VisitCards';
 import {
   IconArrowLeft,
   IconClock,
@@ -392,6 +393,16 @@ export function BookingDetailPage() {
   const samples = samplesApi.data ?? [];
   const canCancel = booking && (booking.status === 'PENDING' || booking.status === 'CONFIRMED');
 
+  // While the agent is on the way, refresh every 30s so check-in at the
+  // door shows up without the customer having to reload.
+  const enRoute = Boolean(booking?.agentEnRouteAt && !booking?.agentArrivedAt);
+  useEffect(() => {
+    if (!enRoute) return;
+    const t = setInterval(() => bookingApi.reload(), 30_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enRoute]);
+
   const cancel = async () => {
     if (!confirm('Cancel this booking?')) return;
     setCancelling(true);
@@ -425,6 +436,8 @@ export function BookingDetailPage() {
       </div>
 
       {actionError && <div className="error-banner">{actionError}</div>}
+
+      <VisitStatusCard booking={booking} />
 
       <div className="card">
         <div className="card-title">Details</div>
@@ -478,6 +491,8 @@ export function BookingDetailPage() {
 
       <CollectionCard booking={booking} />
 
+      <PreparationCard booking={booking} />
+
       <div className="section-title">Sample tracking</div>
       {samplesApi.loading && <LoadingLine label="Loading samples…" />}
       {!samplesApi.loading && samples.length === 0 && (
@@ -490,6 +505,14 @@ export function BookingDetailPage() {
       {samples.map((s) => (
         <SampleCard key={s.id} sample={s} />
       ))}
+      <GuaranteeNote />
+
+      <RateAgentCard
+        key={booking.myRating ? `rated-${booking.myRating.rating}` : 'unrated'}
+        booking={booking}
+        canRate={Boolean(booking.agentArrivedAt) || samples.some((s) => s.collectedAt)}
+        onSaved={() => bookingApi.reload()}
+      />
 
       <ReportsSection bookingId={id} />
 

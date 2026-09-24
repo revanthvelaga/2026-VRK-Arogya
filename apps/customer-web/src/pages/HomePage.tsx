@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
@@ -92,6 +93,7 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
     <div className="rich-card carousel-card">
       <div className={`rich-card-art ${artFor(pkg.id + index)}`}>
         <IconBox size={28} />
+        {pkg.tier && <span className={`tier-ribbon tier-${pkg.tier.toLowerCase()}`}>{TIER_LABEL[pkg.tier]}</span>}
       </div>
       <div className="rich-card-body">
         <h3>{pkg.name}</h3>
@@ -252,6 +254,10 @@ export function HomePage() {
         <div className="trust-item">
           <IconCalendar size={17} />
           Book in under 2 minutes
+        </div>
+        <div className="trust-item">
+          <IconCheckCircle size={17} />
+          Free recollection guarantee
         </div>
       </div>
 

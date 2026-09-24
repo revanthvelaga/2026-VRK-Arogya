@@ -2,6 +2,7 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -34,4 +35,9 @@ export class CreatePackageDto {
   @IsOptional()
   @IsEnum(Audience)
   audience?: Audience;
+
+  // '' clears the tier on update.
+  @IsOptional()
+  @IsIn(['BASIC', 'STANDARD', 'PREMIUM', ''])
+  tier?: string;
 }

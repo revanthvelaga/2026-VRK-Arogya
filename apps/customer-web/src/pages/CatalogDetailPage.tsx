@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { buildVisitPlan, TIER_LABEL } from '../lib/visitPlan';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import {
@@ -257,6 +258,13 @@ export function PackageDetailPage() {
         meta={`Contains ${tests.length} test${tests.length === 1 ? '' : 's'}`}
       />
 
+      {pkg.tier && (
+        <div className={`tier-banner tier-${pkg.tier.toLowerCase()}`}>
+          <span className="tier-banner-name">{TIER_LABEL[pkg.tier]} checkup</span>
+          <Link to="/compare">Compare Basic · Standard · Premium →</Link>
+        </div>
+      )}
+
       <div className="detail-info-grid">
         <InfoCard icon={<IconBox size={18} />} label="Contains" value={`${tests.length} tests`} />
         {maxTurnaround != null && (
@@ -271,6 +279,21 @@ export function PackageDetailPage() {
         <div className="card">
           <div className="card-title">Know more about this package</div>
           <ExpandableText text={pkg.description} />
+        </div>
+      )}
+
+      {tests.length > 0 && (
+        <div className="card">
+          <div className="card-title">Your checkup day</div>
+          <ol className="visit-plan">
+            {buildVisitPlan(tests).map((step) => (
+              <li key={step.when}>
+                <span className="visit-plan-when">{step.when}</span>
+                <b>{step.title}</b>
+                <span>{step.detail}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 

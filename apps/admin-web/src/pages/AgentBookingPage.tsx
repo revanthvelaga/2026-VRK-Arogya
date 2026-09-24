@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Booking, BookingItem, Package, PartnerLab, Sample, Test } from '../api/types';
@@ -6,6 +6,7 @@ import { SAMPLE_TRANSITIONS } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleCollectionCard } from '../components/SampleCollectionCard';
+import { VisitCheckInCard } from '../components/VisitCheckInCard';
 import { LoadingLine } from '../components/Spinner';
 import { IconArrowLeft, IconFlask, IconPlus } from '../components/Icons';
 import { bookingStatusVariant, statusLabel } from '../lib/format';
@@ -63,9 +64,15 @@ export function AgentBookingPage() {
     return 'Item';
   };
 
+  const [startError, setStartError] = useState<string | null>(null);
   const initializeSamples = async () => {
-    await api.post(`/bookings/${id}/samples`);
-    samplesApi.reload();
+    setStartError(null);
+    try {
+      await api.post(`/bookings/${id}/samples`);
+      samplesApi.reload();
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : 'Could not start collection');
+    }
   };
 
   if (bookingApi.loading) return <LoadingLine label="Loading booking…" />;
@@ -85,6 +92,10 @@ export function AgentBookingPage() {
         </div>
         <StatusBadge status={booking.status} variant={bookingStatusVariant(booking.status)} />
       </div>
+
+      {booking.collectionMode === 'HOME_VISIT' && booking.status !== 'CANCELLED' && booking.status !== 'COMPLETED' && (
+        <VisitCheckInCard booking={booking} onChange={() => bookingApi.reload()} />
+      )}
 
       <div className="people-grid">
         <div className="card people-card">
@@ -139,6 +150,16 @@ export function AgentBookingPage() {
             ))}
           </ul>
         )}
+        {booking.preparation && booking.preparation.length > 0 && (
+          <div className="prep-mini">
+            <div className="prep-mini-title">Customer was asked to prepare</div>
+            {booking.preparation.map((p) => (
+              <div key={p.testName}>
+                <b>{p.testName}:</b> {p.instructions}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="section-title">Samples</div>
@@ -153,10 +174,24 @@ export function AgentBookingPage() {
               Not started yet for this booking.
             </p>
           </div>
-          <button className="btn btn-primary btn-small" onClick={initializeSamples}>
+          <button
+            className="btn btn-primary btn-small"
+            onClick={initializeSamples}
+            disabled={booking.collectionMode === 'HOME_VISIT' && !booking.agentArrivedAt}
+          >
             <IconPlus size={14} />
             Start collection
           </button>
+          {booking.collectionMode === 'HOME_VISIT' && !booking.agentArrivedAt && (
+            <p className="page-sub" style={{ margin: '8px 0 0', fontSize: 12 }}>
+              Check in with the customer's door code first.
+            </p>
+          )}
+          {startError && (
+            <div className="error-banner" style={{ marginTop: 10 }}>
+              {startError}
+            </div>
+          )}
         </div>
       )}
       {samples.map((s) => (

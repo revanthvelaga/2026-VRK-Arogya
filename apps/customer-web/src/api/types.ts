@@ -123,6 +123,14 @@ export interface Booking {
   centerAddress?: string;
   pickupPointName?: string;
   assignedAgent?: BookingAgent;
+  agentEnRouteAt?: string;
+  agentEtaAt?: string;
+  agentArrivedAt?: string;
+  // Only ever present on the customer's own booking, while the agent is
+  // on the way.
+  doorOtp?: string;
+  preparation?: Array<{ testName: string; instructions: string }>;
+  myRating?: { rating: number; comment?: string };
 }
 
 export interface BookingAgent {
@@ -183,10 +191,13 @@ export interface Package {
   description?: string;
   price: string | number;
   audience: Audience;
+  tier?: PackageTier | null;
   isActive: boolean;
   createdAt: string;
   tests?: Test[];
 }
+
+export type PackageTier = 'BASIC' | 'STANDARD' | 'PREMIUM';
 
 export interface GeoPoint {
   type: 'Point';

@@ -12,6 +12,8 @@ import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { AssignAgentDto } from './dto/assign-agent.dto';
+import { EnRouteDto, RateAgentDto, VerifyDoorOtpDto } from './dto/visit.dto';
+import { VisitService } from './visit.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -22,7 +24,10 @@ import { AuthenticatedUser } from '../common/types/authenticated-user';
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)
 export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
+  constructor(
+    private readonly bookingsService: BookingsService,
+    private readonly visitService: VisitService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBookingDto) {
@@ -53,8 +58,9 @@ export class BookingsController {
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.bookingsService.findOneDetailed(id, user);
+  async findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    const booking = await this.bookingsService.findOneDetailed(id, user);
+    return this.visitService.decorateForCustomer(booking, user);
   }
 
   @Patch(':id/cancel')
@@ -74,5 +80,26 @@ export class BookingsController {
   @Patch(':id/agent')
   assignAgent(@Param('id') id: string, @Body() dto: AssignAgentDto) {
     return this.bookingsService.assignAgent(id, dto.agentId);
+  }
+
+  // The assigned agent sets off for a home visit: records an ETA and sends
+  // the customer a door code.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Patch(':id/en-route')
+  enRoute(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: EnRouteDto) {
+    return this.visitService.markEnRoute(id, dto.etaMinutes, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Post(':id/verify-otp')
+  verifyOtp(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: VerifyDoorOtpDto) {
+    return this.visitService.verifyDoorOtp(id, dto.otp, user);
+  }
+
+  @Post(':id/rating')
+  rate(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: RateAgentDto) {
+    return this.visitService.rateAgent(id, dto.rating, dto.comment, user);
   }
 }

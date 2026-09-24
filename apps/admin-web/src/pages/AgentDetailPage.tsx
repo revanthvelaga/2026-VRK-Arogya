@@ -290,7 +290,33 @@ export function AgentDetailPage() {
           <div className="n">{performance.safetyCompliantCount}</div>
           <div className="l">Fully compliant</div>
         </div>
+        <div className="stat-tile">
+          <div className="n">
+            {performance.ratingAverage != null ? `${performance.ratingAverage.toFixed(1)}★` : '—'}
+          </div>
+          <div className="l">
+            Customer rating{performance.ratingCount ? ` (${performance.ratingCount})` : ''}
+          </div>
+        </div>
       </div>
+
+      {performance.recentRatings.length > 0 && (
+        <div className="card">
+          <div className="card-title">What customers said</div>
+          {performance.recentRatings.map((r) => (
+            <div key={r.bookingId} className="rating-row">
+              <span className="rating-stars" aria-label={`${r.rating} out of 5`}>
+                {'★'.repeat(r.rating)}
+                <span style={{ color: 'var(--line-strong)' }}>{'★'.repeat(5 - r.rating)}</span>
+              </span>
+              <span className="rating-comment">{r.comment ?? <i>No comment</i>}</span>
+              <Link className="rating-date" to={`/bookings/${r.bookingId}`}>
+                {formatDateTime(r.createdAt).split(',')[0]}
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
 
       {performance.totalCollections === 0 ? (
         <div className="card">

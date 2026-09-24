@@ -264,6 +264,7 @@ function PackageFormModal({
   const [centerId, setCenterId] = useState(initial?.centerId ?? '');
   const [testIds, setTestIds] = useState<string[]>(initial?.tests?.map((t) => t.id) ?? []);
   const [audience, setAudience] = useState<Audience>(initial?.audience ?? 'EVERYONE');
+  const [tier, setTier] = useState<string>(initial?.tier ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -286,6 +287,7 @@ function PackageFormModal({
         centerId: centerId || undefined,
         testIds,
         audience,
+        tier,
       };
       if (initial) await api.patch(`/catalog/packages/${initial.id}`, body);
       else await api.post('/catalog/packages', body);
@@ -341,6 +343,15 @@ function PackageFormModal({
                   {o.label}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Checkup tier</label>
+            <select value={tier} onChange={(e) => setTier(e.target.value)}>
+              <option value="">Not a tier package</option>
+              <option value="BASIC">Basic</option>
+              <option value="STANDARD">Standard</option>
+              <option value="PREMIUM">Premium</option>
             </select>
           </div>
           <div className="field field-full">
@@ -550,6 +561,11 @@ function PackagesPanel({ centers }: { centers: DiagnosticCenter[] }) {
                 <tr key={p.id}>
                   <td>
                     {p.name}
+                    {p.tier && (
+                      <span className="badge badge-amber" style={{ marginLeft: 8 }}>
+                        {p.tier.charAt(0) + p.tier.slice(1).toLowerCase()}
+                      </span>
+                    )}
                     {p.description && (
                       <div className="page-sub" style={{ margin: 0 }}>
                         {p.description}

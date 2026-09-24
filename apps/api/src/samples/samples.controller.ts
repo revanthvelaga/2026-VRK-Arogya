@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SamplesService } from './samples.service';
+import { VisitService } from '../bookings/visit.service';
 import { UpdateSampleStatusDto } from './dto/update-sample-status.dto';
 import { UploadSampleImageDto } from './dto/upload-sample-image.dto';
 import { sampleImageMulterOptions } from './samples.multer-options';
@@ -30,12 +31,16 @@ import { AuthenticatedUser } from '../common/types/authenticated-user';
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class SamplesController {
-  constructor(private readonly samplesService: SamplesService) {}
+  constructor(
+    private readonly samplesService: SamplesService,
+    private readonly visitService: VisitService,
+  ) {}
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Post('bookings/:bookingId/samples')
-  initialize(@Param('bookingId') bookingId: string) {
+  async initialize(@CurrentUser() user: AuthenticatedUser, @Param('bookingId') bookingId: string) {
+    await this.visitService.assertReadyToCollect(bookingId, user);
     return this.samplesService.initializeForBooking(bookingId);
   }
 

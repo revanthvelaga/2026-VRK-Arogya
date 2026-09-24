@@ -42,6 +42,8 @@ export class PackagesService {
       description: dto.description,
       price: dto.price,
       centerId: dto.centerId,
+      audience: dto.audience,
+      tier: dto.tier || null,
       tests,
     });
     return this.packagesRepo.save(pkg);
@@ -49,8 +51,9 @@ export class PackagesService {
 
   async update(id: string, dto: UpdatePackageDto): Promise<Package> {
     const pkg = await this.findOne(id);
-    const { testIds, ...rest } = dto;
+    const { testIds, tier, ...rest } = dto;
     Object.assign(pkg, rest);
+    if (tier !== undefined) pkg.tier = tier || null;
     if (testIds) {
       pkg.tests = await this.testsRepo.findBy({ id: In(testIds) });
     }

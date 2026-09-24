@@ -29,6 +29,13 @@ export class Package {
   @Column({ type: 'enum', enum: Audience, default: Audience.EVERYONE })
   audience: Audience;
 
+  // BASIC / STANDARD / PREMIUM — how full-body checkups are presented as
+  // a ladder (Japan's "ningen dock" style), so a customer can compare
+  // levels instead of reading one long list of packages. Null for
+  // packages that aren't part of the ladder.
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  tier?: string | null;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

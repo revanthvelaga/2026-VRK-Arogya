@@ -89,6 +89,32 @@ export class Booking {
   })
   paymentStatus: PaymentStatus;
 
+  // The home-visit handshake. The agent taps "On my way" (en route + ETA),
+  // which issues a 4-digit door code to the customer; at the door the
+  // agent enters the code the customer reads out, proving they're at the
+  // right home before any sample is drawn. The code is never selected by
+  // default so it can't leak through a list or an agent's booking view —
+  // only the booking's own customer is ever shown it.
+  @Column({ name: 'agent_en_route_at', type: 'timestamptz', nullable: true })
+  agentEnRouteAt?: Date;
+
+  @Column({ name: 'agent_eta_at', type: 'timestamptz', nullable: true })
+  agentEtaAt?: Date;
+
+  @Column({ name: 'agent_arrived_at', type: 'timestamptz', nullable: true })
+  agentArrivedAt?: Date;
+
+  @Column({ name: 'door_otp', type: 'varchar', length: 6, nullable: true, select: false })
+  doorOtp?: string | null;
+
+  @Column({ name: 'door_otp_attempts', type: 'integer', default: 0, select: false })
+  doorOtpAttempts?: number;
+
+  // Set once the "prepare for your test" reminder has gone out, so the
+  // scheduler never sends it twice.
+  @Column({ name: 'prep_reminder_sent_at', type: 'timestamptz', nullable: true })
+  prepReminderSentAt?: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

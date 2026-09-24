@@ -117,6 +117,9 @@ export interface AgentDetail {
     safetyCompliantCount: number;
     safetyComplianceRate: number; // 0-100, rounded — all three checklist items true
     recent: AgentCollectionRecord[];
+    ratingAverage: number | null; // 1-5, one decimal; null until rated
+    ratingCount: number;
+    recentRatings: Array<{ bookingId: string; rating: number; comment?: string; createdAt: Date }>;
   };
   upcoming: AgentUpcomingBooking[];
 }
@@ -511,6 +514,14 @@ export class UsersService {
       (r) => r.safety_id_verified && r.safety_ppe_used && r.safety_hygiene_followed,
     ).length;
 
+    const ratingRows = (await this.dataSource.query(
+      `SELECT booking_id, rating, comment, created_at FROM agent_ratings WHERE agent_id = $1 ORDER BY created_at DESC`,
+      [id],
+    )) as Array<{ booking_id: string; rating: number; comment: string | null; created_at: Date }>;
+    const ratingAverage = ratingRows.length
+      ? Math.round((ratingRows.reduce((sum, r) => sum + Number(r.rating), 0) / ratingRows.length) * 10) / 10
+      : null;
+
     const upcomingRows = (await this.dataSource.query(
       `SELECT b.id AS booking_id, b.scheduled_at, b.status, b.collection_mode, c.name AS center_name
          FROM bookings b
@@ -548,6 +559,14 @@ export class UsersService {
           safetyIdVerified: r.safety_id_verified,
           safetyPpeUsed: r.safety_ppe_used,
           safetyHygieneFollowed: r.safety_hygiene_followed,
+        })),
+        ratingAverage,
+        ratingCount: ratingRows.length,
+        recentRatings: ratingRows.slice(0, 10).map((r) => ({
+          bookingId: r.booking_id,
+          rating: Number(r.rating),
+          comment: r.comment ?? undefined,
+          createdAt: r.created_at,
         })),
       },
       upcoming: upcomingRows.map((r) => ({

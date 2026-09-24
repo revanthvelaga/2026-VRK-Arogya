@@ -2210,6 +2210,482 @@ a.suggest-name:hover {
   margin-top: 2px;
 }
 
+
+/* ---------- Home visit: live status, door code, prep, rating ---------- */
+.visit-live {
+  background: linear-gradient(135deg, #e3f6f4, #eaf0fe);
+  border: 1px solid var(--accent-soft-strong);
+}
+
+.visit-live.done {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--green-soft);
+  border-color: rgba(26, 138, 74, 0.2);
+}
+
+.visit-live-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.visit-live-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent-ink);
+  position: relative;
+}
+
+.visit-live.done .visit-live-icon {
+  color: var(--green);
+}
+
+.visit-live-icon.pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  border: 2px solid var(--accent-a);
+  animation: visitPulse 1.8s ease-out infinite;
+}
+
+@keyframes visitPulse {
+  from {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visit-live-icon.pulse::after {
+    animation: none;
+  }
+}
+
+.visit-live-title {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.visit-live-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.door-code {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+.door-code-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.door-code-digits {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.door-code-digits span {
+  width: 48px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.prep-highlight {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.prep-list {
+  display: grid;
+}
+
+.prep-item {
+  display: grid;
+  gap: 2px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.prep-item:last-child {
+  border-bottom: 0;
+}
+
+.prep-item span {
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.star-input {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star-input button {
+  border: 0;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--line-strong);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.star-input button:disabled {
+  cursor: default;
+}
+
+.star-input button.on {
+  color: var(--gold);
+}
+
+.star-input button.on svg {
+  fill: currentColor;
+}
+
+.star-input button:not(:disabled):hover {
+  transform: scale(1.12);
+}
+
+.rating-textarea {
+  width: 100%;
+  margin-top: 10px;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  resize: vertical;
+}
+
+.guarantee-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+  margin: 4px 0 18px;
+  border-radius: 12px;
+  background: var(--green-soft);
+}
+
+.guarantee-note svg {
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.guarantee-note b {
+  color: var(--ink);
+}
+
+
+/* ---------- Package tiers + visit plan ---------- */
+.rich-card-art {
+  position: relative;
+}
+
+.tier-ribbon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  box-shadow: 0 4px 12px -6px rgba(16, 24, 44, 0.4);
+}
+
+.tier-ribbon.tier-premium,
+.tier-banner.tier-premium .tier-banner-name {
+  background: linear-gradient(120deg, #c8902f, #e8c26a);
+  color: #fff;
+}
+
+.tier-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -4px 0 14px;
+}
+
+.tier-banner-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.tier-banner a {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.visit-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.visit-plan li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 0 0 16px 26px;
+  font-size: 13px;
+}
+
+.visit-plan li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2.5px solid var(--accent);
+}
+
+.visit-plan li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 18px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--accent-soft-strong);
+}
+
+.visit-plan li:last-child {
+  padding-bottom: 0;
+}
+
+.visit-plan-when {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.visit-plan li b {
+  font-size: 14px;
+}
+
+.visit-plan li span:last-child {
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+
+/* ---------- Package comparison ---------- */
+
+.compare-link {
+  display: inline-block;
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.compare-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  -webkit-overflow-scrolling: touch;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.compare-table thead th {
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 118px;
+}
+
+.compare-table th,
+.compare-table td {
+  white-space: normal;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.compare-table th:first-child,
+.compare-table td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  z-index: 1;
+  min-width: 112px;
+  max-width: 170px;
+  box-shadow: 1px 0 0 var(--line);
+}
+
+.compare-table td:first-child a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.compare-table thead th {
+  vertical-align: top;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.compare-table thead th.tier-premium {
+  background: linear-gradient(180deg, #faf0dc, var(--surface));
+}
+
+.compare-tier {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+
+.tier-premium .compare-tier {
+  background: linear-gradient(120deg, #c8902f, #e8c26a);
+  color: #fff;
+}
+
+.compare-name {
+  display: block;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.compare-price {
+  font-weight: 800;
+  font-size: 16px;
+  margin: 4px 0 8px;
+}
+
+.compare-meta td {
+  background: var(--surface-2);
+  font-size: 12.5px;
+}
+
+.compare-meta td:first-child {
+  background: var(--surface-2);
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.compare-table td.yes {
+  color: var(--green);
+}
+
+.compare-table td.no {
+  color: var(--ink-faint);
+}
+
+.compare-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .compare-table th,
+  .compare-table td {
+    padding: 9px 6px;
+    font-size: 12px;
+  }
+  .compare-table thead th {
+    font-size: 12px;
+    min-width: 84px;
+  }
+  .compare-table th:first-child,
+  .compare-table td:first-child {
+    min-width: 92px;
+    max-width: 110px;
+  }
+  .compare-name {
+    font-size: 12.5px !important;
+  }
+  .compare-price {
+    font-size: 14px !important;
+  }
+  .compare-table .add-btn {
+    padding: 5px 9px;
+    font-size: 11.5px;
+  }
+}
+
 /* ---------- Insights: explanations, doctor note, trends ---------- */
 .explain-btn {
   display: inline-flex;

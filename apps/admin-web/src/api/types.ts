@@ -87,6 +87,12 @@ export interface Booking {
   centerAddress?: string;
   pickupPointName?: string;
   assignedAgent?: BookingAgent;
+  // Home-visit check-in: the agent taps "On my way", then enters the
+  // customer's door code on arrival.
+  agentEnRouteAt?: string;
+  agentEtaAt?: string;
+  agentArrivedAt?: string;
+  preparation?: Array<{ testName: string; instructions: string }>;
 }
 
 export interface BookingCustomer {
@@ -209,6 +215,9 @@ export interface AgentDetail {
     safetyCompliantCount: number;
     safetyComplianceRate: number;
     recent: AgentCollectionRecord[];
+    ratingAverage: number | null;
+    ratingCount: number;
+    recentRatings: Array<{ bookingId: string; rating: number; comment?: string; createdAt: string }>;
   };
   upcoming: AgentUpcomingBooking[];
 }
@@ -292,6 +301,7 @@ export interface Package {
   description?: string;
   price: string | number;
   audience: Audience;
+  tier?: 'BASIC' | 'STANDARD' | 'PREMIUM' | null;
   isActive: boolean;
   createdAt: string;
   tests?: Test[];

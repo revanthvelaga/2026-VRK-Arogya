@@ -1063,6 +1063,167 @@ a.hero-chip:hover {
   stroke-linejoin: round;
 }
 
+
+/* ---------- Agent visit check-in ---------- */
+.visit-card {
+  border: 1px solid var(--accent-soft-strong);
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface) 55%);
+}
+
+.visit-steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.visit-step {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+}
+
+.visit-step.on {
+  color: var(--accent-ink);
+  border-color: var(--accent-soft-strong);
+}
+
+.visit-step.done {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.visit-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.eta-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.eta-chip {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.eta-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.visit-cta {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: 14.5px;
+}
+
+.otp-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.otp-input {
+  width: 140px;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.link-btn {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.prep-mini {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.prep-mini-title {
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.rating-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.rating-row:last-child {
+  border-bottom: 0;
+}
+
+.rating-comment {
+  flex: 1;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.rating-date {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.rating-stars {
+  display: inline-flex;
+  gap: 2px;
+  color: var(--gold);
+  vertical-align: middle;
+}
+
 @media (max-width: 720px) {
   .hero-inner {
     flex-direction: column;

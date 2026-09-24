@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Audience, Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { TIER_LABEL } from '../lib/visitPlan';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
@@ -137,6 +138,7 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
     <div className="rich-card carousel-card">
       <div className={`rich-card-art ${artFor(pkg.id + index)}`}>
         <IconBox size={30} />
+        {pkg.tier && <span className={`tier-ribbon tier-${pkg.tier.toLowerCase()}`}>{TIER_LABEL[pkg.tier]}</span>}
       </div>
       <div className="rich-card-body">
         <Link to={`/catalog/packages/${pkg.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -269,11 +271,18 @@ function PackagesSection({ audience }: { audience: Audience | null }) {
   }
 
   return (
-    <div className="catalog-grid">
-      {filtered.map((p, i) => (
-        <PackageCard pkg={p} key={p.id} index={i} />
-      ))}
-    </div>
+    <>
+      {filtered.length >= 2 && (
+        <Link className="compare-link" to="/compare">
+          Compare packages side by side →
+        </Link>
+      )}
+      <div className="catalog-grid">
+        {filtered.map((p, i) => (
+          <PackageCard pkg={p} key={p.id} index={i} />
+        ))}
+      </div>
+    </>
   );
 }
 
