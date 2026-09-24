@@ -131,7 +131,7 @@ export function AgentsPage() {
             </thead>
             <tbody>
               {(staff ?? []).map((s) => (
-                <tr key={s.id} className="row-link" onClick={() => navigate(`/agents/${s.id}`)}>
+                <tr key={s.id} className="row-link" onClick={() => navigate(`/staff/${s.id}`)}>
                   <td>
                     <span className="person-cell">
                       <span className="person-avatar">{s.fullName.charAt(0).toUpperCase()}</span>

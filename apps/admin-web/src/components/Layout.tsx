@@ -14,6 +14,7 @@ import {
   IconPlus,
   IconTruck,
   IconUser,
+  IconWallet,
 } from './Icons';
 
 const ADMIN_NAV_ITEMS = [
@@ -22,7 +23,9 @@ const ADMIN_NAV_ITEMS = [
   { to: '/catalog', label: 'Catalog', icon: IconBox },
   { to: '/centers', label: 'Centers', icon: IconMapPin },
   { to: '/partner-labs', label: 'Partner Labs', icon: IconFlask },
-  { to: '/agents', label: 'Agents', icon: IconTruck },
+  { to: '/staff', label: 'Staff', icon: IconTruck },
+  { to: '/salary', label: 'Salary', icon: IconWallet },
+  { to: '/leaves', label: 'Leaves', icon: IconCalendar },
   { to: '/issues', label: 'Issues', icon: IconMessage },
   { to: '/profile', label: 'My Profile', icon: IconUser },
 ];

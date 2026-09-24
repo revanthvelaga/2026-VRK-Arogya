@@ -14,6 +14,8 @@ import { PartnerLabsPage } from './pages/PartnerLabsPage';
 import { IssuesPage } from './pages/IssuesPage';
 import { AgentsPage } from './pages/AgentsPage';
 import { AgentDetailPage } from './pages/AgentDetailPage';
+import { SalaryPage } from './pages/SalaryPage';
+import { LeavesPage } from './pages/LeavesPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 // STAFF (a field agent) lands on their own queue; ADMIN gets the full
@@ -47,8 +49,10 @@ export function App() {
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/centers" element={<CentersPage />} />
               <Route path="/partner-labs" element={<PartnerLabsPage />} />
-              <Route path="/agents" element={<AgentsPage />} />
-              <Route path="/agents/:id" element={<AgentDetailPage />} />
+              <Route path="/staff" element={<AgentsPage />} />
+              <Route path="/staff/:id" element={<AgentDetailPage />} />
+              <Route path="/salary" element={<SalaryPage />} />
+              <Route path="/leaves" element={<LeavesPage />} />
               <Route path="/issues" element={<IssuesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>

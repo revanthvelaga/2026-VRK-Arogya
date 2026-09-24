@@ -223,6 +223,13 @@ export const IconShieldCheck = icon(
   </>,
 );
 
+export const IconWallet = icon(
+  <>
+    <path d="M3 7.5A2.5 2.5 0 015.5 5h11A2.5 2.5 0 0119 7.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 013 16.5v-9z" />
+    <path d="M15.5 12.5a1.5 1.5 0 100-3h-4a1.5 1.5 0 000 3h4z" />
+  </>,
+);
+
 export const IconBarcode = icon(
   <>
     <line x1="4" y1="5" x2="4" y2="19" />

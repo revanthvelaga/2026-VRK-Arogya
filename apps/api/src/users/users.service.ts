@@ -12,7 +12,9 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RequestLeaveDto } from './dto/request-leave.dto';
 
 // Never the password hash — this is what a staff roster listing or a
-// just-created account is allowed to hand back over HTTP.
+// just-created account is allowed to hand back over HTTP. monthlySalary
+// rides along here too — fine, since every caller of listStaff()/
+// createStaffAccount() is already ADMIN-only (see UsersController).
 export interface StaffSummary {
   id: string;
   fullName: string;
@@ -20,6 +22,7 @@ export interface StaffSummary {
   email?: string;
   role: Role;
   specialization?: string;
+  monthlySalary?: number;
   isActive: boolean;
   createdAt: Date;
 }
@@ -74,6 +77,14 @@ export interface LeaveRecord {
   createdAt: Date;
 }
 
+// Same shape, plus who it belongs to — for the admin-wide leave/calendar
+// view, where every row needs to say which agent it's about.
+export interface AgentLeaveRecord extends LeaveRecord {
+  agentId: string;
+  agentName: string;
+  agentPhone?: string;
+}
+
 export interface AgentCollectionRecord {
   sampleId: string;
   bookingId: string;
@@ -118,6 +129,7 @@ function toStaffSummary(user: User): StaffSummary {
     email: user.email,
     role: user.role,
     specialization: user.specialization,
+    monthlySalary: user.monthlySalary,
     isActive: user.isActive,
     createdAt: user.createdAt,
   };
@@ -392,6 +404,20 @@ export class UsersService {
     leave.reviewedBy = reviewerId;
     const saved = await this.leavesRepo.save(leave);
     return toLeaveRecord(saved);
+  }
+
+  // Every leave request across every agent — admin-only, for the
+  // roster-wide leave/calendar page (as opposed to listOwnLeaves, one
+  // agent's own history, or getAgentDetail's leaves, one agent's from the
+  // admin side).
+  async listAllLeaves(): Promise<AgentLeaveRecord[]> {
+    const leaves = await this.leavesRepo.find({ relations: ['user'], order: { startDate: 'DESC' } });
+    return leaves.map((l) => ({
+      ...toLeaveRecord(l),
+      agentId: l.userId,
+      agentName: l.user?.fullName ?? 'Unknown',
+      agentPhone: l.user?.phone,
+    }));
   }
 
   // ---------------------------------------------------------------------

@@ -116,6 +116,7 @@ export interface StaffMember {
   email?: string;
   role: Role;
   specialization?: string;
+  monthlySalary?: string | number;
   isActive: boolean;
   createdAt: string;
 }
@@ -149,6 +150,12 @@ export interface LeaveRecord {
   reason?: string;
   status: LeaveStatus;
   createdAt: string;
+}
+
+export interface AgentLeaveRecord extends LeaveRecord {
+  agentId: string;
+  agentName: string;
+  agentPhone?: string;
 }
 
 export interface CertificateSummary {

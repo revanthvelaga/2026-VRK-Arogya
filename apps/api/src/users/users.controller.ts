@@ -101,6 +101,15 @@ export class UsersController {
     return this.usersService.createStaffAccount(dto);
   }
 
+  // Every leave request across every agent, for the roster-wide leave/
+  // calendar page. Registered before 'staff/:id' so 'leaves' is never
+  // read as an id.
+  @Roles(Role.ADMIN)
+  @Get('staff/leaves')
+  listAllLeaves() {
+    return this.usersService.listAllLeaves();
+  }
+
   // Profile, address, academic details, certificates, salary, leave
   // record, upcoming assignments, and the on-time/safety performance
   // record built up from every collection attributed to this agent.

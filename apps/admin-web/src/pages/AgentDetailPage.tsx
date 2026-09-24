@@ -145,9 +145,9 @@ export function AgentDetailPage() {
 
   return (
     <>
-      <Link to="/agents" className="back-link">
+      <Link to="/staff" className="back-link">
         <IconArrowLeft size={14} />
-        Back to agents
+        Back to staff
       </Link>
       <div className="page-header">
         <div>
