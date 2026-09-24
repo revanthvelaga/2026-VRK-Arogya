@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconKey, IconPlus } from '../components/Icons';
+import { IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
 import { googleClientId } from '../lib/googleAuth';
@@ -13,7 +13,7 @@ interface LocationState {
 }
 
 export function LoginPage() {
-  const { login, loginWithGoogle, loginWithPasskey, user } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [phone, setPhone] = useState('');
@@ -51,27 +51,6 @@ export function LoginPage() {
     }
   };
 
-  const [passkeyBusy, setPasskeyBusy] = useState(false);
-  const passkeysSupported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
-  const onPasskey = async () => {
-    setError(null);
-    setPasskeyBusy(true);
-    try {
-      await loginWithPasskey();
-    } catch (err) {
-      const name = (err as { name?: string }).name;
-      setError(
-        name === 'NotAllowedError'
-          ? 'Passkey sign-in was cancelled.'
-          : err instanceof Error
-            ? err.message
-            : 'Passkey sign-in failed',
-      );
-    } finally {
-      setPasskeyBusy(false);
-    }
-  };
-
   const showAltSignIn = Boolean(googleClientId) || firebasePhoneAuthConfigured;
 
   return (
@@ -84,12 +63,6 @@ export function LoginPage() {
         <h1>Welcome back</h1>
         <p>Sign in to book a test, track a sample, or view your past bookings.</p>
 
-        {passkeysSupported && (
-          <button type="button" className="passkey-btn" onClick={onPasskey} disabled={passkeyBusy}>
-            <IconKey size={18} />
-            {passkeyBusy ? 'Waiting for your device…' : 'Use fingerprint or Face ID'}
-          </button>
-        )}
         {error && <div className="error-banner">{error}</div>}
         <form onSubmit={onSubmit}>
           <div className="field">

@@ -7,7 +7,6 @@ import { LoadingLine } from '../components/Spinner';
 import { IconCheckCircle } from '../components/Icons';
 import { ReferEarnCard } from '../components/ReferEarnCard';
 import { FamilyAccessCard } from '../components/FamilyAccessCard';
-import { PasskeysCard } from '../components/PasskeysCard';
 
 export function ProfilePage() {
   const { data: profile, loading, error, reload } = useApi<ProfileResponse>(() => api.get('/users/me'), []);
@@ -121,7 +120,6 @@ export function ProfilePage() {
 
       <ReferEarnCard />
       <FamilyAccessCard />
-      <PasskeysCard />
     </>
   );
 }

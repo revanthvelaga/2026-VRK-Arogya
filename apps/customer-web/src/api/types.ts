@@ -504,10 +504,3 @@ export interface CareOverview {
   caregivers: CareLinkView[];
   caringFor: CareLinkView[];
 }
-
-export interface PasskeyInfo {
-  id: string;
-  deviceName: string;
-  createdAt: string;
-  lastUsedAt?: string | null;
-}

@@ -9,8 +9,6 @@ export interface CurrentUser {
   role: Role;
 }
 
-import { startAuthentication } from '@simplewebauthn/browser';
-import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 interface RegisterInput {
   fullName: string;
   phone: string;
@@ -28,8 +26,6 @@ interface AuthContextValue {
   // in — the API rejects a brand-new phone with no name (see ApiError
   // status 412), which is the caller's cue to ask for one and retry.
   loginWithPhoneOtp: (idToken: string, fullName?: string) => Promise<void>;
-  // Fingerprint / Face ID via a passkey registered on this device.
-  loginWithPasskey: () => Promise<void>;
   logout: () => void;
 }
 
@@ -74,24 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(sessionToUser(session));
   };
 
-  const loginWithPasskey = async () => {
-    const { challengeId, options } = await api.post<{
-      challengeId: string;
-      options: PublicKeyCredentialRequestOptionsJSON;
-    }>('/auth/passkeys/login/options');
-    const response = await startAuthentication({ optionsJSON: options });
-    const session = await api.post<AuthSession>('/auth/passkeys/login', { challengeId, response });
-    setSession(session);
-    setUser(sessionToUser(session));
-  };
-
   const logout = () => {
     setSession(null);
     setUser(null);
   };
 
   const value = useMemo(
-    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, loginWithPasskey, logout }),
+    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, logout }),
     [user],
   );
 
