@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { AgentLeaveRecord } from '../api/types';
+import type { AgentLeaveRecord, Holiday } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingLine } from '../components/Spinner';
@@ -18,10 +18,12 @@ function isWithin(dateStr: string, start: string, end: string): boolean {
   return dateStr >= start && dateStr <= end;
 }
 
-// A month grid of who's on approved leave, day by day — the "calendar"
-// half of this page; the list below is where admin actually approves or
-// rejects a request. Only APPROVED leaves show on the grid — a pending
-// request isn't a fact about the calendar yet.
+// A month grid of who's on approved leave, day by day, plus India's
+// public holidays (Google's own "Holidays in India" calendar — the same
+// feed Google Calendar itself subscribes to) so admin can see at a glance
+// whether a request lines up with Diwali, Independence Day, and so on.
+// Only APPROVED leaves show on the grid — a pending request isn't a fact
+// about the calendar yet; the list below is where it gets decided.
 function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const base = new Date();
@@ -33,18 +35,30 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthLabel = base.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
+  const { data: holidaysData } = useApi<Holiday[]>(() => api.get(`/holidays?year=${year}`), [year]);
+  const holidayByDate = useMemo(() => {
+    const map = new Map<string, Holiday>();
+    (holidaysData ?? []).forEach((h) => map.set(h.date, h));
+    return map;
+  }, [holidaysData]);
+
   const approved = leaves.filter((l) => l.status === 'APPROVED');
 
-  const cells: Array<{ day: number; dateStr: string; onLeave: AgentLeaveRecord[] } | null> = [];
+  const cells: Array<{ day: number; dateStr: string; onLeave: AgentLeaveRecord[]; holiday?: Holiday } | null> = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = toDateOnly(new Date(year, month, day));
-    cells.push({ day, dateStr, onLeave: approved.filter((l) => isWithin(dateStr, l.startDate, l.endDate)) });
+    cells.push({
+      day,
+      dateStr,
+      onLeave: approved.filter((l) => isWithin(dateStr, l.startDate, l.endDate)),
+      holiday: holidayByDate.get(dateStr),
+    });
   }
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <div className="card-title" style={{ marginBottom: 0 }}>
           {monthLabel}
         </div>
@@ -60,6 +74,16 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
           </button>
         </div>
       </div>
+      <div style={{ display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gold)', display: 'inline-block' }} />
+          India public holiday
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--amber)', display: 'inline-block' }} />
+          Agent on leave
+        </span>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
         {WEEKDAYS.map((w) => (
           <div key={w} style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-faint)', textAlign: 'center', padding: '4px 0' }}>
@@ -70,17 +94,32 @@ function LeaveCalendar({ leaves }: { leaves: AgentLeaveRecord[] }) {
           cell ? (
             <div
               key={cell.dateStr}
-              title={cell.onLeave.map((l) => l.agentName).join(', ')}
+              title={[cell.holiday?.name, ...cell.onLeave.map((l) => l.agentName)].filter(Boolean).join(' · ')}
               style={{
-                minHeight: 56,
+                minHeight: 64,
                 borderRadius: 8,
-                border: '1px solid var(--line)',
-                background: cell.onLeave.length > 0 ? 'var(--amber-soft)' : 'var(--surface)',
+                border: cell.holiday ? '1px solid var(--gold)' : '1px solid var(--line)',
+                background: cell.holiday ? 'var(--gold-soft)' : cell.onLeave.length > 0 ? 'var(--amber-soft)' : 'var(--surface)',
                 padding: '6px 6px',
                 fontSize: 11,
               }}
             >
               <div style={{ fontWeight: 700, color: 'var(--ink-soft)' }}>{cell.day}</div>
+              {cell.holiday && (
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: 'var(--gold)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {cell.holiday.name}
+                </div>
+              )}
               {cell.onLeave.slice(0, 2).map((l) => (
                 <div
                   key={l.id}

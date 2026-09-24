@@ -275,6 +275,35 @@ code {
   outline: none;
 }
 
+/* Log out, right next to the avatar — a filled circle, not a bare icon on
+   transparent background, so it reads as a button at rest instead of only
+   appearing on hover. */
+.logout-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.logout-icon-btn:hover,
+.logout-icon-btn:focus-visible {
+  background: var(--red-soft);
+  color: var(--red);
+  transform: translateY(-1px);
+  outline: none;
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   padding: 26px 24px;

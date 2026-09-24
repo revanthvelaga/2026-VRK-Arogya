@@ -67,12 +67,7 @@ export function TopNav() {
               <Link to="/profile" className="profile-avatar-btn" aria-label="My account">
                 <IconUser size={17} />
               </Link>
-              <button
-                className="btn btn-small"
-                style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}
-                onClick={logout}
-                aria-label="Log out"
-              >
+              <button className="logout-icon-btn" onClick={logout} aria-label="Log out">
                 <IconLogout size={16} />
               </button>
             </>

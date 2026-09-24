@@ -158,6 +158,12 @@ export interface AgentLeaveRecord extends LeaveRecord {
   agentPhone?: string;
 }
 
+export interface Holiday {
+  date: string;
+  name: string;
+  tentative: boolean;
+}
+
 export interface CertificateSummary {
   id: string;
   title: string;
