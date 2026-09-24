@@ -249,6 +249,32 @@ code {
   flex-shrink: 0;
 }
 
+/* The header's own profile icon — sits right next to log out, Instagram-
+   style: a plain circular avatar, no label, that opens the account page. */
+.profile-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  box-shadow: 0 0 0 2px var(--surface);
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.profile-avatar-btn:hover,
+.profile-avatar-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent-a);
+  transform: translateY(-1px);
+  outline: none;
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   padding: 26px 24px;

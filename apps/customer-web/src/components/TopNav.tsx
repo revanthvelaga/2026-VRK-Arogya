@@ -51,13 +51,6 @@ export function TopNav() {
                 <IconActivity size={16} />
                 Insights
               </NavLink>
-              <NavLink
-                to="/profile"
-                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-              >
-                <IconUser size={16} />
-                Profile
-              </NavLink>
             </>
           )}
         </nav>
@@ -68,17 +61,21 @@ export function TopNav() {
             {items.length > 0 && <span className="cart-icon-badge">{items.length}</span>}
           </Link>
           {user ? (
-            <div className="user-chip">
-              {user.phone ?? 'My account'}
+            <>
+              {/* The account entry point — a plain circular icon, like a
+                  social app's own profile button, right next to log out. */}
+              <Link to="/profile" className="profile-avatar-btn" aria-label="My account">
+                <IconUser size={17} />
+              </Link>
               <button
                 className="btn btn-small"
                 style={{ padding: '4px 8px', border: 'none', background: 'transparent' }}
                 onClick={logout}
                 aria-label="Log out"
               >
-                <IconLogout size={14} />
+                <IconLogout size={16} />
               </button>
-            </div>
+            </>
           ) : (
             <>
               <Link to="/login" className="btn btn-small">
