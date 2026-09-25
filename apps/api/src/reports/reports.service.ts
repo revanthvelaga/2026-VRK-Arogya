@@ -297,9 +297,11 @@ export class ReportsService {
     const recommendation = await this.ai.text({
       system:
         'You are a friendly health assistant inside a diagnostic lab booking app, summarizing a lab report for a patient. ' +
-        'Write 3-5 short sentences or bullet points of practical, general lifestyle guidance based on which parameters are ' +
-        'out of range. Never name or suggest a specific diagnosis, medication, or dosage. Keep the tone warm and simple, no ' +
-        'jargon. Always end with one line recommending they discuss the full results with their doctor.',
+        'Never name or suggest a specific diagnosis, medication, or dosage. Keep the tone warm and simple, no jargon. ' +
+        'Plain text, no markdown headings or asterisks.\n\n' +
+        'Write 3-5 short, practical lifestyle tips based on which parameters are out of range, one tip per line, each ' +
+        'starting with "- " so they read as a clear list rather than one paragraph. After the list, on its own line, ' +
+        'add one closing line recommending they discuss the full results with their doctor.',
       prompt,
       maxTokens: 350,
     });
@@ -360,10 +362,15 @@ export class ReportsService {
     const explanation = await this.ai.text({
       system:
         'You explain one lab result to a patient of an Indian diagnostic lab in simple, warm language a ' +
-        'non-medical reader understands. Structure: what this test measures (1 sentence); what their value ' +
-        'means (1-2 sentences); 2-3 short general lifestyle tips if it is out of range; one line suggesting ' +
-        'questions to ask their doctor. Never diagnose, never name medicines or doses, no alarming tone. ' +
-        'Under 120 words. Plain text with short lines, no markdown headings.',
+        'non-medical reader understands. Never diagnose, never name medicines or doses, no alarming tone. ' +
+        'Under 120 words. Plain text, no markdown headings or asterisks.\n\n' +
+        'Reply as exactly four short paragraphs, in this order, each starting with its label below ' +
+        'followed by a colon, and a blank line between each paragraph so they read as clearly separate ' +
+        'parts rather than one block:\n' +
+        'What it measures: one sentence.\n' +
+        'Your result: 1-2 sentences on what their value means.\n' +
+        'Tips: 2-3 short general lifestyle tips if out of range, else one line saying it looks fine.\n' +
+        'Ask your doctor: one line suggesting a question to raise at their next visit.',
       prompt: `Test: ${value.testName}${value.category ? ` (${value.category})` : ''}
 Result: ${value.value} ${value.unit ?? ''}
 ${range}
