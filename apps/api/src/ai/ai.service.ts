@@ -53,6 +53,16 @@ function sanitizeSchema(node: unknown): unknown {
   return out;
 }
 
+export interface AiProbeResult {
+  configured: boolean;
+  model: string;
+  ok: boolean;
+  checkedAt: string;
+  lastFailure: { at: string; model: string; status?: number; message: string } | null;
+}
+
+const PROBE_CACHE_MS = 60_000;
+
 // One Gemini client for every AI feature in the API (prescription
 // reading, the test finder, report/result explanations), so the key
 // check, the model choice and the error handling live in one place
@@ -64,6 +74,10 @@ export class AiService {
   // Mutable: a 404 that names a replacement model updates this for
   // every request from then on, for the life of the running process.
   private currentModel = DEFAULT_MODEL;
+  // The raw reason behind the last generic "could not reach" error —
+  // customers only ever see the friendly message, this is for /health/ai.
+  private lastFailure: { at: string; model: string; status?: number; message: string } | null = null;
+  private probeCache: { at: number; result: AiProbeResult } | null = null;
 
   constructor(config: ConfigService) {
     const apiKey = config.get<string>('GEMINI_API_KEY');
@@ -99,6 +113,32 @@ export class AiService {
       this.logger.error(`Structured output did not parse: ${text.slice(0, 200)}`);
       throw new BadRequestException('Could not read that right now — please try again.');
     }
+  }
+
+  // A one-word round trip to Gemini, cached for a minute so the public
+  // /health/ai endpoint can't be used to burn through the free quota.
+  async probe(): Promise<AiProbeResult> {
+    if (this.probeCache && Date.now() - this.probeCache.at < PROBE_CACHE_MS) {
+      return this.probeCache.result;
+    }
+    let ok = false;
+    if (this.client) {
+      try {
+        await this.text({ system: 'Reply with the single word OK.', prompt: 'ping', maxTokens: 10 });
+        ok = true;
+      } catch {
+        ok = false;
+      }
+    }
+    const result: AiProbeResult = {
+      configured: this.client != null,
+      model: this.currentModel,
+      ok,
+      checkedAt: new Date().toISOString(),
+      lastFailure: this.lastFailure,
+    };
+    this.probeCache = { at: Date.now(), result };
+    return result;
   }
 
   async text(opts: { system: string; prompt: string; maxTokens?: number }): Promise<string> {
@@ -155,6 +195,12 @@ export class AiService {
           this.logger.error(`Gemini model "${this.currentModel}" not found and no replacement could be parsed: ${err.message}`);
         }
       }
+      this.lastFailure = {
+        at: new Date().toISOString(),
+        model: this.currentModel,
+        status: err instanceof GoogleGenerativeAIFetchError ? err.status : undefined,
+        message: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+      };
       this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
       throw new ServiceUnavailableException('Could not reach our assistant right now — please try again.');
     }
