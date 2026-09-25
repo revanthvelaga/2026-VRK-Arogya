@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import type { ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
-import { firebasePhoneAuthConfigured, sendOtp } from '../lib/firebaseAuth';
+import { firebasePhoneAuthConfigured, friendlyOtpError, sendOtp } from '../lib/firebaseAuth';
 import { IconArrowLeft, IconPhone } from './Icons';
 
 type Stage = 'phone' | 'code' | 'name';
@@ -54,7 +54,7 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
       setCooldown(RESEND_SECONDS);
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send OTP — try again.');
+      setError(friendlyOtpError(err, 'Could not send OTP. Please try again.'));
       return false;
     } finally {
       setBusy(false);
@@ -91,7 +91,7 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
         throw err;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Incorrect code — try again.');
+      setError(friendlyOtpError(err, 'Incorrect code. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -209,11 +209,21 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
         </form>
       )}
 
-      {error && (
-        <p className="field-hint" style={{ color: 'var(--red)', marginTop: 10 }}>
-          {error}
-        </p>
-      )}
+      {error && <p className="otp-error">{error}</p>}
+
+      {/* Google's terms allow hiding the floating reCAPTCHA badge (it sat
+          on top of the card on phones) as long as this notice is shown. */}
+      <p className="recaptcha-note">
+        Protected by reCAPTCHA. Google{' '}
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+          Privacy
+        </a>{' '}
+        &amp;{' '}
+        <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">
+          Terms
+        </a>{' '}
+        apply.
+      </p>
     </div>
   );
 }
