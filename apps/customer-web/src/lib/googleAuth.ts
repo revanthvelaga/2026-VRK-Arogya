@@ -10,6 +10,7 @@ declare global {
           initialize: (config: {
             client_id: string;
             callback: (response: { credential: string }) => void;
+            use_fedcm_for_button?: boolean;
           }) => void;
           renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
         };
@@ -54,6 +55,11 @@ export async function renderGoogleButton(
   window.google!.accounts.id.initialize({
     client_id: googleClientId,
     callback: (response) => onCredential(response.credential),
+    // FedCM is the browser's own sign-in API — it works where third-party
+    // cookies are blocked (incognito, Brave, strict settings), which is
+    // what Google's "cookies disabled" error means. Browsers without it
+    // fall back to the regular popup.
+    use_fedcm_for_button: true,
   });
   container.innerHTML = '';
   window.google!.accounts.id.renderButton(container, {
