@@ -8,11 +8,18 @@ import type { Part, ResponseSchema } from '@google/generative-ai';
 // feature in this app is a nice-to-have, not something worth asking the
 // operator to add a payment method for.
 //
-// gemini-2.5-flash was retired for new API keys (404 "no longer
-// available to new users") — Google's own error pointed at this
-// replacement. If a future model swap is ever needed again, this one
-// line is the only thing to change.
-const MODEL = 'gemini-3.8-flash';
+// Google periodically retires a model out from under existing code —
+// gemini-2.5-flash stopped working for new API keys mid-project — and
+// each time, its 404 response names the replacement right in the error
+// text ('...use models/gemini-3.8-flash...'). AiService below reads
+// that name out of the error and switches to it on the fly, so a future
+// retirement heals itself on the very next request instead of needing
+// another deploy. This is only the starting point.
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+
+// Matches the replacement Google's own 404 message names, e.g.
+// "Please update your code to use models/gemini-3.8-flash for...".
+const MODEL_SUGGESTION_RE = /use models\/([a-z0-9._-]+)/i;
 
 // Provider-neutral content blocks — text plus inline binary (an image or
 // a PDF, both sent the same way to Gemini) — so callers never import
@@ -54,6 +61,9 @@ function sanitizeSchema(node: unknown): unknown {
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly client: GoogleGenerativeAI | null;
+  // Mutable: a 404 that names a replacement model updates this for
+  // every request from then on, for the life of the running process.
+  private currentModel = DEFAULT_MODEL;
 
   constructor(config: ConfigService) {
     const apiKey = config.get<string>('GEMINI_API_KEY');
@@ -96,9 +106,15 @@ export class AiService {
     return text.trim();
   }
 
-  private async send(system: string, blocks: AiContentBlock[], maxTokens: number, responseSchema?: ResponseSchema): Promise<string> {
+  private async send(
+    system: string,
+    blocks: AiContentBlock[],
+    maxTokens: number,
+    responseSchema?: ResponseSchema,
+    isRetryAfterModelSwitch = false,
+  ): Promise<string> {
     const client = this.requireClient();
-    const model = client.getGenerativeModel({ model: MODEL, systemInstruction: system });
+    const model = client.getGenerativeModel({ model: this.currentModel, systemInstruction: system });
 
     try {
       const result = await model.generateContent({
@@ -127,11 +143,16 @@ export class AiService {
           this.logger.error(`Gemini rejected the request: ${err.message}`);
           throw new BadRequestException('That file could not be read — try a clearer photo or a PDF.');
         }
-        if (err.status === 404) {
-          // The model name itself is wrong/retired — every request will
-          // fail the same way until MODEL above is updated, so this is
-          // the one case worth a distinct, easy-to-spot log line.
-          this.logger.error(`Gemini model "${MODEL}" not found — update the MODEL constant: ${err.message}`);
+        if (err.status === 404 && !isRetryAfterModelSwitch) {
+          const replacement = MODEL_SUGGESTION_RE.exec(err.message)?.[1];
+          if (replacement && replacement !== this.currentModel) {
+            this.logger.warn(
+              `Gemini model "${this.currentModel}" is no longer available — switching to "${replacement}" and retrying.`,
+            );
+            this.currentModel = replacement;
+            return this.send(system, blocks, maxTokens, responseSchema, true);
+          }
+          this.logger.error(`Gemini model "${this.currentModel}" not found and no replacement could be parsed: ${err.message}`);
         }
       }
       this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
