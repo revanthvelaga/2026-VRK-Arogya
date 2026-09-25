@@ -7,7 +7,12 @@ import type { Part, ResponseSchema } from '@google/generative-ai';
 // card required) rather than a metered/billed provider — every AI
 // feature in this app is a nice-to-have, not something worth asking the
 // operator to add a payment method for.
-const MODEL = 'gemini-2.5-flash';
+//
+// gemini-2.5-flash was retired for new API keys (404 "no longer
+// available to new users") — Google's own error pointed at this
+// replacement. If a future model swap is ever needed again, this one
+// line is the only thing to change.
+const MODEL = 'gemini-3.8-flash';
 
 // Provider-neutral content blocks — text plus inline binary (an image or
 // a PDF, both sent the same way to Gemini) — so callers never import
@@ -121,6 +126,12 @@ export class AiService {
         if (err.status === 400) {
           this.logger.error(`Gemini rejected the request: ${err.message}`);
           throw new BadRequestException('That file could not be read — try a clearer photo or a PDF.');
+        }
+        if (err.status === 404) {
+          // The model name itself is wrong/retired — every request will
+          // fail the same way until MODEL above is updated, so this is
+          // the one case worth a distinct, easy-to-spot log line.
+          this.logger.error(`Gemini model "${MODEL}" not found — update the MODEL constant: ${err.message}`);
         }
       }
       this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
