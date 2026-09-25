@@ -287,6 +287,14 @@ export class UsersService {
     return bcrypt.compare(password, user.passwordHash);
   }
 
+  // Used by the "forgot password" flow (after Firebase has verified the
+  // phone via OTP) and by a customer setting a first password from their
+  // profile — either way the caller has already confirmed who this is.
+  async setPassword(userId: string, newPassword: string): Promise<void> {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.usersRepo.update({ id: userId }, { passwordHash });
+  }
+
   // ---------------------------------------------------------------------
   // Self-service profile — any authenticated role, their own account only.
   // ---------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { PhoneOtpLoginDto } from './dto/phone-otp-login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -27,5 +28,10 @@ export class AuthController {
   @Post('phone-otp')
   phoneOtpLogin(@Body() dto: PhoneOtpLoginDto) {
     return this.authService.phoneOtpLogin(dto.idToken, dto.fullName, dto.referralCode);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPasswordWithPhone(dto.idToken, dto.newPassword);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
@@ -94,6 +94,22 @@ export class AuthService {
       }
     }
 
+    return this.issueTokens(user.id, user.phone, user.role);
+  }
+
+  // "Forgot password" — Firebase has already verified the phone (the same
+  // proof the OTP sign-in endpoint trusts), so no separate reset-code
+  // system is needed; this just confirms an account exists for that
+  // number and overwrites its password, then logs the customer straight in.
+  async resetPasswordWithPhone(idToken: string, newPassword: string) {
+    const { phone } = await this.firebasePhoneAuthService.verify(idToken);
+
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      throw new NotFoundException('No account found for this phone number.');
+    }
+
+    await this.usersService.setPassword(user.id, newPassword);
     return this.issueTokens(user.id, user.phone, user.role);
   }
 
