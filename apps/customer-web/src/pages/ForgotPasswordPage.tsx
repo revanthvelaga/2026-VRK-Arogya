@@ -4,7 +4,7 @@ import type { ConfirmationResult } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { IconArrowLeft, IconPhone, IconPlus } from '../components/Icons';
-import { firebasePhoneAuthConfigured, friendlyOtpError, sendOtp } from '../lib/firebaseAuth';
+import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
 
 type Stage = 'phone' | 'code' | 'password';
 
@@ -26,6 +26,12 @@ export function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const codeInputRef = useRef<HTMLInputElement>(null);
+
+  // Wake the API and load reCAPTCHA while the customer types their number,
+  // so "Send OTP" doesn't sit waiting on either.
+  useEffect(() => {
+    prepareOtp('recaptcha-container');
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;

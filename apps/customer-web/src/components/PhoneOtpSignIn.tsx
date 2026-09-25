@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import type { ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
-import { firebasePhoneAuthConfigured, friendlyOtpError, sendOtp } from '../lib/firebaseAuth';
+import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
 import { IconArrowLeft, IconPhone } from './Icons';
 
 type Stage = 'phone' | 'code' | 'name';
@@ -28,6 +28,12 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const codeInputRef = useRef<HTMLInputElement>(null);
+
+  // Wake the API and load reCAPTCHA while the customer types their number,
+  // so "Send OTP" doesn't sit waiting on either.
+  useEffect(() => {
+    prepareOtp('recaptcha-container');
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;

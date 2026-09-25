@@ -18,15 +18,20 @@ function getFirebaseAuth() {
 }
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
+let recaptchaElement: HTMLElement | null = null;
 
 // An invisible reCAPTCHA rather than the visible checkbox kind — it only
 // challenges a request that actually looks automated, so a real customer
-// never sees it. Reused across sends rather than recreated each time,
-// which is what Firebase's own docs recommend.
+// never sees it. Reused across sends (Firebase's recommendation), but
+// rebuilt if the page now has a different container element — after
+// navigating away and back, the old one is detached and would fail.
 function getRecaptchaVerifier(containerId: string) {
   const auth = getFirebaseAuth();
+  const element = document.getElementById(containerId);
+  if (recaptchaVerifier && element !== recaptchaElement) resetRecaptchaVerifier();
   if (!recaptchaVerifier) {
     recaptchaVerifier = new RecaptchaVerifier(auth, containerId, { size: 'invisible' });
+    recaptchaElement = element;
   }
   return recaptchaVerifier;
 }
@@ -34,8 +39,48 @@ function getRecaptchaVerifier(containerId: string) {
 // A reCAPTCHA token is single-use; after a failed send Firebase needs a
 // fresh verifier or the retry hangs waiting on the spent one.
 function resetRecaptchaVerifier() {
-  recaptchaVerifier?.clear();
+  try {
+    recaptchaVerifier?.clear();
+  } catch {
+    // Already detached — nothing to clear.
+  }
   recaptchaVerifier = null;
+  recaptchaElement = null;
+}
+
+// ---- Getting ready before the customer taps "Send OTP" -------------------
+// The on/off switch lives on our API, which can take a while to answer if
+// it was asleep. Asking as soon as the OTP form appears both fetches the
+// answer and wakes the API, so "Send OTP" (and verifying the code, which
+// also hits the API) doesn't wait on it.
+const STATUS_TTL_MS = 5 * 60_000;
+const STATUS_WAIT_MS = 3_000;
+let otpStatus: { at: number; enabled: Promise<boolean> } | null = null;
+
+function otpEnabled(): Promise<boolean> {
+  if (!otpStatus || Date.now() - otpStatus.at > STATUS_TTL_MS) {
+    const enabled = api
+      .get<{ enabled: boolean }>('/otp/status')
+      .then((r) => r.enabled)
+      // Can't reach the switch — assume on rather than block sign-in.
+      .catch(() => true);
+    otpStatus = { at: Date.now(), enabled };
+  }
+  return otpStatus.enabled;
+}
+
+// Call when an OTP form mounts: starts the status check / API wake-up
+// and loads the invisible reCAPTCHA while the customer is still typing.
+export function prepareOtp(recaptchaContainerId: string): void {
+  if (!firebasePhoneAuthConfigured) return;
+  void otpEnabled();
+  try {
+    void getRecaptchaVerifier(recaptchaContainerId)
+      .render()
+      .catch(() => resetRecaptchaVerifier());
+  } catch {
+    // Firebase not ready — sendOtp will build it on demand.
+  }
 }
 
 const FRIENDLY_ERRORS: Record<string, string> = {
@@ -67,11 +112,14 @@ export async function sendOtp(
   purpose: OtpPurpose = 'login',
 ): Promise<ConfirmationResult> {
   // Server-side kill switch (see the admin "SMS Usage" page) — checked
-  // before Firebase is ever touched, so turning it off there actually
-  // stops SMS from being sent, not just hides a button.
-  const { enabled } = await api.get<{ enabled: boolean }>('/otp/status');
+  // before Firebase is ever touched. Usually already answered by
+  // prepareOtp(); never wait more than a few seconds on it.
+  const enabled = await Promise.race([
+    otpEnabled(),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(true), STATUS_WAIT_MS)),
+  ]);
   if (!enabled) {
-    throw new Error("Mobile OTP sign-in is temporarily unavailable. Please use email/password or Google sign-in.");
+    throw new Error("Mobile OTP sign-in is temporarily unavailable. Please use your password or Google sign-in.");
   }
 
   const auth = getFirebaseAuth();
