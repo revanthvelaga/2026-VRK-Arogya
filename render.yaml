@@ -52,6 +52,17 @@ services:
       # aistudio.google.com/apikey > Create API key.
       - key: GEMINI_API_KEY
         sync: false
+      # Optional automatic backups when Gemini is busy/down (text features
+      # only — prescription photos always use Gemini). Each switches on
+      # only if set. Free, no card: openrouter.ai/keys (DeepSeek, Llama,
+      # Qwen free models) and console.groq.com/keys. Perplexity is paid
+      # (API credits) — only add it if you want to pay for it.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
       # Optional — enables "Sign in with Google" on the customer site.
       # Neither of these is a secret (no client secret is used — Google
       # Identity Services hands back an ID token directly), but they're

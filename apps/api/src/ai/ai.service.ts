@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, ServiceUnavailableException } 
 import { ConfigService } from '@nestjs/config';
 import { FinishReason, GoogleGenerativeAI, GoogleGenerativeAIFetchError, GoogleGenerativeAIResponseError } from '@google/generative-ai';
 import type { Part, ResponseSchema } from '@google/generative-ai';
+import { BackupProvider, buildBackupProviders } from './backup-providers';
 
 // Gemini's free tier (a key from aistudio.google.com/apikey, no credit
 // card required) rather than a metered/billed provider — every AI
@@ -57,28 +58,51 @@ export interface AiProbeResult {
   configured: boolean;
   model: string;
   ok: boolean;
+  answeredBy: string | null;
   checkedAt: string;
   lastFailure: { at: string; model: string; status?: number; message: string } | null;
   fallbacks: string[];
+  backups: Array<{ provider: string; configured: boolean; models: string[] }>;
 }
 
 const PROBE_CACHE_MS = 60_000;
 const FALLBACK_CACHE_MS = 60 * 60_000;
 const MAX_FALLBACKS = 3;
 
-// One Gemini client for every AI feature in the API (prescription
-// reading, the test finder, report/result explanations), so the key
-// check, the model choice and the error handling live in one place
-// instead of being copied into each service.
+// Backups get the schema in the prompt instead of a native schema
+// parameter (support for that varies across providers), then this pulls
+// the JSON back out of whatever they wrap it in.
+function extractJson(text: string, required: string[]): string {
+  const cleaned = text.replace(/```(?:json)?/gi, '');
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('no JSON object in response');
+  const json = cleaned.slice(start, end + 1);
+  const parsed = JSON.parse(json) as Record<string, unknown>;
+  const missing = required.filter((key) => !(key in parsed));
+  if (missing.length) throw new Error(`JSON missing ${missing.join(', ')}`);
+  return json;
+}
+
+// One entry point for every AI feature in the API (prescription reading,
+// the test finder, report/result explanations). Gemini first — free, and
+// the only one here that reads images — then free text-only backups
+// (OpenRouter's DeepSeek/Llama/Qwen, Groq), then Perplexity if a paid
+// key was added. Each backup is on only if its key is set.
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly client: GoogleGenerativeAI | null;
   private readonly apiKey: string | undefined;
+  private readonly backups: BackupProvider[];
   private fallbackCache: { at: number; models: string[] } | null = null;
+  // Gemini models the list advertises but that 404 for this key (e.g.
+  // retired "for new users") — skipped as fallbacks from then on.
+  private readonly deadModels = new Set<string>();
   // Mutable: a 404 that names a replacement model updates this for
   // every request from then on, for the life of the running process.
   private currentModel = DEFAULT_MODEL;
+  private lastAnsweredBy: string | null = null;
   // The raw reason behind the last generic "could not reach" error —
   // customers only ever see the friendly message, this is for /health/ai.
   private lastFailure: { at: string; model: string; status?: number; message: string } | null = null;
@@ -87,13 +111,14 @@ export class AiService {
   constructor(config: ConfigService) {
     this.apiKey = config.get<string>('GEMINI_API_KEY');
     this.client = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
-    if (!this.client) {
-      this.logger.warn('GEMINI_API_KEY not set — AI features will fail until configured.');
+    this.backups = buildBackupProviders((key) => config.get<string>(key));
+    if (!this.enabled) {
+      this.logger.warn('No AI provider key set (GEMINI_API_KEY etc.) — AI features will fail until configured.');
     }
   }
 
   get enabled(): boolean {
-    return this.client != null;
+    return this.client != null || this.backups.some((b) => b.configured);
   }
 
   private requireClient(): GoogleGenerativeAI {
@@ -111,7 +136,7 @@ export class AiService {
     schema: Record<string, unknown>;
     maxTokens?: number;
   }): Promise<T> {
-    const text = await this.send(opts.system, opts.content, opts.maxTokens ?? 4000, sanitizeSchema(opts.schema) as ResponseSchema);
+    const text = await this.send(opts.system, opts.content, opts.maxTokens ?? 4000, opts.schema);
     try {
       return JSON.parse(text) as T;
     } catch {
@@ -120,14 +145,14 @@ export class AiService {
     }
   }
 
-  // A one-word round trip to Gemini, cached for a minute so the public
-  // /health/ai endpoint can't be used to burn through the free quota.
+  // A one-word round trip, cached for a minute so the public /health/ai
+  // endpoint can't be used to burn through the free quota.
   async probe(): Promise<AiProbeResult> {
     if (this.probeCache && Date.now() - this.probeCache.at < PROBE_CACHE_MS) {
       return this.probeCache.result;
     }
     let ok = false;
-    if (this.client) {
+    if (this.enabled) {
       try {
         await this.text({ system: 'Reply with the single word OK.', prompt: 'ping', maxTokens: 10 });
         ok = true;
@@ -139,9 +164,13 @@ export class AiService {
       configured: this.client != null,
       model: this.currentModel,
       ok,
+      answeredBy: ok ? this.lastAnsweredBy : null,
       checkedAt: new Date().toISOString(),
       lastFailure: this.lastFailure,
       fallbacks: this.client ? await this.fallbackModels() : [],
+      backups: await Promise.all(
+        this.backups.map(async (b) => ({ provider: b.name, configured: b.configured, models: await b.models() })),
+      ),
     };
     this.probeCache = { at: Date.now(), result };
     return result;
@@ -156,14 +185,64 @@ export class AiService {
     system: string,
     blocks: AiContentBlock[],
     maxTokens: number,
-    responseSchema?: ResponseSchema,
+    schema?: Record<string, unknown>,
   ): Promise<string> {
-    this.requireClient();
-    const call = (model: string) => this.callModel(model, system, blocks, maxTokens, responseSchema);
+    if (!this.enabled) this.requireClient();
+    let lastErr: unknown = null;
+
+    if (this.client) {
+      try {
+        return await this.sendGemini(system, blocks, maxTokens, schema);
+      } catch (err) {
+        // A safety refusal isn't something to route around elsewhere.
+        if (err instanceof GoogleGenerativeAIResponseError) throw this.toHttpError(err);
+        lastErr = err;
+      }
+    }
+
+    // Backups are text-only — a prescription photo/PDF stays with Gemini.
+    if (blocks.every((b) => b.type === 'text')) {
+      const userText = blocks.map((b) => (b.type === 'text' ? b.text : '')).join('\n\n');
+      const prompt = schema
+        ? `${userText}\n\nRespond with ONLY a JSON object — no prose, no code fences — matching this JSON Schema:\n${JSON.stringify(schema)}`
+        : userText;
+      const required = Array.isArray(schema?.required) ? (schema.required as string[]) : [];
+      for (const provider of this.backups) {
+        for (const model of await provider.models()) {
+          try {
+            const text = await provider.chat(model, system, prompt, maxTokens);
+            const answer = schema ? extractJson(text, required) : text;
+            this.lastAnsweredBy = `${provider.name}:${model}`;
+            this.logger.warn(`Gemini unavailable — answered by ${provider.name} "${model}".`);
+            return answer;
+          } catch (err) {
+            lastErr = err;
+            this.logger.warn(`Backup ${provider.name} "${model}" failed: ${err instanceof Error ? err.message : err}`);
+          }
+        }
+      }
+    }
+
+    throw this.toHttpError(lastErr);
+  }
+
+  // Gemini with its own recovery: heal a retired model (404 naming the
+  // replacement), give a momentary overload one retry, then try other
+  // Gemini Flash models this key can call. Throws the raw last error.
+  private async sendGemini(
+    system: string,
+    blocks: AiContentBlock[],
+    maxTokens: number,
+    schema?: Record<string, unknown>,
+  ): Promise<string> {
+    const responseSchema = schema ? (sanitizeSchema(schema) as ResponseSchema) : undefined;
+    const call = async (model: string) => {
+      const text = await this.callModel(model, system, blocks, maxTokens, responseSchema);
+      this.lastAnsweredBy = `gemini:${model}`;
+      return text;
+    };
     let lastErr: unknown;
 
-    // 1. The current model — healing a retirement (404 naming the
-    //    replacement) and giving a momentary overload (503) one retry.
     let retriedOverload = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -187,23 +266,23 @@ export class AiService {
       }
     }
 
-    // 2. Still busy / out of free quota on that model — free-tier limits
-    //    are per model, so another available Flash model usually answers.
     if (isBusy(lastErr)) {
       for (const alt of await this.fallbackModels()) {
         try {
           const text = await call(alt);
-          this.logger.warn(`"${this.currentModel}" was busy — answered by fallback "${alt}".`);
+          this.logger.warn(`"${this.currentModel}" was busy — answered by Gemini fallback "${alt}".`);
           return text;
         } catch (err) {
           lastErr = err;
-          const skippable = isBusy(err) || (err instanceof GoogleGenerativeAIFetchError && err.status === 404);
-          if (!skippable) break;
+          if (err instanceof GoogleGenerativeAIFetchError && err.status === 404) {
+            this.deadModels.add(alt);
+            continue;
+          }
+          if (!isBusy(err)) break;
         }
       }
     }
-
-    throw this.toHttpError(lastErr);
+    throw lastErr;
   }
 
   private async callModel(
@@ -254,7 +333,9 @@ export class AiService {
       }
       this.fallbackCache = { at: Date.now(), models };
     }
-    return this.fallbackCache.models.filter((name) => name !== this.currentModel).slice(0, MAX_FALLBACKS);
+    return this.fallbackCache.models
+      .filter((name) => name !== this.currentModel && !this.deadModels.has(name))
+      .slice(0, MAX_FALLBACKS);
   }
 
   private toHttpError(err: unknown): Error {
@@ -265,14 +346,14 @@ export class AiService {
     this.lastFailure = {
       at: new Date().toISOString(),
       model: this.currentModel,
-      status: err instanceof GoogleGenerativeAIFetchError ? err.status : undefined,
+      status: (err as { status?: number } | null)?.status,
       message: (err instanceof Error ? err.message : String(err)).slice(0, 400),
     };
     if (err instanceof GoogleGenerativeAIFetchError && err.status === 400) {
       this.logger.error(`Gemini rejected the request: ${err.message}`);
       return new BadRequestException('That file could not be read — try a clearer photo or a PDF.');
     }
-    this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
+    this.logger.error('AI request failed on every provider', err instanceof Error ? err.stack : err);
     if (isBusy(err)) {
       return new ServiceUnavailableException('Our assistant is busy right now — please try again in a minute.');
     }
@@ -281,5 +362,6 @@ export class AiService {
 }
 
 function isBusy(err: unknown): boolean {
-  return err instanceof GoogleGenerativeAIFetchError && (err.status === 503 || err.status === 429);
+  const status = (err as { status?: number } | null)?.status;
+  return status === 503 || status === 429;
 }
