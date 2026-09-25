@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { clearSignOutMessage, peekSignOutMessage } from '../api/client';
 import { IconPlus, IconTruck, IconUser } from '../components/Icons';
 
 interface LocationState {
@@ -18,6 +19,9 @@ export function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Why the last session ended (idle / expired), shown once.
+  const [signOutNotice] = useState(() => peekSignOutMessage());
+  useEffect(() => clearSignOutMessage(), []);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -88,6 +92,11 @@ export function LoginPage() {
             ? 'Sign in with an ADMIN account to manage bookings, samples, agents, and the catalog.'
             : 'Sign in with your agent account to see your assigned collections and update status.'}
         </p>
+        {signOutNotice && !error && (
+          <div className="notice-banner" role="status">
+            {signOutNotice}
+          </div>
+        )}
         {error && <div className="error-banner">{error}</div>}
         <form onSubmit={onSubmit}>
           <div className="field">

@@ -10,6 +10,9 @@ import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
 import { WalletService } from '../rewards/wallet.service';
 
+// Every sign-in must be repeated at least this often.
+const MAX_SESSION_SECONDS = 7 * 24 * 60 * 60;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -113,17 +116,42 @@ export class AuthService {
     return this.issueTokens(user.id, user.phone, user.role);
   }
 
-  private issueTokens(userId: string, phone: string | undefined, role: Role) {
-    const payload = { sub: userId, phone, role };
+  // Swaps a still-valid refresh token for a fresh pair, so an active user
+  // isn't cut off by the short access-token lifetime. The session start
+  // (`sst`) rides along unchanged, capping every session at
+  // MAX_SESSION_SECONDS from the original sign-in however active it is.
+  async refresh(refreshToken: string) {
+    let payload: { sub: string; sst?: number };
+    try {
+      payload = this.jwtService.verify(refreshToken, { secret: this.config.get('JWT_REFRESH_SECRET') });
+    } catch {
+      throw new UnauthorizedException('Session expired — please sign in again.');
+    }
+    const sessionStart = payload.sst ?? Math.floor(Date.now() / 1000);
+    if (Date.now() / 1000 - sessionStart > MAX_SESSION_SECONDS) {
+      throw new UnauthorizedException('Session expired — please sign in again.');
+    }
+    const user = await this.usersService.findById(payload.sub);
+    if (!user || user.isActive === false) {
+      throw new UnauthorizedException('Session expired — please sign in again.');
+    }
+    return this.issueTokens(user.id, user.phone, user.role, sessionStart);
+  }
+
+  private issueTokens(userId: string, phone: string | undefined, role: Role, sessionStart?: number) {
+    const sst = sessionStart ?? Math.floor(Date.now() / 1000);
+    const payload = { sub: userId, phone, role, sst };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_ACCESS_SECRET'),
-      expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN'),
+      expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN') ?? '15m',
     });
 
+    // Never outlives the session cap, even right after a refresh.
+    const remaining = Math.max(60, MAX_SESSION_SECONDS - (Math.floor(Date.now() / 1000) - sst));
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN'),
+      expiresIn: remaining,
     });
 
     return { accessToken, refreshToken, role };

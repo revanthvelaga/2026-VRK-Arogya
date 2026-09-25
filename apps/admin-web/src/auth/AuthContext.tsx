@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, ApiError, decodeJwt, getSession, setSession, setUnauthorizedHandler } from '../api/client';
+import { api, ApiError, decodeJwt, endSession, getSession, recordActivity, setSession, setUnauthorizedHandler } from '../api/client';
 import type { AuthSession, Role } from '../api/types';
 
 export interface CurrentUser {
@@ -30,6 +30,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));
   }, []);
+
+  // Any tap, key, scroll or touch counts as activity (throttled), and a
+  // periodic check signs out a tab left idle past the limit.
+  useEffect(() => {
+    if (!user) return;
+    let lastWrite = 0;
+    const onActivity = () => {
+      if (Date.now() - lastWrite < 15_000) return;
+      lastWrite = Date.now();
+      recordActivity();
+    };
+    const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'] as const;
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    const check = () => {
+      if (!getSession()) setUser(null);
+    };
+    const timer = window.setInterval(check, 30_000);
+    // Coming back to a tab that sat in the background: check right away.
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, onActivity));
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [user]);
+
 
   const login = async (phone: string, password: string, expectedRole?: 'ADMIN' | 'STAFF') => {
     let session: AuthSession;
@@ -64,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setSession(null);
+    endSession(null);
     setUser(null);
   };
 

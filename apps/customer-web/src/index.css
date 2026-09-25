@@ -4789,3 +4789,15 @@ a.suggest-name:hover {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ---------- Neutral notice (e.g. "signed out after inactivity") ---------- */
+.notice-banner {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
