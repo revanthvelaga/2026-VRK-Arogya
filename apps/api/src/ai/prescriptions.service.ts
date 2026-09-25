@@ -1,8 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import Anthropic from '@anthropic-ai/sdk';
 import { AiService } from './ai.service';
+import type { AiContentBlock } from './ai.service';
 import { Prescription, PrescriptionMatch } from './entities/prescription.entity';
 import { TestsService } from '../catalog/tests.service';
 import { PackagesService } from '../catalog/packages.service';
@@ -52,17 +52,10 @@ export class PrescriptionsService {
   async readPrescription(customerId: string, file: Express.Multer.File): Promise<PublicPrescription> {
     const catalog = await this.catalog();
     const data = file.buffer.toString('base64');
-    const fileBlock: Anthropic.Beta.BetaContentBlockParam =
+    const fileBlock: AiContentBlock =
       file.mimetype === 'application/pdf'
-        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
-        : {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: file.mimetype as 'image/jpeg' | 'image/png' | 'image/webp',
-              data,
-            },
-          };
+        ? { type: 'document', mimeType: 'application/pdf', data }
+        : { type: 'image', mimeType: file.mimetype, data };
 
     // If the automatic reading fails (AI down, not configured, unreadable
     // file), the upload is still saved: the lab sees it in the admin inbox
@@ -115,11 +108,7 @@ export class PrescriptionsService {
     return this.toPublic(saved);
   }
 
-  private readWithAi(
-    fileBlock: Anthropic.Beta.BetaContentBlockParam,
-    catalogText: string,
-    refs: string[],
-  ): Promise<PrescriptionReading> {
+  private readWithAi(fileBlock: AiContentBlock, catalogText: string, refs: string[]): Promise<PrescriptionReading> {
     return this.ai.json<PrescriptionReading>({
       system:
         'You read doctor prescriptions for an Indian diagnostic lab so a patient can book the lab tests ' +

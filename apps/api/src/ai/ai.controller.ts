@@ -22,7 +22,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 
-// Signed-in only: each call is a paid model request, so these aren't open
+// Signed-in only: each call is a metered AI request, so these aren't open
 // to anonymous traffic.
 @Controller()
 @UseGuards(JwtAuthGuard)

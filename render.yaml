@@ -46,10 +46,11 @@ services:
         sync: false
       - key: RAZORPAY_KEY_SECRET
         sync: false
-      # Optional — powers the AI health recommendation on Insights. Leave
-      # blank to skip it (everything else still works). Get a free key at
-      # console.anthropic.com > API Keys.
-      - key: ANTHROPIC_API_KEY
+      # Optional — powers prescription reading, the test finder, and the
+      # AI report/health explanations. Leave blank to skip them (everything
+      # else still works). Genuinely free, no card required:
+      # aistudio.google.com/apikey > Create API key.
+      - key: GEMINI_API_KEY
         sync: false
       # Optional — enables "Sign in with Google" on the customer site.
       # Neither of these is a secret (no client secret is used — Google
