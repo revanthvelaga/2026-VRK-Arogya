@@ -15,6 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
+import { ResetStaffPasswordDto } from './dto/reset-staff-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UploadCertificateDto } from './dto/upload-certificate.dto';
 import { RequestLeaveDto } from './dto/request-leave.dto';
@@ -123,6 +124,14 @@ export class UsersController {
   @Patch('staff/:id')
   updateStaff(@Param('id') id: string, @Body() dto: UpdateStaffDto) {
     return this.usersService.updateStaffAccount(id, dto);
+  }
+
+  // An agent who's forgotten their password — the admin sets a new one
+  // and tells them, no SMS needed.
+  @Roles(Role.ADMIN)
+  @Patch('staff/:id/password')
+  resetStaffPassword(@Param('id') id: string, @Body() dto: ResetStaffPasswordDto) {
+    return this.usersService.resetStaffPassword(id, dto.password);
   }
 
   @Roles(Role.ADMIN)

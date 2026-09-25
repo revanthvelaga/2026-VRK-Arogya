@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { IconPlus, IconTruck, IconUser } from '../components/Icons';
 
@@ -103,7 +103,12 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <div className="field-label-row">
+              <label htmlFor="password">Password</label>
+              <Link to="/forgot-password" className="auth-inline-link">
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               autoComplete="current-password"

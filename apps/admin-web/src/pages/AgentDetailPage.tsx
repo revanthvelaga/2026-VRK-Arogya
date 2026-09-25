@@ -87,6 +87,81 @@ function EditAgentForm({ detail, onSaved }: { detail: AgentDetail; onSaved: () =
   );
 }
 
+function ResetPasswordForm({ agentId, agentName }: { agentId: string; agentName: string }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.patch(`/users/staff/${agentId}/password`, { password });
+      setDone(true);
+      setPassword('');
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not reset password');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <>
+        <button
+          className="btn btn-small"
+          onClick={() => {
+            setOpen(true);
+            setDone(false);
+          }}
+        >
+          Reset password
+        </button>
+        {done && (
+          <span style={{ fontSize: 12.5, color: 'var(--accent-ink)', marginLeft: 8 }}>
+            Password updated — share it with {agentName}.
+          </span>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+      {error && <div className="error-banner">{error}</div>}
+      <div className="field" style={{ maxWidth: 320 }}>
+        <label>New password for {agentName}</label>
+        <input
+          type="text"
+          autoComplete="off"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="At least 6 characters"
+          autoFocus
+          required
+        />
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" className="btn btn-small" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary btn-small" disabled={submitting}>
+          {submitting ? 'Saving…' : 'Set password'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function LeaveReviewRow({ leave, onReviewed }: { leave: AgentDetail['leaves'][number]; onReviewed: () => void }) {
   const [busy, setBusy] = useState(false);
 
@@ -225,7 +300,10 @@ export function AgentDetailPage() {
             />
           </div>
         </div>
-        <EditAgentForm detail={detail} onSaved={reload} />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <EditAgentForm detail={detail} onSaved={reload} />
+          <ResetPasswordForm agentId={detail.agent.id} agentName={detail.agent.fullName} />
+        </div>
       </div>
 
       <div className="section-title">Certificates</div>

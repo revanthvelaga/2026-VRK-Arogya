@@ -2333,3 +2333,67 @@ tr.row-link {
     font-size: 10px;
   }
 }
+
+/* ---------- Sign-in extras (forgot password) ---------- */
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.auth-inline-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.auth-inline-link:hover {
+  text-decoration: underline;
+}
+
+.auth-links-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.auth-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.auth-text-btn:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.login-card .recaptcha-note {
+  margin: 14px auto 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.login-card .recaptcha-note a {
+  color: inherit;
+}
+
+.login-card .auth-footer {
+  margin: 18px auto 0;
+  font-size: 13px;
+}
+
+/* Hidden per Google's allowance when .recaptcha-note is shown instead. */
+.grecaptcha-badge {
+  visibility: hidden !important;
+}

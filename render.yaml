@@ -89,6 +89,15 @@ services:
       # this service deploys.
       - key: VITE_API_URL
         sync: false
+      # Optional — "Forgot password?" by phone OTP on the staff login.
+      # Same public Firebase web config values as arogya-customer-web.
+      # Leave blank and that page just tells agents to ask their admin.
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
 
   - type: web
     name: arogya-customer-web

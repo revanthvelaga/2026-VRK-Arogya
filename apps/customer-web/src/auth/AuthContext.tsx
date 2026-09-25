@@ -9,9 +9,18 @@ export interface CurrentUser {
   role: Role;
 }
 
+interface RegisterInput {
+  fullName: string;
+  phone: string;
+  email?: string;
+  password: string;
+  referralCode?: string;
+}
+
 interface AuthContextValue {
   user: CurrentUser | null;
   login: (phone: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   loginWithGoogle: (idToken: string, referralCode?: string) => Promise<void>;
   // fullName is only needed the first time a given phone number signs
   // in — the API rejects a brand-new phone with no name (see ApiError
@@ -46,6 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(sessionToUser(session));
   };
 
+  const register = async (input: RegisterInput) => {
+    // Public registration is always forced to CUSTOMER on the API side.
+    const session = await api.post<AuthSession>('/auth/register', input);
+    setSession(session);
+    setUser(sessionToUser(session));
+  };
+
   const loginWithGoogle = async (idToken: string, referralCode?: string) => {
     const session = await api.post<AuthSession>('/auth/google', { idToken, referralCode });
     setSession(session);
@@ -70,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ user, login, loginWithGoogle, loginWithPhoneOtp, resetPasswordWithPhone, logout }),
+    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, resetPasswordWithPhone, logout }),
     [user],
   );
 

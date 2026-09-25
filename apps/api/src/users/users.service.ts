@@ -467,6 +467,12 @@ export class UsersService {
     return user;
   }
 
+  async resetStaffPassword(id: string, newPassword: string): Promise<{ ok: true }> {
+    const user = await this.findStaffOrAdmin(id);
+    await this.setPassword(user.id, newPassword);
+    return { ok: true };
+  }
+
   // Editing an existing agent's profile from the admin side — name,
   // specialization, active status, and salary (never self-reported by the
   // agent — see updateProfile above, which never touches monthlySalary).
