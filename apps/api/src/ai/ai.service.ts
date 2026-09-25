@@ -59,9 +59,12 @@ export interface AiProbeResult {
   ok: boolean;
   checkedAt: string;
   lastFailure: { at: string; model: string; status?: number; message: string } | null;
+  fallbacks: string[];
 }
 
 const PROBE_CACHE_MS = 60_000;
+const FALLBACK_CACHE_MS = 60 * 60_000;
+const MAX_FALLBACKS = 3;
 
 // One Gemini client for every AI feature in the API (prescription
 // reading, the test finder, report/result explanations), so the key
@@ -71,6 +74,8 @@ const PROBE_CACHE_MS = 60_000;
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly client: GoogleGenerativeAI | null;
+  private readonly apiKey: string | undefined;
+  private fallbackCache: { at: number; models: string[] } | null = null;
   // Mutable: a 404 that names a replacement model updates this for
   // every request from then on, for the life of the running process.
   private currentModel = DEFAULT_MODEL;
@@ -80,8 +85,8 @@ export class AiService {
   private probeCache: { at: number; result: AiProbeResult } | null = null;
 
   constructor(config: ConfigService) {
-    const apiKey = config.get<string>('GEMINI_API_KEY');
-    this.client = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+    this.apiKey = config.get<string>('GEMINI_API_KEY');
+    this.client = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
     if (!this.client) {
       this.logger.warn('GEMINI_API_KEY not set — AI features will fail until configured.');
     }
@@ -136,6 +141,7 @@ export class AiService {
       ok,
       checkedAt: new Date().toISOString(),
       lastFailure: this.lastFailure,
+      fallbacks: this.client ? await this.fallbackModels() : [],
     };
     this.probeCache = { at: Date.now(), result };
     return result;
@@ -151,58 +157,129 @@ export class AiService {
     blocks: AiContentBlock[],
     maxTokens: number,
     responseSchema?: ResponseSchema,
-    isRetryAfterModelSwitch = false,
   ): Promise<string> {
-    const client = this.requireClient();
-    const model = client.getGenerativeModel({ model: this.currentModel, systemInstruction: system });
+    this.requireClient();
+    const call = (model: string) => this.callModel(model, system, blocks, maxTokens, responseSchema);
+    let lastErr: unknown;
 
-    try {
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: toParts(blocks) }],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          ...(responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}),
-        },
-      });
-      const text = result.response.text();
-      if (result.response.candidates?.[0]?.finishReason === FinishReason.MAX_TOKENS) {
-        this.logger.warn('Gemini response hit max output tokens');
-      }
-      return text;
-    } catch (err) {
-      if (err instanceof GoogleGenerativeAIResponseError) {
-        // A safety/recitation/language block — content genuinely refused,
-        // not a transient failure worth retrying.
-        throw new BadRequestException('Our assistant could not process this request.');
-      }
-      if (err instanceof GoogleGenerativeAIFetchError) {
-        if (err.status === 429) {
-          throw new ServiceUnavailableException('Our assistant is busy — please try again in a minute.');
-        }
-        if (err.status === 400) {
-          this.logger.error(`Gemini rejected the request: ${err.message}`);
-          throw new BadRequestException('That file could not be read — try a clearer photo or a PDF.');
-        }
-        if (err.status === 404 && !isRetryAfterModelSwitch) {
+    // 1. The current model — healing a retirement (404 naming the
+    //    replacement) and giving a momentary overload (503) one retry.
+    let retriedOverload = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await call(this.currentModel);
+      } catch (err) {
+        lastErr = err;
+        if (!(err instanceof GoogleGenerativeAIFetchError)) break;
+        if (err.status === 404) {
           const replacement = MODEL_SUGGESTION_RE.exec(err.message)?.[1];
-          if (replacement && replacement !== this.currentModel) {
-            this.logger.warn(
-              `Gemini model "${this.currentModel}" is no longer available — switching to "${replacement}" and retrying.`,
-            );
-            this.currentModel = replacement;
-            return this.send(system, blocks, maxTokens, responseSchema, true);
-          }
-          this.logger.error(`Gemini model "${this.currentModel}" not found and no replacement could be parsed: ${err.message}`);
+          if (!replacement || replacement === this.currentModel) break;
+          this.logger.warn(`Gemini model "${this.currentModel}" is no longer available — switching to "${replacement}".`);
+          this.currentModel = replacement;
+          continue;
+        }
+        if (err.status === 503 && !retriedOverload) {
+          retriedOverload = true;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        break;
+      }
+    }
+
+    // 2. Still busy / out of free quota on that model — free-tier limits
+    //    are per model, so another available Flash model usually answers.
+    if (isBusy(lastErr)) {
+      for (const alt of await this.fallbackModels()) {
+        try {
+          const text = await call(alt);
+          this.logger.warn(`"${this.currentModel}" was busy — answered by fallback "${alt}".`);
+          return text;
+        } catch (err) {
+          lastErr = err;
+          const skippable = isBusy(err) || (err instanceof GoogleGenerativeAIFetchError && err.status === 404);
+          if (!skippable) break;
         }
       }
-      this.lastFailure = {
-        at: new Date().toISOString(),
-        model: this.currentModel,
-        status: err instanceof GoogleGenerativeAIFetchError ? err.status : undefined,
-        message: (err instanceof Error ? err.message : String(err)).slice(0, 400),
-      };
-      this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
-      throw new ServiceUnavailableException('Could not reach our assistant right now — please try again.');
     }
+
+    throw this.toHttpError(lastErr);
   }
+
+  private async callModel(
+    modelName: string,
+    system: string,
+    blocks: AiContentBlock[],
+    maxTokens: number,
+    responseSchema?: ResponseSchema,
+  ): Promise<string> {
+    const model = this.requireClient().getGenerativeModel({ model: modelName, systemInstruction: system });
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: toParts(blocks) }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        ...(responseSchema ? { responseMimeType: 'application/json', responseSchema } : {}),
+      },
+    });
+    const text = result.response.text();
+    if (result.response.candidates?.[0]?.finishReason === FinishReason.MAX_TOKENS) {
+      this.logger.warn('Gemini response hit max output tokens');
+    }
+    return text;
+  }
+
+  // Flash models this key can call, straight from Google's model list —
+  // so fallbacks are never guessed names that may not exist. Cached an
+  // hour; an empty list just means no fallback, never a crash.
+  private async fallbackModels(): Promise<string[]> {
+    if (!this.fallbackCache || Date.now() - this.fallbackCache.at > FALLBACK_CACHE_MS) {
+      let models: string[] = [];
+      try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000', {
+          headers: { 'x-goog-api-key': this.apiKey ?? '' },
+        });
+        if (res.ok) {
+          const body = (await res.json()) as { models?: Array<{ name: string; supportedGenerationMethods?: string[] }> };
+          models = (body.models ?? [])
+            .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m) => m.name.replace(/^models\//, ''))
+            .filter((name) => /flash/i.test(name) && !/image|tts|audio|live|embed|thinking/i.test(name))
+            // Stable models before preview/experimental ones.
+            .sort((a, b) => Number(/preview|exp/i.test(a)) - Number(/preview|exp/i.test(b)));
+        } else {
+          this.logger.warn(`Could not list Gemini models (${res.status})`);
+        }
+      } catch (err) {
+        this.logger.warn(`Could not list Gemini models: ${err instanceof Error ? err.message : err}`);
+      }
+      this.fallbackCache = { at: Date.now(), models };
+    }
+    return this.fallbackCache.models.filter((name) => name !== this.currentModel).slice(0, MAX_FALLBACKS);
+  }
+
+  private toHttpError(err: unknown): Error {
+    if (err instanceof GoogleGenerativeAIResponseError) {
+      // A safety/recitation/language block — content genuinely refused.
+      return new BadRequestException('Our assistant could not process this request.');
+    }
+    this.lastFailure = {
+      at: new Date().toISOString(),
+      model: this.currentModel,
+      status: err instanceof GoogleGenerativeAIFetchError ? err.status : undefined,
+      message: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+    };
+    if (err instanceof GoogleGenerativeAIFetchError && err.status === 400) {
+      this.logger.error(`Gemini rejected the request: ${err.message}`);
+      return new BadRequestException('That file could not be read — try a clearer photo or a PDF.');
+    }
+    this.logger.error('Gemini request failed', err instanceof Error ? err.stack : err);
+    if (isBusy(err)) {
+      return new ServiceUnavailableException('Our assistant is busy right now — please try again in a minute.');
+    }
+    return new ServiceUnavailableException('Could not reach our assistant right now — please try again.');
+  }
+}
+
+function isBusy(err: unknown): boolean {
+  return err instanceof GoogleGenerativeAIFetchError && (err.status === 503 || err.status === 429);
 }
