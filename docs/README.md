@@ -17,6 +17,7 @@ for developers, then what to try and what comes next.
 | [step-09-customer-mobile.md](./step-09-customer-mobile.md) | The React Native (Expo) customer app — same endpoints as the web app, from a phone |
 | [step-10-notifications-reports.md](./step-10-notifications-reports.md) | Real in-app + email notifications, and PDF report upload/download |
 | [step-11-cloud-deploy.md](./step-11-cloud-deploy.md) | Deploying the API to Render + Supabase (free, no local server) and building the mobile app against it via EAS |
+| [roadmap.md](./roadmap.md) | Planned features, owner to-dos, launch checklist and known issues |
 
 New write-ups are added as each step ships — see the root
 [`README.md`](../README.md) for overall project status.
