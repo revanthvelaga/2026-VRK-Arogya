@@ -93,6 +93,7 @@ export class BackupProvider {
   }
 }
 
+const GROQ_GOOD = /gpt-oss|llama|qwen|deepseek|kimi/i;
 const NOT_CHAT = /whisper|tts|guard|embed|vision|audio|image|playai|moderation/i;
 
 export function buildBackupProviders(env: (key: string) => string | undefined): BackupProvider[] {
@@ -120,8 +121,9 @@ export function buildBackupProviders(env: (key: string) => string | undefined): 
       choose: (models) =>
         (models ?? [])
           .map((m) => m.id)
-          .filter((id) => !NOT_CHAT.test(id))
-          // Bigger general models first — better at following the JSON format.
+          // Only big general-purpose families — Groq also lists small or
+          // language-specific models (e.g. allam) that answer poorly here.
+          .filter((id) => !NOT_CHAT.test(id) && GROQ_GOOD.test(id))
           .sort((a, b) => Number(!/70b|120b|versatile/i.test(a)) - Number(!/70b|120b|versatile/i.test(b)))
           .slice(0, 2),
     }),

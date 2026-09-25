@@ -68,6 +68,7 @@ export interface AiProbeResult {
 const PROBE_CACHE_MS = 60_000;
 const FALLBACK_CACHE_MS = 60 * 60_000;
 const MAX_FALLBACKS = 3;
+const STICKY_MS = 10 * 60_000;
 
 // Backups get the schema in the prompt instead of a native schema
 // parameter (support for that varies across providers), then this pulls
@@ -102,6 +103,7 @@ export class AiService {
   // Mutable: a 404 that names a replacement model updates this for
   // every request from then on, for the life of the running process.
   private currentModel = DEFAULT_MODEL;
+  private stickyModel: { model: string; until: number } | null = null;
   private lastAnsweredBy: string | null = null;
   // The raw reason behind the last generic "could not reach" error —
   // customers only ever see the friendly message, this is for /health/ai.
@@ -241,40 +243,51 @@ export class AiService {
       this.lastAnsweredBy = `gemini:${model}`;
       return text;
     };
+    const is404 = (err: unknown) => err instanceof GoogleGenerativeAIFetchError && err.status === 404;
     let lastErr: unknown;
 
-    let retriedOverload = false;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // A fallback that recently answered while the primary was overloaded
+    // goes first for a while — otherwise every request re-pays for the
+    // primary's failed attempts before getting an answer.
+    const sticky =
+      this.stickyModel && this.stickyModel.until > Date.now() && !this.deadModels.has(this.stickyModel.model)
+        ? this.stickyModel.model
+        : null;
+    if (sticky) {
+      try {
+        return await call(sticky);
+      } catch (err) {
+        lastErr = err;
+        this.stickyModel = null;
+        if (is404(err)) this.deadModels.add(sticky);
+        else if (!isBusy(err)) throw err;
+      }
+    }
+
+    // The primary model, healing a retirement (404 naming the replacement).
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         return await call(this.currentModel);
       } catch (err) {
         lastErr = err;
-        if (!(err instanceof GoogleGenerativeAIFetchError)) break;
-        if (err.status === 404) {
-          const replacement = MODEL_SUGGESTION_RE.exec(err.message)?.[1];
-          if (!replacement || replacement === this.currentModel) break;
-          this.logger.warn(`Gemini model "${this.currentModel}" is no longer available — switching to "${replacement}".`);
-          this.currentModel = replacement;
-          continue;
-        }
-        if (err.status === 503 && !retriedOverload) {
-          retriedOverload = true;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
-        }
-        break;
+        if (!is404(err)) break;
+        const replacement = MODEL_SUGGESTION_RE.exec((err as Error).message)?.[1];
+        if (!replacement || replacement === this.currentModel) break;
+        this.logger.warn(`Gemini model "${this.currentModel}" is no longer available — switching to "${replacement}".`);
+        this.currentModel = replacement;
       }
     }
 
     if (isBusy(lastErr)) {
-      for (const alt of await this.fallbackModels()) {
+      for (const alt of (await this.fallbackModels()).filter((m) => m !== sticky)) {
         try {
           const text = await call(alt);
-          this.logger.warn(`"${this.currentModel}" was busy — answered by Gemini fallback "${alt}".`);
+          this.stickyModel = { model: alt, until: Date.now() + STICKY_MS };
+          this.logger.warn(`"${this.currentModel}" was busy — answered by "${alt}", preferring it for the next few minutes.`);
           return text;
         } catch (err) {
           lastErr = err;
-          if (err instanceof GoogleGenerativeAIFetchError && err.status === 404) {
+          if (is404(err)) {
             this.deadModels.add(alt);
             continue;
           }
