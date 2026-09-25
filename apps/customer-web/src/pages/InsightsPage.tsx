@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
-import type { MyReportValue, Patient } from '../api/types';
+import type { MyReportValue, Patient, Test } from '../api/types';
+import { useCart } from '../context/CartContext';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
@@ -24,15 +25,19 @@ import {
   IconAlertTriangle,
   IconArrowRight,
   IconBag,
+  IconCheckCircle,
+  IconChevronRight,
+  IconDownload,
   IconFileText,
   IconMapPin,
   IconPhone,
+  IconPlus,
   IconShieldCheck,
   IconSparkle,
   IconTrend,
   IconUser,
 } from '../components/Icons';
-import { formatDateTime, formatNumber } from '../lib/format';
+import { formatCurrency, formatDateTime, formatNumber } from '../lib/format';
 
 function relationshipLabel(r: Patient['relationship']): string {
   return r.charAt(0) + r.slice(1).toLowerCase();
@@ -373,6 +378,32 @@ function TrendsCard({ values }: { values: MyReportValue[] }) {
   );
 }
 
+// One tap to save a report's PDF, right from the list — no need to open
+// it first.
+function QuickDownloadButton({ group }: { group: ReportGroup }) {
+  const [busy, setBusy] = useState(false);
+  const download = async () => {
+    setBusy(true);
+    try {
+      await downloadFile(`/reports/${group.reportId}/download`, group.reportFileName);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      className="report-quick-download"
+      onClick={download}
+      disabled={busy}
+      aria-label={`Download ${group.reportFileName}`}
+      title="Download PDF"
+    >
+      {busy ? <span className="report-quick-download-spin" /> : <IconDownload size={17} />}
+    </button>
+  );
+}
+
 function ReportDetailCard({ group }: { group: ReportGroup }) {
   const [downloading, setDownloading] = useState(false);
   const [viewing, setViewing] = useState(false);
@@ -448,11 +479,11 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
               <div className="insight-value-trend">
                 {hasTrend && (
                   <>
-                    <span className="value-pill normal-ghost">{formatNumber(v.previousValue!)}</span>
+                    <span className={`value-pill ${previousPillClass(v)}`}>{formatNumber(v.previousValue!)}</span>
                     <IconArrowRight size={11} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
                   </>
                 )}
-                <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within'}`}>
+                <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within-solid'}`}>
                   {formatNumber(v.value)} {v.unit ?? ''}
                 </span>
               </div>
@@ -467,6 +498,211 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
 interface RecommendationResponse {
   recommendation: string;
   basedOn: { reportFileName: string; reportGeneratedAt: string } | null;
+}
+
+// ---- Results at a glance: latest vs previous, per parameter -------------
+
+type ParamFilter = 'out' | 'within' | 'all';
+
+// Whether a reading sits outside a range; null when there's no range.
+function outsideRange(value: string | number, low?: string | number, high?: string | number): boolean | null {
+  if (low == null || high == null) return null;
+  const n = Number(value);
+  return n < Number(low) || n > Number(high);
+}
+
+// Previous-reading pill: red/green by whether it was in range back then.
+function previousPillClass(v: MyReportValue): string {
+  const out = v.previousValue != null ? outsideRange(v.previousValue, v.normalLow, v.normalHigh) : null;
+  return out === true ? 'prev-out' : out === false ? 'prev-in' : 'normal-ghost';
+}
+
+// Book a re-test straight from a result — or take it back out of the cart.
+function TestCartToggle({ test }: { test: Test }) {
+  const { add, remove, has } = useCart();
+  if (has('test', test.id)) {
+    return (
+      <span className="param-cart in-cart">
+        <IconCheckCircle size={13} /> In cart
+        <button type="button" className="param-cart-remove" onClick={() => remove('test', test.id)}>
+          Remove
+        </button>
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="param-cart add"
+      onClick={() => add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price), meta: test.sampleType })}
+    >
+      <IconPlus size={12} /> Add test · {formatCurrency(test.price)}
+    </button>
+  );
+}
+
+// "Summarise my out of range parameters" — the same AI recommendation as
+// the card further down, opened right where the out-of-range list is.
+function OutOfRangeSummary({ patientId }: { patientId: string }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOpen(false);
+    setText(null);
+    setError(null);
+  }, [patientId]);
+
+  const toggle = async () => {
+    if (open) return setOpen(false);
+    setOpen(true);
+    if (text) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get<RecommendationResponse>(`/reports/mine/recommendation?patientId=${patientId}`);
+      setText(res.recommendation);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not summarise right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="ai-summary">
+      <button type="button" className="ai-summary-link" aria-expanded={open} onClick={toggle}>
+        <IconSparkle size={15} />
+        Summarise my out of range parameters
+        <IconChevronRight size={14} className={`ai-summary-chevron${open ? ' open' : ''}`} />
+      </button>
+      {open && (
+        <div className="ai-summary-body">
+          {loading ? <LoadingLine label="Summarising…" /> : error ? <span className="field-hint">{error}</span> : text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ParameterCompareCard({ values, patientId }: { values: MyReportValue[]; patientId: string }) {
+  const { data: tests } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
+  const testById = useMemo(() => new Map((tests ?? []).map((t) => [t.id, t])), [tests]);
+  const out = values.filter((v) => v.isAbnormal);
+  const within = values.filter((v) => !v.isAbnormal);
+  const [filter, setFilter] = useState<ParamFilter>(out.length ? 'out' : 'all');
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFilter(out.length ? 'out' : 'all');
+    setOpenId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
+  const shown = filter === 'out' ? out : filter === 'within' ? within : [...out, ...within];
+  const chips: Array<{ key: ParamFilter; label: string; count: number }> = [
+    { key: 'out', label: 'Out of range', count: out.length },
+    { key: 'within', label: 'Within range', count: within.length },
+    { key: 'all', label: 'All', count: values.length },
+  ];
+
+  return (
+    <div className="card param-compare-card">
+      <div className="card-title" style={{ marginBottom: 4 }}>
+        Your results
+      </div>
+      <p className="page-sub" style={{ margin: '0 0 12px' }}>
+        Latest reading for each test, next to the one before it.
+      </p>
+
+      {out.length > 0 && <OutOfRangeSummary patientId={patientId} />}
+
+      <div className="chip-row param-filter" role="group" aria-label="Show results">
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={filter === c.key}
+            className={`filter-chip${filter === c.key ? ' active' : ' outline'}`}
+            onClick={() => setFilter(c.key)}
+          >
+            {c.label} ({c.count})
+          </button>
+        ))}
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="page-sub" style={{ margin: '12px 0 0' }}>
+          {filter === 'out' ? 'Nothing out of range — nice.' : 'No results here.'}
+        </p>
+      ) : (
+        <div className="param-list">
+          {shown.map((v) => {
+            const open = openId === v.id;
+            const hasRange = v.normalLow != null && v.normalHigh != null;
+            const test = v.testId ? testById.get(v.testId) : undefined;
+            return (
+              <div className={`param-row${open ? ' open' : ''}`} key={v.id}>
+                <button
+                  type="button"
+                  className="param-row-main"
+                  aria-expanded={open}
+                  onClick={() => setOpenId(open ? null : v.id)}
+                >
+                  <span className="param-row-info">
+                    <span className="param-row-name">{v.testName}</span>
+                    {hasRange && (
+                      <span className="param-row-range">
+                        Range: {formatNumber(v.normalLow!)} – {formatNumber(v.normalHigh!)} {v.unit ?? ''}
+                      </span>
+                    )}
+                    {v.category && <span className="param-row-category">{v.category}</span>}
+                  </span>
+                  <span className="param-row-values">
+                    {v.previousValue != null && (
+                      <>
+                        <span className={`value-pill ${previousPillClass(v)}`} title="Previous reading">
+                          {formatNumber(v.previousValue)}
+                        </span>
+                        <IconArrowRight size={13} style={{ color: 'var(--ink-faint)', flexShrink: 0 }} />
+                      </>
+                    )}
+                    <span className={`value-pill ${v.isAbnormal ? 'abnormal' : 'within-solid'}`} title="Latest reading">
+                      {formatNumber(v.value)}
+                    </span>
+                    <IconChevronRight size={16} className="param-row-chevron" />
+                  </span>
+                </button>
+
+                {test && (
+                  <div className="param-row-cart">
+                    <TestCartToggle test={test} />
+                  </div>
+                )}
+
+                {open && (
+                  <div className="param-row-detail">
+                    <div>
+                      Latest: <b>{formatNumber(v.value)} {v.unit ?? ''}</b> on {formatDateTime(v.reportGeneratedAt)}
+                    </div>
+                    {v.previousValue != null && (
+                      <div>
+                        Previous: <b>{formatNumber(v.previousValue)} {v.previousUnit ?? v.unit ?? ''}</b>
+                        {v.previousRecordedAt ? ` on ${formatDateTime(v.previousRecordedAt)}` : ''}
+                      </div>
+                    )}
+                    <ExplainValue valueId={v.id} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Generated on demand (not auto-fetched) since each generation is a real
@@ -612,8 +848,6 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
   }
 
   const selectedGroup = groups.find((g) => g.reportId === selectedReportId) ?? latest;
-  const outOfRange = latestPerParam.filter((v) => v.isAbnormal);
-  const withinRange = latestPerParam.filter((v) => !v.isAbnormal);
 
   return (
     <>
@@ -624,24 +858,7 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
 
       <RetestCard patientId={patientId} />
 
-      <div className="card">
-        <div className="insight-summary" style={{ margin: 0 }}>
-          <div className="insight-summary-card out">
-            <div className="label">Out of range</div>
-            <div className="count">
-              {outOfRange.length}
-              <span>parameter{outOfRange.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-          <div className="insight-summary-card within">
-            <div className="label">Within range</div>
-            <div className="count">
-              {withinRange.length}
-              <span>parameter{withinRange.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ParameterCompareCard values={latestPerParam} patientId={patientId} />
 
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -651,35 +868,34 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
         <div className="report-list">
           {groups.map((g, i) => {
             const abnormalCount = g.values.filter((v) => v.isAbnormal).length;
+            const selected = g.reportId === selectedGroup?.reportId;
             return (
-              <button
-                type="button"
-                key={g.reportId}
-                className={`report-list-item${g.reportId === selectedGroup?.reportId ? ' selected' : ''}`}
-                onClick={() => setSelectedReportId(g.reportId)}
-              >
-                <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
-                <div className="report-list-item-body">
-                  <div className="report-list-item-name">
-                    {g.reportFileName}
-                    {i === 0 && (
-                      <span className="badge badge-accent" style={{ marginLeft: 8 }}>
-                        Latest
-                      </span>
-                    )}
-                  </div>
-                  <div className="report-list-item-meta">
-                    {formatDateTime(g.reportGeneratedAt)} · {g.values.length} parameter
-                    {g.values.length === 1 ? '' : 's'}
-                    {abnormalCount > 0 && (
-                      <span className="report-list-item-flag">
-                        {' '}
-                        · {abnormalCount} out of range
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
+              <div key={g.reportId} className={`report-list-item${selected ? ' selected' : ''}`}>
+                <button
+                  type="button"
+                  className="report-list-item-select"
+                  aria-pressed={selected}
+                  onClick={() => setSelectedReportId(g.reportId)}
+                >
+                  <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
+                  <span className="report-list-item-body">
+                    <span className="report-list-item-name">
+                      {g.reportFileName}
+                      {i === 0 && (
+                        <span className="badge badge-accent" style={{ marginLeft: 8 }}>
+                          Latest
+                        </span>
+                      )}
+                    </span>
+                    <span className="report-list-item-meta">
+                      {formatDateTime(g.reportGeneratedAt)} · {g.values.length} parameter
+                      {g.values.length === 1 ? '' : 's'}
+                      {abnormalCount > 0 && <span className="report-list-item-flag"> · {abnormalCount} out of range</span>}
+                    </span>
+                  </span>
+                </button>
+                <QuickDownloadButton group={g} />
+              </div>
             );
           })}
         </div>
