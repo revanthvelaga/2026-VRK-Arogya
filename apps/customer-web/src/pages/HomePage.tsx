@@ -24,6 +24,7 @@ import {
   IconShieldCheck,
   IconStethoscope,
   IconUpload,
+  IconX,
 } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 
@@ -52,7 +53,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 function TestTile({ test, index }: { test: Test; index: number }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has('test', test.id);
   return (
     <div className="rich-card carousel-card">
@@ -70,12 +71,15 @@ function TestTile({ test, index }: { test: Test; index: number }) {
           <div className="rich-card-price">{formatCurrency(test.price)}</div>
           <button
             className={`add-btn${added ? ' added' : ''}`}
-            onClick={() => add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })}
-            disabled={added}
+            onClick={() =>
+              added
+                ? remove('test', test.id)
+                : add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })
+            }
           >
             {added ? (
               <>
-                <IconCheckCircle size={13} /> Added
+                <IconX size={13} /> Remove
               </>
             ) : (
               <>
@@ -90,7 +94,7 @@ function TestTile({ test, index }: { test: Test; index: number }) {
 }
 
 function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has('package', pkg.id);
   const testCount = pkg.tests?.length ?? 0;
   return (
@@ -108,12 +112,15 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
           <div className="rich-card-price">{formatCurrency(pkg.price)}</div>
           <button
             className={`add-btn${added ? ' added' : ''}`}
-            onClick={() => add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })}
-            disabled={added}
+            onClick={() =>
+              added
+                ? remove('package', pkg.id)
+                : add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })
+            }
           >
             {added ? (
               <>
-                <IconCheckCircle size={13} /> Added
+                <IconX size={13} /> Remove
               </>
             ) : (
               <>

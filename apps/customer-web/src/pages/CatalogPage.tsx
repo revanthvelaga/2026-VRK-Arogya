@@ -9,7 +9,6 @@ import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import {
   IconBox,
-  IconCheckCircle,
   IconChevronDown,
   IconFlask,
   IconPlus,
@@ -32,7 +31,7 @@ function matchesAudience(itemAudience: Audience, filter: Audience | null): boole
 }
 
 function TestCard({ test, index }: { test: Test; index: number }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has('test', test.id);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const hasDetails = test.description || test.preparationInstructions || test.reportInfo;
@@ -106,13 +105,14 @@ function TestCard({ test, index }: { test: Test; index: number }) {
           <button
             className={`add-btn${added ? ' added' : ''}`}
             onClick={() =>
-              add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })
+              added
+                ? remove('test', test.id)
+                : add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })
             }
-            disabled={added}
           >
             {added ? (
               <>
-                <IconCheckCircle size={13} /> Added
+                <IconX size={13} /> Remove
               </>
             ) : (
               <>
@@ -127,7 +127,7 @@ function TestCard({ test, index }: { test: Test; index: number }) {
 }
 
 function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has('package', pkg.id);
   const testCount = pkg.tests?.length ?? 0;
   const maxTurnaround = pkg.tests?.length
@@ -158,13 +158,14 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
           <button
             className={`add-btn${added ? ' added' : ''}`}
             onClick={() =>
-              add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })
+              added
+                ? remove('package', pkg.id)
+                : add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })
             }
-            disabled={added}
           >
             {added ? (
               <>
-                <IconCheckCircle size={13} /> Added
+                <IconX size={13} /> Remove
               </>
             ) : (
               <>

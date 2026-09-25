@@ -6,25 +6,28 @@ import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
-import { IconBox, IconCheckCircle, IconPlus } from '../components/Icons';
+import { IconBox, IconCheckCircle, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 import { buildVisitPlan, TIER_LABEL } from '../lib/visitPlan';
 
 const TIER_ORDER = { BASIC: 0, STANDARD: 1, PREMIUM: 2 } as const;
 
 function AddCell({ pkg }: { pkg: Package }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has('package', pkg.id);
   return (
     <button
       type="button"
       className={`add-btn${added ? ' added' : ''}`}
-      disabled={added}
-      onClick={() => add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })}
+      onClick={() =>
+        added
+          ? remove('package', pkg.id)
+          : add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })
+      }
     >
       {added ? (
         <>
-          <IconCheckCircle size={13} /> Added
+          <IconX size={13} /> Remove
         </>
       ) : (
         <>

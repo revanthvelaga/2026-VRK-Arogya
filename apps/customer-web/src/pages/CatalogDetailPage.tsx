@@ -9,12 +9,12 @@ import { LoadingLine } from '../components/Spinner';
 import {
   IconArrowLeft,
   IconBox,
-  IconCheckCircle,
   IconChevronDown,
   IconClock,
   IconFileText,
   IconFlask,
   IconPlus,
+  IconX,
 } from '../components/Icons';
 import { audienceLabel } from '../lib/segments';
 import { formatCurrency } from '../lib/format';
@@ -72,6 +72,7 @@ function DetailHeader({
   price,
   added,
   onAdd,
+  onRemove,
   meta,
 }: {
   name: string;
@@ -79,6 +80,7 @@ function DetailHeader({
   price: number;
   added: boolean;
   onAdd: () => void;
+  onRemove: () => void;
   meta: string;
 }) {
   return (
@@ -93,10 +95,10 @@ function DetailHeader({
         <div className="rich-card-price" style={{ fontSize: 20 }}>
           {formatCurrency(price)}
         </div>
-        <button className={`add-btn${added ? ' added' : ''}`} onClick={onAdd} disabled={added}>
+        <button className={`add-btn${added ? ' added' : ''}`} onClick={added ? onRemove : onAdd}>
           {added ? (
             <>
-              <IconCheckCircle size={13} /> Added
+              <IconX size={13} /> Remove
             </>
           ) : (
             <>
@@ -112,7 +114,7 @@ function DetailHeader({
 export function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: test, loading, error } = useApi<Test>(() => api.get(`/catalog/tests/${id}`), [id]);
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
 
   if (loading) return <LoadingLine label="Loading test…" />;
   if (error) return <div className="error-banner">{error}</div>;
@@ -132,6 +134,7 @@ export function TestDetailPage() {
         price={Number(test.price)}
         added={added}
         onAdd={() => add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })}
+        onRemove={() => remove('test', test.id)}
         meta={`Report in ${test.turnaroundHours}h`}
       />
 
@@ -232,7 +235,7 @@ function PackageTestRow({ test }: { test: Test }) {
 export function PackageDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: pkg, loading, error } = useApi<Package>(() => api.get(`/catalog/packages/${id}`), [id]);
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
 
   if (loading) return <LoadingLine label="Loading package…" />;
   if (error) return <div className="error-banner">{error}</div>;
@@ -255,6 +258,7 @@ export function PackageDetailPage() {
         price={Number(pkg.price)}
         added={added}
         onAdd={() => add({ kind: 'package', id: pkg.id, name: pkg.name, price: Number(pkg.price) })}
+        onRemove={() => remove('package', pkg.id)}
         meta={`Contains ${tests.length} test${tests.length === 1 ? '' : 's'}`}
       />
 

@@ -8,30 +8,29 @@ import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import {
   IconAlertTriangle,
-  IconCheckCircle,
   IconFileText,
   IconPlus,
   IconSparkle,
   IconStethoscope,
   IconUpload,
+  IconX,
 } from '../components/Icons';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
 type Tab = 'rx' | 'symptoms';
 
 function AddButton({ kind, id, name, price }: { kind: 'test' | 'package'; id: string; name: string; price: number }) {
-  const { add, has } = useCart();
+  const { add, remove, has } = useCart();
   const added = has(kind, id);
   return (
     <button
       type="button"
       className={`add-btn${added ? ' added' : ''}`}
-      onClick={() => add({ kind, id, name, price })}
-      disabled={added}
+      onClick={() => (added ? remove(kind, id) : add({ kind, id, name, price }))}
     >
       {added ? (
         <>
-          <IconCheckCircle size={13} /> Added
+          <IconX size={13} /> Remove
         </>
       ) : (
         <>
