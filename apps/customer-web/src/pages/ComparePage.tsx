@@ -36,19 +36,31 @@ function AddCell({ pkg }: { pkg: Package }) {
 }
 
 // Packages side by side: which tests each includes, price, fasting and
-// report time. Defaults to the Basic → Standard → Premium ladder; `?ids=`
-// compares any packages instead.
-export function ComparePage() {
-  const [params] = useSearchParams();
-  const { data, loading, error } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
+// report time. Defaults to the Basic → Standard → Premium ladder; the
+// picker (kept in `?ids=`) swaps in any packages, up to four at once.
+const MAX_COMPARE = 4;
 
-  const packages = useMemo(() => {
-    const all = data ?? [];
+export function ComparePage() {
+  const [params, setParams] = useSearchParams();
+  const { data, loading, error } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
+  const all = useMemo(() => data ?? [], [data]);
+
+  const selectedIds = useMemo(() => {
     const ids = params.get('ids')?.split(',').filter(Boolean);
-    if (ids?.length) return all.filter((p) => ids.includes(p.id));
+    if (ids?.length) return ids;
     const tiered = all.filter((p) => p.tier).sort((a, b) => TIER_ORDER[a.tier!] - TIER_ORDER[b.tier!]);
-    return tiered.length >= 2 ? tiered : all.slice(0, 4);
-  }, [data, params]);
+    return (tiered.length >= 2 ? tiered : all.slice(0, MAX_COMPARE)).map((p) => p.id);
+  }, [all, params]);
+
+  const packages = useMemo(() => all.filter((p) => selectedIds.includes(p.id)), [all, selectedIds]);
+
+  // Choices live in the URL, so a comparison can be shared or reloaded.
+  const toggle = (id: string) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id].slice(0, MAX_COMPARE);
+    setParams({ ids: next.join(',') }, { replace: true });
+  };
 
   const rows = useMemo(() => {
     const byId = new Map<string, Test>();
@@ -70,9 +82,34 @@ export function ComparePage() {
         </div>
       </div>
 
+      {all.length > 2 && (
+        <div className="compare-picker">
+          <p className="page-sub" id="compare-picker-label">
+            Choose up to {MAX_COMPARE} packages to compare
+          </p>
+          <div className="chip-row" role="group" aria-labelledby="compare-picker-label">
+            {all.map((p) => {
+              const on = selectedIds.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={on}
+                  disabled={!on && selectedIds.length >= MAX_COMPARE}
+                  className={`filter-chip${on ? ' active' : ' outline'}`}
+                  onClick={() => toggle(p.id)}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {packages.length < 2 ? (
         <div className="card">
-          <EmptyState icon={<IconBox size={20} />} title="Not enough packages to compare yet" />
+          <EmptyState icon={<IconBox size={20} />} title={all.length < 2 ? "Not enough packages to compare yet" : "Pick at least two packages above"} />
         </div>
       ) : (
         <div className="compare-wrap">

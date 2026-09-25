@@ -180,7 +180,10 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
 
 function TestsSection({ audience }: { audience: Audience | null }) {
   const { data: tests, loading, error } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
-  const [query, setQuery] = useState('');
+  // Arriving from the Home search box (/catalog?q=...) starts pre-filled.
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const [query, setQuery] = useState(initialQuery);
   const [sampleType, setSampleType] = useState<string | null>(null);
 
   const sampleTypes = useMemo(() => {
@@ -206,10 +209,13 @@ function TestsSection({ audience }: { audience: Audience | null }) {
       <div className="search-bar">
         <IconSearch size={16} />
         <input
+          type="search"
+          aria-label="Search tests"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search tests — CBC, thyroid, sugar…"
-          style={{ border: 'none', outline: 'none', flex: 1, font: 'inherit', background: 'none' }}
+          autoFocus={Boolean(initialQuery)}
+          className="search-bar-input"
         />
       </div>
 

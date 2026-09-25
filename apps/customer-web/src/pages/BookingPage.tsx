@@ -232,10 +232,22 @@ export function BookingPage() {
     return [...t, ...p];
   }, [tests, packages]);
 
+  // The cart (and its header badge) must follow what's picked here —
+  // otherwise removing the last item leaves the badge showing 1.
+  const syncCart = (kind: 'test' | 'package', id: string, nowSelected: boolean) => {
+    if (!nowSelected) {
+      cart.remove(kind, id);
+      return;
+    }
+    const item = items.find((x) => x.kind === kind && x.id === id);
+    if (item) cart.add({ kind, id, name: item.name, price: item.price, meta: item.meta });
+  };
   const toggleTest = (id: string) => {
+    syncCart('test', id, !selectedTestIds.includes(id));
     setSelectedTestIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
   const togglePackage = (id: string) => {
+    syncCart('package', id, !selectedPackageIds.includes(id));
     setSelectedPackageIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
@@ -643,7 +655,7 @@ export function BookingPage() {
               )}
 
               <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-                <label>Date &amp; time</label>
+                <label htmlFor="booking-date">Date &amp; time</label>
                 {!locationReady ? (
                   <p className="field-hint" style={{ margin: 0 }}>
                     {collectionMode === 'PICKUP_POINT'
@@ -655,6 +667,7 @@ export function BookingPage() {
                 ) : (
                   <>
                     <input
+                      id="booking-date"
                       type="date"
                       value={scheduledDate}
                       min={todayStr}
@@ -673,6 +686,7 @@ export function BookingPage() {
                             <button
                               key={p}
                               type="button"
+                              aria-pressed={scheduledPeriod === p}
                               className={`period-option${scheduledPeriod === p ? ' selected' : ''}`}
                               onClick={() => {
                                 setScheduledPeriod(p);
@@ -696,6 +710,7 @@ export function BookingPage() {
                                 <button
                                   key={s}
                                   type="button"
+                                  aria-pressed={scheduledSlot === s}
                                   className={`filter-chip${scheduledSlot === s ? ' active' : ' outline'}`}
                                   onClick={() => setScheduledSlot(s)}
                                 >

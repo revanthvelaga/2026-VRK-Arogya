@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { SEGMENTS } from '../lib/segments';
-import { telHref, whatsappHref } from '../lib/support';
+import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
 import {
   IconBag,
   IconBox,
@@ -40,8 +40,12 @@ type QuickAction =
 
 const QUICK_ACTIONS: QuickAction[] = [
   { kind: 'link', to: '/catalog', label: 'Full body packages', icon: IconLayers, art: 'art-5' },
-  { kind: 'external', href: telHref(), label: 'Book via call', icon: IconPhone, art: 'art-4' },
-  { kind: 'external', href: whatsappHref(), label: 'Book via WhatsApp', icon: IconMessage, art: 'art-3' },
+  ...(supportPhoneConfigured
+    ? ([
+        { kind: 'external', href: telHref(), label: 'Book via call', icon: IconPhone, art: 'art-4' },
+        { kind: 'external', href: whatsappHref(), label: 'Book via WhatsApp', icon: IconMessage, art: 'art-3' },
+      ] satisfies QuickAction[])
+    : []),
   { kind: 'link', to: '/centers', label: 'Centers near me', icon: IconMapPin, art: 'art-2' },
   { kind: 'link', to: '/bookings', label: 'Track a sample', icon: IconCheckCircle, art: 'art-6' },
   { kind: 'link', to: '/insights', label: 'My insights', icon: IconBag, art: 'art-1' },
@@ -152,10 +156,24 @@ export function HomePage() {
 
   return (
     <>
-      <div className="search-bar" onClick={() => navigate('/catalog')}>
+      <form
+        role="search"
+        className="search-bar"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = new FormData(e.currentTarget).get('q')?.toString().trim() ?? '';
+          navigate(q ? `/catalog?q=${encodeURIComponent(q)}` : '/catalog');
+        }}
+      >
         <IconSearch size={16} />
-        Search for a test, package, or center…
-      </div>
+        <input
+          name="q"
+          type="search"
+          aria-label="Search tests"
+          placeholder="Search tests — CBC, thyroid, sugar…"
+          className="search-bar-input"
+        />
+      </form>
 
       <div className="smart-cta-row">
         <Link className="smart-cta rx" to="/find-tests?tab=rx">

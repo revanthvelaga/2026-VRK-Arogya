@@ -1043,8 +1043,20 @@ tbody tr:hover {
   transition: border-color 0.15s ease;
 }
 
-.search-bar:hover {
+.search-bar:hover,
+.search-bar:focus-within {
   border-color: var(--accent-soft-strong);
+}
+
+.search-bar-input {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  cursor: text;
 }
 
 /* ---------- Quick action tiles ---------- */
@@ -4756,4 +4768,24 @@ a.suggest-name:hover {
   font-weight: 700;
   color: var(--ink);
   margin-top: 2px;
+}
+
+/* ---------- Compare page package picker ---------- */
+.compare-picker {
+  margin-bottom: 16px;
+}
+
+.compare-picker .page-sub {
+  margin: 0 0 8px;
+}
+
+/* All choices visible at once, rather than a sideways-scrolling row. */
+.compare-picker .chip-row {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.compare-picker .filter-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

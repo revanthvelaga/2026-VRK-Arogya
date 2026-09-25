@@ -9,7 +9,7 @@ import { googleClientId } from '../lib/googleAuth';
 import { firebasePhoneAuthConfigured } from '../lib/firebaseAuth';
 
 interface LocationState {
-  from?: { pathname: string };
+  from?: { pathname: string; search?: string; hash?: string };
 }
 
 type Mode = 'password' | 'otp';
@@ -26,7 +26,10 @@ export function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      const from = (location.state as LocationState | null)?.from?.pathname ?? '/';
+      // Keep the query string too — e.g. /find-tests?tab=symptoms must come
+      // back on the symptoms tab, not the page's default one.
+      const f = (location.state as LocationState | null)?.from;
+      const from = f ? `${f.pathname}${f.search ?? ''}${f.hash ?? ''}` : '/';
       navigate(from, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -125,8 +125,7 @@ services:
       - key: VITE_API_URL
         sync: false
       # Optional — E.164 format (e.g. +911234567890). Leave blank and
-      # the "Book via Call"/"Book via WhatsApp" tiles use a placeholder
-      # number.
+      # the "Book via Call"/"Book via WhatsApp" tiles are hidden.
       - key: VITE_SUPPORT_PHONE
         sync: false
       # Optional — "Sign in with Google" / mobile OTP on the login page.
