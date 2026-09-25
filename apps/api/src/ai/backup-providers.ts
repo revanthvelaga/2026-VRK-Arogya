@@ -23,6 +23,10 @@ interface ProviderConfig {
   // the models to try, best first.
   choose: (models: Array<{ id: string; pricing?: { prompt?: string; completion?: string } }> | null) => string[];
   hasModelList: boolean;
+  // Answers text requests before Gemini — for providers built for speed.
+  fast?: boolean;
+  // Per-model extras for the request body.
+  extraBody?: (model: string) => Record<string, unknown>;
 }
 
 const MODEL_LIST_CACHE_MS = 60 * 60_000;
@@ -40,6 +44,10 @@ export class BackupProvider {
 
   get configured(): boolean {
     return Boolean(this.cfg.apiKey);
+  }
+
+  get fast(): boolean {
+    return Boolean(this.cfg.fast);
   }
 
   async models(): Promise<string[]> {
@@ -70,7 +78,10 @@ export class BackupProvider {
       headers: { Authorization: `Bearer ${this.cfg.apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        max_tokens: maxTokens,
+        // Reasoning models spend part of this budget thinking before they
+        // answer; headroom keeps a short answer from being cut off.
+        max_tokens: REASONING_MODEL.test(model) ? maxTokens + 1024 : maxTokens,
+        ...(this.cfg.extraBody?.(model) ?? {}),
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: prompt },
@@ -93,6 +104,7 @@ export class BackupProvider {
   }
 }
 
+const REASONING_MODEL = /gpt-oss|deepseek-r|qwq|reason/i;
 const GROQ_GOOD = /gpt-oss|llama|qwen|deepseek|kimi/i;
 const NOT_CHAT = /whisper|tts|guard|embed|vision|audio|image|playai|moderation/i;
 
@@ -118,6 +130,11 @@ export function buildBackupProviders(env: (key: string) => string | undefined): 
       baseUrl: 'https://api.groq.com/openai/v1',
       apiKey: env('GROQ_API_KEY'),
       hasModelList: true,
+      // Much faster than Gemini's free tier, so it takes text requests first.
+      fast: true,
+      // gpt-oss thinks before answering; "low" is plenty for these short,
+      // well-scoped prompts and cuts most of the wait.
+      extraBody: (model) => (/gpt-oss/i.test(model) ? { reasoning_effort: 'low' } : {}),
       choose: (models) =>
         (models ?? [])
           .map((m) => m.id)

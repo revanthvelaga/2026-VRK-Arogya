@@ -191,7 +191,19 @@ export class AiService {
   ): Promise<string> {
     if (!this.enabled) this.requireClient();
     let lastErr: unknown = null;
+    // Backups are text-only — a prescription photo/PDF stays with Gemini.
+    const textOnly = blocks.every((b) => b.type === 'text');
+    const fast = textOnly ? this.backups.filter((b) => b.configured && b.fast) : [];
 
+    // 1. Fast providers (Groq) take text requests first — far quicker than
+    //    Gemini's free tier, which is often overloaded.
+    if (fast.length) {
+      const result = await this.tryBackups(fast, system, blocks, maxTokens, schema);
+      if (result.answer !== undefined) return result.answer;
+      lastErr = result.err;
+    }
+
+    // 2. Gemini — images always, and text when the fast providers failed.
     if (this.client) {
       try {
         return await this.sendGemini(system, blocks, maxTokens, schema);
@@ -202,30 +214,44 @@ export class AiService {
       }
     }
 
-    // Backups are text-only — a prescription photo/PDF stays with Gemini.
-    if (blocks.every((b) => b.type === 'text')) {
-      const userText = blocks.map((b) => (b.type === 'text' ? b.text : '')).join('\n\n');
-      const prompt = schema
-        ? `${userText}\n\nRespond with ONLY a JSON object — no prose, no code fences — matching this JSON Schema:\n${JSON.stringify(schema)}`
-        : userText;
-      const required = Array.isArray(schema?.required) ? (schema.required as string[]) : [];
-      for (const provider of this.backups) {
-        for (const model of await provider.models()) {
-          try {
-            const text = await provider.chat(model, system, prompt, maxTokens);
-            const answer = schema ? extractJson(text, required) : text;
-            this.lastAnsweredBy = `${provider.name}:${model}`;
-            this.logger.warn(`Gemini unavailable — answered by ${provider.name} "${model}".`);
-            return answer;
-          } catch (err) {
-            lastErr = err;
-            this.logger.warn(`Backup ${provider.name} "${model}" failed: ${err instanceof Error ? err.message : err}`);
-          }
-        }
-      }
+    // 3. Remaining backups (OpenRouter, then paid Perplexity if keyed).
+    if (textOnly) {
+      const rest = this.backups.filter((b) => !fast.includes(b));
+      const result = await this.tryBackups(rest, system, blocks, maxTokens, schema);
+      if (result.answer !== undefined) return result.answer;
+      lastErr = result.err ?? lastErr;
     }
 
     throw this.toHttpError(lastErr);
+  }
+
+  private async tryBackups(
+    providers: BackupProvider[],
+    system: string,
+    blocks: AiContentBlock[],
+    maxTokens: number,
+    schema?: Record<string, unknown>,
+  ): Promise<{ answer?: string; err?: unknown }> {
+    const userText = blocks.map((b) => (b.type === 'text' ? b.text : '')).join('\n\n');
+    const prompt = schema
+      ? `${userText}\n\nRespond with ONLY a JSON object — no prose, no code fences — matching this JSON Schema:\n${JSON.stringify(schema)}`
+      : userText;
+    const required = Array.isArray(schema?.required) ? (schema.required as string[]) : [];
+    let err: unknown;
+    for (const provider of providers) {
+      for (const model of await provider.models()) {
+        try {
+          const text = await provider.chat(model, system, prompt, maxTokens);
+          const answer = schema ? extractJson(text, required) : text;
+          this.lastAnsweredBy = `${provider.name}:${model}`;
+          return { answer };
+        } catch (e) {
+          err = e;
+          this.logger.warn(`AI provider ${provider.name} "${model}" failed: ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
+    return { err };
   }
 
   // Gemini with its own recovery: heal a retired model (404 naming the
