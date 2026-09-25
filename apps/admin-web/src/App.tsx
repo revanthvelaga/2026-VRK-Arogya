@@ -20,6 +20,7 @@ import { PrescriptionsPage } from './pages/PrescriptionsPage';
 import { OffersPage } from './pages/OffersPage';
 import { LeavesPage } from './pages/LeavesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { OtpSettingsPage } from './pages/OtpSettingsPage';
 
 // STAFF (a field agent) lands on their own queue; ADMIN gets the full
 // console dashboard. Same route, different home, decided by who's
@@ -57,6 +58,7 @@ export function App() {
               <Route path="/staff/:id" element={<AgentDetailPage />} />
               <Route path="/salary" element={<SalaryPage />} />
               <Route path="/leaves" element={<LeavesPage />} />
+              <Route path="/otp-settings" element={<OtpSettingsPage />} />
               <Route path="/issues" element={<IssuesPage />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
               <Route path="/offers" element={<OffersPage />} />

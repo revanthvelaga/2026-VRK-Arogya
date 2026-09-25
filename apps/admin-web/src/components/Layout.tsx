@@ -34,6 +34,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/salary', label: 'Salary', icon: IconWallet },
   { to: '/leaves', label: 'Leaves', icon: IconCalendar },
   { to: '/issues', label: 'Issues', icon: IconMessage },
+  { to: '/otp-settings', label: 'SMS Usage', icon: IconMessage },
   { to: '/profile', label: 'My Profile', icon: IconUser },
 ];
 

@@ -45,7 +45,7 @@ export function ForgotPasswordPage() {
     }
     setBusy(true);
     try {
-      const result = await sendOtp(phone.trim(), 'recaptcha-container');
+      const result = await sendOtp(phone.trim(), 'recaptcha-container', 'reset');
       setConfirmation(result);
       setCooldown(RESEND_SECONDS);
       return true;

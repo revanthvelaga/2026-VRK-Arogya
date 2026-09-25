@@ -38,7 +38,7 @@ export function ForgotPasswordPage() {
     }
     setBusy(true);
     try {
-      setConfirmation(await sendOtp(phone, 'recaptcha-container'));
+      setConfirmation(await sendOtp(phone, 'recaptcha-container', 'reset'));
       setCooldown(RESEND_SECONDS);
       return true;
     } catch (err) {

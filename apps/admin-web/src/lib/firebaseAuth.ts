@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import type { ConfirmationResult } from 'firebase/auth';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { api } from '../api/client';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY as string | undefined;
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined;
@@ -56,14 +57,33 @@ export function friendlyOtpError(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
+export type OtpPurpose = 'login' | 'register' | 'reset';
+
 // India-only app — every phone number elsewhere is a bare 10-digit
 // number, so that's the only format this ever has to turn into E.164.
-export async function sendOtp(phone: string, recaptchaContainerId: string): Promise<ConfirmationResult> {
+export async function sendOtp(
+  phone: string,
+  recaptchaContainerId: string,
+  purpose: OtpPurpose = 'login',
+): Promise<ConfirmationResult> {
+  // Server-side kill switch (see the admin "SMS Usage" page) — checked
+  // before Firebase is ever touched, so turning it off there actually
+  // stops SMS from being sent, not just hides a button.
+  const { enabled } = await api.get<{ enabled: boolean }>('/otp/status');
+  if (!enabled) {
+    throw new Error("Mobile OTP sign-in is temporarily unavailable. Please use email/password or Google sign-in.");
+  }
+
   const auth = getFirebaseAuth();
   const verifier = getRecaptchaVerifier(recaptchaContainerId);
   const e164 = phone.startsWith('+') ? phone : `+91${phone}`;
   try {
-    return await signInWithPhoneNumber(auth, e164, verifier);
+    const result = await signInWithPhoneNumber(auth, e164, verifier);
+    // Fire-and-forget — Firebase has already sent the SMS and incurred
+    // the cost by this point, so a failed log call here changes nothing
+    // about the sign-in flow, only the admin usage dashboard's count.
+    api.post('/otp/log', { phone: e164, purpose }).catch(() => undefined);
+    return result;
   } catch (err) {
     resetRecaptchaVerifier();
     throw err;
