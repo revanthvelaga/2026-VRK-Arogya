@@ -10,4 +10,10 @@ export class PhoneOtpLoginDto {
   @IsOptional()
   @IsString()
   fullName?: string;
+
+  // A friend's referral code, if they signed up through one — only
+  // applied when this sign-in creates a brand-new account.
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }

@@ -57,7 +57,7 @@ export class AuthService {
   // "Sign in with Google" — same account either way: an existing email
   // logs straight in, a new one is created and given the usual SELF
   // patient profile, same as register().
-  async googleLogin(idToken: string) {
+  async googleLogin(idToken: string, referralCode?: string) {
     const { email, name } = await this.googleAuthService.verify(idToken);
 
     let user = await this.usersService.findByEmail(email);
@@ -68,6 +68,9 @@ export class AuthService {
         role: Role.CUSTOMER,
       });
       await this.patientsService.createSelf(user.id, user.fullName);
+      if (referralCode?.trim()) {
+        await this.walletService.applyReferral(user.id, referralCode).catch(() => undefined);
+      }
     }
 
     return this.issueTokens(user.id, user.phone, user.role);
@@ -76,7 +79,7 @@ export class AuthService {
   // Mobile OTP — the frontend verifies the code with Firebase directly
   // and only reaches us with the resulting (already-verified) token, so
   // there's no OTP to check here, only whose phone it belongs to.
-  async phoneOtpLogin(idToken: string, fullName?: string) {
+  async phoneOtpLogin(idToken: string, fullName?: string, referralCode?: string) {
     const { phone } = await this.firebasePhoneAuthService.verify(idToken);
 
     let user = await this.usersService.findByPhone(phone);
@@ -86,6 +89,9 @@ export class AuthService {
       }
       user = await this.usersService.createOAuthUser({ fullName: fullName.trim(), phone, role: Role.CUSTOMER });
       await this.patientsService.createSelf(user.id, user.fullName);
+      if (referralCode?.trim()) {
+        await this.walletService.applyReferral(user.id, referralCode).catch(() => undefined);
+      }
     }
 
     return this.issueTokens(user.id, user.phone, user.role);

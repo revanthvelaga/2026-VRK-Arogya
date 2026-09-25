@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, decodeJwt, getSession, setSession, setUnauthorizedHandler } from '../api/client';
+import { api, ApiError, decodeJwt, getSession, setSession, setUnauthorizedHandler } from '../api/client';
 import type { AuthSession, Role } from '../api/types';
 
 export interface CurrentUser {
@@ -32,7 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (phone: string, password: string, expectedRole?: 'ADMIN' | 'STAFF') => {
-    const session = await api.post<AuthSession>('/auth/login', { phone, password });
+    let session: AuthSession;
+    try {
+      session = await api.post<AuthSession>('/auth/login', { phone, password });
+    } catch (err) {
+      // The API's own "Invalid credentials" is accurate but curt —
+      // spell out what to do about it instead of just naming the problem.
+      if (err instanceof ApiError && err.status === 401) {
+        throw new Error('Incorrect phone number or password. Please check your credentials and try again.');
+      }
+      throw err;
+    }
     const nextUser = sessionToUser(session);
     // The API issues a token for any valid login — CUSTOMER accounts
     // included. This console is staff/admin-only, so gate it here too.

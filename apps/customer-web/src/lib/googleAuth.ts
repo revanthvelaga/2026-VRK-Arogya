@@ -39,7 +39,14 @@ function loadGsiScript(): Promise<void> {
 // Renders Google's own button into `container` and calls `onCredential`
 // with the ID token once the customer picks an account. The backend
 // verifies that token itself — nothing here is trusted on its own.
-export async function renderGoogleButton(container: HTMLElement, onCredential: (idToken: string) => void): Promise<void> {
+// `width` lets the caller fill its own container exactly (Google's button
+// takes a fixed pixel width, not a percentage) rather than the fixed
+// 320px this always rendered at before.
+export async function renderGoogleButton(
+  container: HTMLElement,
+  onCredential: (idToken: string) => void,
+  options?: { width?: number },
+): Promise<void> {
   if (!googleClientId) {
     throw new Error('Google sign-in is not set up yet.');
   }
@@ -48,10 +55,12 @@ export async function renderGoogleButton(container: HTMLElement, onCredential: (
     client_id: googleClientId,
     callback: (response) => onCredential(response.credential),
   });
+  container.innerHTML = '';
   window.google!.accounts.id.renderButton(container, {
     theme: 'outline',
     size: 'large',
-    width: 320,
+    shape: 'pill',
+    width: Math.max(200, Math.round(options?.width ?? 320)),
     text: 'continue_with',
   });
 }

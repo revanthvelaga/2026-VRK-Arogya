@@ -46,16 +46,14 @@ export function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="brand-mark" style={{ marginBottom: 18 }}>
-          <IconPlus size={18} />
+        <div className="auth-hero">
+          <div className="auth-logo">
+            <IconPlus size={20} />
+          </div>
+          <div className="login-eyebrow">Arogya · Staff Access</div>
         </div>
-        <div className="login-eyebrow">Arogya · Staff Access</div>
 
-        <div
-          role="tablist"
-          aria-label="Login as"
-          style={{ display: 'flex', gap: 8, margin: '4px 0 18px', border: '1px solid var(--line)', borderRadius: 10, padding: 4 }}
-        >
+        <div role="tablist" aria-label="Login as" className="role-tabs">
           <button
             type="button"
             role="tab"
@@ -64,8 +62,7 @@ export function LoginPage() {
               setMode('ADMIN');
               setError(null);
             }}
-            className={`btn btn-small${mode === 'ADMIN' ? ' btn-primary' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', border: 0 }}
+            className="role-tab"
           >
             <IconUser size={13} />
             Admin Login
@@ -78,8 +75,7 @@ export function LoginPage() {
               setMode('STAFF');
               setError(null);
             }}
-            className={`btn btn-small${mode === 'STAFF' ? ' btn-primary' : ''}`}
-            style={{ flex: 1, justifyContent: 'center', border: 0 }}
+            className="role-tab"
           >
             <IconTruck size={13} />
             Agent Login

@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import type { ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
 import { firebasePhoneAuthConfigured, sendOtp } from '../lib/firebaseAuth';
+import { IconArrowLeft, IconPhone } from './Icons';
 
 type Stage = 'phone' | 'code' | 'name';
+
+const RESEND_SECONDS = 30;
 
 // Phone number in, OTP SMS out, code in, done — and if the phone number
 // turns out to be brand new, one extra step to ask for a name (the
@@ -12,7 +16,7 @@ type Stage = 'phone' | 'code' | 'name';
 // called "undefined"; that rejection is what flips this to the 'name'
 // stage rather than the customer ever having to say up front whether
 // they're signing up or logging in).
-export function PhoneOtpSignIn() {
+export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {}) {
   const { loginWithPhoneOtp } = useAuth();
   const [stage, setStage] = useState<Stage>('phone');
   const [phone, setPhone] = useState('');
@@ -22,28 +26,54 @@ export function PhoneOtpSignIn() {
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const codeInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (stage === 'code') codeInputRef.current?.focus();
+  }, [stage]);
 
   if (!firebasePhoneAuthConfigured) return null;
 
-  const sendCode = async () => {
+  const sendCode = async (): Promise<boolean> => {
     setError(null);
     if (!/^\d{10}$/.test(phone.trim())) {
       setError('Enter a valid 10-digit mobile number.');
-      return;
+      return false;
     }
     setBusy(true);
     try {
       const result = await sendOtp(phone.trim(), 'recaptcha-container');
       setConfirmation(result);
-      setStage('code');
+      setCooldown(RESEND_SECONDS);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send OTP — try again.');
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  const verifyCode = async () => {
+  const onSendCode = async (e: FormEvent) => {
+    e.preventDefault();
+    if (await sendCode()) setStage('code');
+  };
+
+  const onResend = async () => {
+    if (cooldown > 0 || busy) return;
+    setCode('');
+    await sendCode();
+  };
+
+  const onVerifyCode = async (e: FormEvent) => {
+    e.preventDefault();
     if (!confirmation) return;
     setError(null);
     setBusy(true);
@@ -52,7 +82,7 @@ export function PhoneOtpSignIn() {
       const token = await credential.user.getIdToken();
       setIdToken(token);
       try {
-        await loginWithPhoneOtp(token);
+        await loginWithPhoneOtp(token, undefined, referralCode);
       } catch (err) {
         if (err instanceof ApiError && err.status === 412) {
           setStage('name');
@@ -67,7 +97,8 @@ export function PhoneOtpSignIn() {
     }
   };
 
-  const submitName = async () => {
+  const onSubmitName = async (e: FormEvent) => {
+    e.preventDefault();
     setError(null);
     if (!fullName.trim()) {
       setError('Enter your name.');
@@ -75,7 +106,7 @@ export function PhoneOtpSignIn() {
     }
     setBusy(true);
     try {
-      await loginWithPhoneOtp(idToken, fullName.trim());
+      await loginWithPhoneOtp(idToken, fullName.trim(), referralCode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not finish signing up.');
     } finally {
@@ -83,62 +114,103 @@ export function PhoneOtpSignIn() {
     }
   };
 
+  const changeNumber = () => {
+    setStage('phone');
+    setCode('');
+    setConfirmation(null);
+    setError(null);
+    setCooldown(0);
+  };
+
   return (
-    <div>
+    <div className="otp-flow">
       {/* Invisible — Firebase attaches its own challenge here only if a
           request looks automated; a real customer never sees it. */}
       <div id="recaptcha-container" />
 
       {stage === 'phone' && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            inputMode="numeric"
-            placeholder="10-digit mobile number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            maxLength={10}
-            style={{ flex: 1 }}
-          />
-          <button type="button" className="btn btn-small" onClick={sendCode} disabled={busy}>
+        <form onSubmit={onSendCode}>
+          <div className="phone-input-row">
+            <span className="phone-input-prefix">
+              <IconPhone size={15} />
+              +91
+            </span>
+            <input
+              inputMode="numeric"
+              autoComplete="tel-national"
+              placeholder="10-digit mobile number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              maxLength={10}
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={busy || phone.length !== 10}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}
+          >
             {busy ? 'Sending…' : 'Send OTP'}
           </button>
-        </div>
+        </form>
       )}
 
       {stage === 'code' && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={onVerifyCode}>
+          <p className="otp-sent-to">
+            Code sent to <b>+91 {phone}</b>
+          </p>
           <input
+            ref={codeInputRef}
+            className="otp-code-input"
             inputMode="numeric"
-            placeholder="6-digit code"
+            autoComplete="one-time-code"
+            placeholder="000000"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             maxLength={6}
-            autoFocus
-            style={{ flex: 1 }}
           />
-          <button type="button" className="btn btn-small" onClick={verifyCode} disabled={busy}>
-            {busy ? 'Verifying…' : 'Verify'}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={busy || code.length !== 6}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}
+          >
+            {busy ? 'Verifying…' : 'Verify & continue'}
           </button>
-        </div>
+          <div className="otp-links">
+            <button type="button" className="otp-link" onClick={changeNumber}>
+              <IconArrowLeft size={12} /> Change number
+            </button>
+            <button type="button" className="otp-link" onClick={onResend} disabled={cooldown > 0 || busy}>
+              {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
+            </button>
+          </div>
+        </form>
       )}
 
       {stage === 'name' && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={onSubmitName}>
+          <p className="otp-sent-to">One more step — what should we call you?</p>
           <input
             placeholder="Your full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             autoFocus
-            style={{ flex: 1 }}
           />
-          <button type="button" className="btn btn-small" onClick={submitName} disabled={busy}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={busy}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}
+          >
             {busy ? 'Finishing…' : 'Finish sign up'}
           </button>
-        </div>
+        </form>
       )}
 
       {error && (
-        <p className="field-hint" style={{ color: 'var(--red)', marginTop: 8 }}>
+        <p className="field-hint" style={{ color: 'var(--red)', marginTop: 10 }}>
           {error}
         </p>
       )}

@@ -9,23 +9,14 @@ export interface CurrentUser {
   role: Role;
 }
 
-interface RegisterInput {
-  fullName: string;
-  phone: string;
-  email?: string;
-  password: string;
-  referralCode?: string;
-}
-
 interface AuthContextValue {
   user: CurrentUser | null;
-  login: (phone: string, password: string) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, referralCode?: string) => Promise<void>;
   // fullName is only needed the first time a given phone number signs
   // in — the API rejects a brand-new phone with no name (see ApiError
   // status 412), which is the caller's cue to ask for one and retry.
-  loginWithPhoneOtp: (idToken: string, fullName?: string) => Promise<void>;
+  // referralCode is only applied when that first sign-in creates the account.
+  loginWithPhoneOtp: (idToken: string, fullName?: string, referralCode?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -45,27 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => setUser(null));
   }, []);
 
-  const login = async (phone: string, password: string) => {
-    const session = await api.post<AuthSession>('/auth/login', { phone, password });
+  const loginWithGoogle = async (idToken: string, referralCode?: string) => {
+    const session = await api.post<AuthSession>('/auth/google', { idToken, referralCode });
     setSession(session);
     setUser(sessionToUser(session));
   };
 
-  const register = async (input: RegisterInput) => {
-    // Public registration is always forced to CUSTOMER on the API side.
-    const session = await api.post<AuthSession>('/auth/register', input);
-    setSession(session);
-    setUser(sessionToUser(session));
-  };
-
-  const loginWithGoogle = async (idToken: string) => {
-    const session = await api.post<AuthSession>('/auth/google', { idToken });
-    setSession(session);
-    setUser(sessionToUser(session));
-  };
-
-  const loginWithPhoneOtp = async (idToken: string, fullName?: string) => {
-    const session = await api.post<AuthSession>('/auth/phone-otp', { idToken, fullName });
+  const loginWithPhoneOtp = async (idToken: string, fullName?: string, referralCode?: string) => {
+    const session = await api.post<AuthSession>('/auth/phone-otp', { idToken, fullName, referralCode });
     setSession(session);
     setUser(sessionToUser(session));
   };
@@ -75,10 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const value = useMemo(
-    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, logout }),
-    [user],
-  );
+  const value = useMemo(() => ({ user, loginWithGoogle, loginWithPhoneOtp, logout }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

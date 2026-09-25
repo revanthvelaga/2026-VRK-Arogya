@@ -21,11 +21,11 @@ export class AuthController {
 
   @Post('google')
   googleLogin(@Body() dto: GoogleLoginDto) {
-    return this.authService.googleLogin(dto.idToken);
+    return this.authService.googleLogin(dto.idToken, dto.referralCode);
   }
 
   @Post('phone-otp')
   phoneOtpLogin(@Body() dto: PhoneOtpLoginDto) {
-    return this.authService.phoneOtpLogin(dto.idToken, dto.fullName);
+    return this.authService.phoneOtpLogin(dto.idToken, dto.fullName, dto.referralCode);
   }
 }

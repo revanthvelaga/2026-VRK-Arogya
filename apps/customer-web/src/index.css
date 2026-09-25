@@ -1616,15 +1616,47 @@ tbody tr:hover {
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 408px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: 26px;
   box-shadow: var(--shadow-card-hover);
-  padding: 36px 32px;
+  padding: 34px 30px;
   position: relative;
   z-index: 1;
   animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.auth-hero {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.auth-logo {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: var(--gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 30px -10px rgba(14, 165, 160, 0.55);
+  position: relative;
+}
+
+/* A soft glow ring behind the logo — the one bit of "hero" flourish that
+   reads as premium without adding any real visual noise. */
+.auth-logo::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 22px;
+  background: var(--gradient);
+  opacity: 0.18;
+  filter: blur(14px);
+  z-index: -1;
 }
 
 .login-eyebrow {
@@ -1639,18 +1671,26 @@ tbody tr:hover {
   border: 1px solid var(--accent-soft-strong);
   border-radius: 999px;
   padding: 5px 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .login-card h1 {
-  font-size: 27px;
-  margin-bottom: 8px;
+  font-size: 25px;
+  margin-bottom: 6px;
 }
 
 .login-card p {
   color: var(--ink-soft);
   font-size: 13.5px;
-  margin: 0 0 24px;
+  margin: 0 auto;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.auth-primary {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
 }
 
 .auth-divider {
@@ -1671,6 +1711,150 @@ tbody tr:hover {
   flex: 1;
   height: 1px;
   background: var(--line);
+}
+
+.auth-divider--tight {
+  margin: 2px 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* ---------- Google sign-in ---------- */
+.google-btn-wrap {
+  width: 100%;
+  /* Google's rendered button sizes itself in px and sits flush left by
+     default — center it so a shorter render (e.g. right after mount)
+     never looks stuck to one edge. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 44px;
+}
+
+.google-btn-error {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* ---------- Phone / OTP sign-in ---------- */
+.otp-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-input-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.phone-input-row:focus-within {
+  border-color: var(--accent-a);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.phone-input-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border-right: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.phone-input-row input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+  color: var(--ink);
+}
+
+.phone-input-row input:focus {
+  outline: none;
+}
+
+.otp-sent-to {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.otp-sent-to b {
+  color: var(--ink);
+}
+
+.otp-code-input {
+  width: 100%;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5em;
+  /* Nudges the run of digits back toward center — wide letter-spacing
+     otherwise pushes the visual weight to the right of the caret. */
+  text-indent: 0.5em;
+  text-align: center;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.otp-code-input::placeholder {
+  color: var(--line-strong);
+  letter-spacing: 0.5em;
+}
+
+.otp-code-input:focus {
+  outline: none;
+  border-color: var(--accent-a);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.otp-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.otp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.otp-link:disabled {
+  color: var(--ink-faint);
+  cursor: default;
 }
 
 /* ---------- Spinner / loading ---------- */

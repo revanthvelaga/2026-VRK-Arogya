@@ -1,6 +1,12 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class GoogleLoginDto {
   @IsString()
   idToken: string;
+
+  // A friend's referral code, if they signed up through one — only
+  // applied when this Google sign-in creates a brand-new account.
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }
