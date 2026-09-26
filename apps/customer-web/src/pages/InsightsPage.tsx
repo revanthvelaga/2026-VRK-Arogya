@@ -520,6 +520,58 @@ function ReportFileButtons({ group }: { group: ReportGroup }) {
         <IconDownload size={13} />
         {busy === 'download' ? 'Downloading…' : 'Download'}
       </button>
+      <ShareReportButton reportId={group.reportId} />
+    </div>
+  );
+}
+
+// "My reports" (from the account menu): just the reports for the chosen
+// person, each with View / Download / Share — none of the health insights.
+function ReportsOnlySection({ patientId }: { patientId: string }) {
+  const { data: values, loading } = useApi<MyReportValue[]>(
+    () => api.get(`/reports/mine/values?patientId=${patientId}`),
+    [patientId],
+  );
+  const groups = useMemo(() => groupByReport(values ?? []), [values]);
+
+  if (loading) return <LoadingLine label="Loading reports…" />;
+  if (groups.length === 0) {
+    return (
+      <EmptyState
+        icon={<IconFileText size={20} />}
+        title="No reports yet"
+        subtitle="Reports for this person will appear here as soon as they're ready."
+      />
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <IconFileText size={15} />
+        Lab reports ({groups.length})
+      </div>
+      <div className="report-list">
+        {groups.map((g, i) => (
+          <div key={g.reportId} className="report-list-item">
+            <div className="report-list-item-select" style={{ cursor: 'default' }}>
+              <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
+              <div className="report-list-item-body">
+                <div className="report-list-item-name">
+                  {g.reportFileName}
+                  {i === 0 && (
+                    <span className="badge badge-accent" style={{ marginLeft: 8 }}>
+                      Latest
+                    </span>
+                  )}
+                </div>
+                <div className="report-list-item-meta">{formatDateTime(g.reportGeneratedAt)}</div>
+              </div>
+            </div>
+            <ReportFileButtons group={g} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -884,13 +936,19 @@ export function InsightsPage() {
   }, [patients, patientId, searchParams]);
 
   const selectedPatient = patients?.find((p) => p.id === patientId);
+  // ?view=reports (the account menu's "My reports") shows only the reports.
+  const reportsOnly = searchParams.get('view') === 'reports';
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>Insights</h1>
-          <p className="page-sub">Each patient's health score, lab reports, and results in one place.</p>
+          <h1>{reportsOnly ? 'My reports' : 'Insights'}</h1>
+          <p className="page-sub">
+            {reportsOnly
+              ? 'View, download or share any lab report.'
+              : "Each patient's health score, lab reports, and results in one place."}
+          </p>
         </div>
       </div>
 
@@ -916,12 +974,18 @@ export function InsightsPage() {
         )}
       </div>
 
-      {selectedPatient && <PatientProfileCard patient={selectedPatient} onChanged={reloadPatients} />}
-
-      {patientId && (
+      {reportsOnly ? (
+        patientId && <ReportsOnlySection patientId={patientId} />
+      ) : (
         <>
-          <div className="section-title">Report insights</div>
-          <PatientResultsSection patientId={patientId} />
+          {selectedPatient && <PatientProfileCard patient={selectedPatient} onChanged={reloadPatients} />}
+
+          {patientId && (
+            <>
+              <div className="section-title">Report insights</div>
+              <PatientResultsSection patientId={patientId} />
+            </>
+          )}
         </>
       )}
     </>
