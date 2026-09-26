@@ -45,6 +45,11 @@ export class CustomerDocument {
   @Column({ name: 'size_bytes', type: 'integer' })
   sizeBytes: number;
 
+  // True while the AI is still working out category/title/person in the
+  // background (see DocumentsService.sortInBackground).
+  @Column({ name: 'sort_pending', default: false })
+  sortPending: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

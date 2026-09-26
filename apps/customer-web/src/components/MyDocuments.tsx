@@ -143,9 +143,26 @@ export function MyDocuments() {
   const nameOf = (id: string | null) => (id ? patients.find((p) => p.id === id)?.fullName : undefined);
   const docs = docsApi.data ?? [];
   const pending = docs.filter((d) => !backups[d.id]);
-  const groups = CATEGORIES.map((c) => ({ ...c, docs: docs.filter((d) => d.category === c.value) })).filter(
-    (g) => g.docs.length > 0,
-  );
+  const sorting = docs.filter((d) => d.sortPending);
+  const groups = [
+    { value: 'SORTING', label: 'Sorting…', docs: sorting },
+    ...CATEGORIES.map((c) => ({ ...c, docs: docs.filter((d) => !d.sortPending && d.category === c.value) })),
+  ].filter((g) => g.docs.length > 0);
+
+  // The AI sorts new uploads in the background — check back every few
+  // seconds until it's done (for at most a few minutes).
+  const reload = docsApi.reload;
+  const pollStart = useRef(0);
+  useEffect(() => {
+    if (sorting.length === 0) {
+      pollStart.current = 0;
+      return;
+    }
+    if (!pollStart.current) pollStart.current = Date.now();
+    if (Date.now() - pollStart.current > 3 * 60_000) return;
+    const t = setTimeout(reload, 3000);
+    return () => clearTimeout(t);
+  }, [docs, sorting.length, reload]);
 
   // Pick → upload straight away; the server works out what each file is.
   const uploadFiles = async (files: File[]) => {
@@ -175,7 +192,7 @@ export function MyDocuments() {
     setMessage(
       problems.length
         ? { ok: false, text: `${added ? `${added} added. ` : ''}${problems.join(', ')}.` }
-        : { ok: true, text: `${added} document${added === 1 ? '' : 's'} added and sorted.` },
+        : { ok: true, text: `${added} document${added === 1 ? '' : 's'} added. Our AI is sorting ${added === 1 ? 'it' : 'them'} now.` },
     );
   };
 
@@ -250,7 +267,7 @@ export function MyDocuments() {
         )}
       </div>
 
-      {docsApi.loading && <LoadingLine label="Loading documents…" />}
+      {docsApi.loading && !docsApi.data && <LoadingLine label="Loading documents…" />}
       {docsApi.error && <div className="error-banner">{docsApi.error}</div>}
       {!docsApi.loading && !docsApi.error && docs.length === 0 && (
         <EmptyState

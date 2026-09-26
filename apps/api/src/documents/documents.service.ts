@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { CustomerDocument, DocumentCategory } from './entities/customer-document.entity';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { PatientsService } from '../patients/patients.service';
@@ -10,6 +10,10 @@ import { Relationship } from '../common/enums/relationship.enum';
 
 // Keeps one account from filling the database with files.
 const MAX_DOCUMENTS_PER_ACCOUNT = 50;
+// Gemini's free tier can hang when busy; past this the file just stays
+// under "Other" rather than showing "Sorting…" forever.
+const SORT_TIMEOUT_MS = 60_000;
+const SORT_STALE_MS = 3 * 60_000;
 
 interface DocumentReading {
   category: DocumentCategory;
@@ -86,7 +90,13 @@ export class DocumentsService {
     }
   }
 
-  findMine(accountId: string): Promise<CustomerDocument[]> {
+  async findMine(accountId: string): Promise<CustomerDocument[]> {
+    // A sort that never finished (server restarted mid-way) stops showing
+    // as "Sorting…" after a few minutes.
+    await this.docsRepo.update(
+      { accountId, sortPending: true, createdAt: LessThan(new Date(Date.now() - SORT_STALE_MS)) },
+      { sortPending: false },
+    );
     return this.docsRepo.find({ where: { accountId }, order: { createdAt: 'DESC' } });
   }
 
@@ -99,32 +109,56 @@ export class DocumentsService {
       throw new BadRequestException(`You can keep up to ${MAX_DOCUMENTS_PER_ACCOUNT} documents. Delete one to add another.`);
     }
 
-    let { category, title, patientId } = dto;
-    if (!category || !title) {
-      const family = (await this.patientsService.findAllForAccount(accountId)).filter((p) => p.accountId === accountId);
-      const reading = await this.classify(file, family.map((p) => p.fullName));
-      category = category ?? (Object.values(DocumentCategory).includes(reading.category) ? reading.category : DocumentCategory.OTHER);
-      title = title ?? (reading.title.trim().slice(0, 120) || titleFromFileName(file.originalname));
-      if (!patientId && reading.personName) {
-        const person = matchPatient(reading.personName, family);
-        if (person && person.relationship !== Relationship.SELF) patientId = person.id;
-      }
-    }
-
+    // Saved straight away; anything the customer didn't say is filled in
+    // by the AI in the background, so the upload never waits on it.
+    const needsSorting = !dto.category || !dto.title;
     const saved = await this.docsRepo.save(
       this.docsRepo.create({
         accountId,
-        patientId: patientId ?? null,
-        category,
-        title: title.trim(),
+        patientId: dto.patientId ?? null,
+        category: dto.category ?? DocumentCategory.OTHER,
+        title: (dto.title ?? titleFromFileName(file.originalname)).trim(),
         fileData: file.buffer,
         fileName: file.originalname.replace(/["\r\n]/g, '_'),
         mimeType: file.mimetype,
         sizeBytes: file.size,
+        sortPending: needsSorting,
       }),
     );
+    if (needsSorting) void this.sortInBackground(saved.id, accountId, dto, file);
     const { fileData: _bytes, ...rest } = saved;
     return rest as CustomerDocument;
+  }
+
+  private async sortInBackground(
+    id: string,
+    accountId: string,
+    dto: UploadDocumentDto,
+    file: Express.Multer.File,
+  ): Promise<void> {
+    try {
+      const family = (await this.patientsService.findAllForAccount(accountId)).filter((p) => p.accountId === accountId);
+      const reading = await Promise.race([
+        this.classify(file, family.map((p) => p.fullName)),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), SORT_TIMEOUT_MS)),
+      ]);
+      const update: Partial<CustomerDocument> = { sortPending: false };
+      if (reading) {
+        if (!dto.category && Object.values(DocumentCategory).includes(reading.category)) update.category = reading.category;
+        const title = reading.title.trim().slice(0, 120);
+        if (!dto.title && title) update.title = title;
+        if (!dto.patientId && reading.personName) {
+          const person = matchPatient(reading.personName, family);
+          if (person && person.relationship !== Relationship.SELF) update.patientId = person.id;
+        }
+      } else {
+        this.logger.warn(`Document sorting timed out for ${id}`);
+      }
+      await this.docsRepo.update(id, update);
+    } catch (err) {
+      this.logger.warn(`Document sorting failed for ${id}: ${(err as Error).message}`);
+      await this.docsRepo.update(id, { sortPending: false }).catch(() => undefined);
+    }
   }
 
   // Owner only — the bytes never go to anyone else, staff included.

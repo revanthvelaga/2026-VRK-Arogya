@@ -515,5 +515,6 @@ export interface CustomerDocument {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  sortPending?: boolean;
   createdAt: string;
 }
