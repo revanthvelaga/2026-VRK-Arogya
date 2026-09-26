@@ -3,19 +3,15 @@ import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const SHOW_MS = 3300;
+const SHOW_MS = 2900;
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
-// Pastel bubble colours: mint, sky, lavender, peach.
-const BUBBLE_COLORS = ['#6fd6c7', '#84b8ef', '#b3a0ee', '#f2b39b'];
-
-// The moment after signing in: a heartbeat line draws across a soft pastel
-// sky and blooms into light at its peak. The Arogya mark rises over a
-// slowly turning glow — the plus draws itself, a shine sweeps the tile,
-// gentle ripples pulse outwards — the name assembles letter by letter and
-// waves, while glassy bubbles float up. Then the screen closes into a
-// circle to reveal Home. Tap anywhere to skip.
+// The moment after signing in: a heartbeat line draws across a softly
+// glowing sky, bursts into light at its peak, and the Arogya mark rises
+// out of it — the plus draws itself, a shine sweeps the glass tile, the
+// name assembles letter by letter while sparks drift up — then the whole
+// screen closes into a circle to reveal Home. Tap anywhere to skip.
 // Shown once per sign-in, never on reload; a plain fade under reduced motion.
 export function WelcomeSplash() {
   const { welcome, clearWelcome } = useAuth();
@@ -23,16 +19,15 @@ export function WelcomeSplash() {
   const [leaving, setLeaving] = useState(false);
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  // Bubbles: fixed per mount so they don't jump on re-render.
-  const bubbles = useMemo(
+  // Sparks: fixed per mount so they don't jump on re-render.
+  const sparks = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, i) => ({
-        left: `${(i * 37 + 7) % 96}%`,
-        size: 8 + ((i * 7) % 6) * 4,
-        delay: `${0.4 + ((i * 13) % 17) / 9}s`,
-        duration: `${3.2 + ((i * 11) % 9) / 4}s`,
-        drift: `${((i % 5) - 2) * 18}px`,
-        color: BUBBLE_COLORS[i % BUBBLE_COLORS.length],
+      Array.from({ length: 22 }, (_, i) => ({
+        left: `${(i * 37 + 11) % 100}%`,
+        size: 3 + ((i * 7) % 5),
+        delay: `${0.9 + ((i * 13) % 17) / 10}s`,
+        duration: `${2.2 + ((i * 11) % 9) / 5}s`,
+        drift: `${((i % 5) - 2) * 14}px`,
       })),
     [],
   );
@@ -78,14 +73,15 @@ export function WelcomeSplash() {
         <span className="a2" />
         <span className="a3" />
       </div>
+      <div className="wow-grid" aria-hidden />
 
       <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
         <defs>
           <linearGradient id="ecgGrad" x1="0" x2="1">
-            <stop offset="0" stopColor="#3dbdb1" stopOpacity="0" />
-            <stop offset="0.35" stopColor="#3dbdb1" />
-            <stop offset="0.65" stopColor="#6aa6e6" />
-            <stop offset="1" stopColor="#6aa6e6" stopOpacity="0" />
+            <stop offset="0" stopColor="#45c4b6" stopOpacity="0" />
+            <stop offset="0.35" stopColor="#45c4b6" />
+            <stop offset="0.65" stopColor="#7fa6ec" />
+            <stop offset="1" stopColor="#7fa6ec" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path
@@ -95,11 +91,8 @@ export function WelcomeSplash() {
       </svg>
 
       <div className="wow-center">
-        <div className="wow-halo" aria-hidden />
         <div className="wow-burst" aria-hidden />
-        <span className="wow-ripple" aria-hidden />
-        <span className="wow-ripple r2" aria-hidden />
-        <span className="wow-ripple r3" aria-hidden />
+        <div className="wow-burst b2" aria-hidden />
         <div className="wow-tile">
           <svg viewBox="0 0 48 48" className="wow-plus" aria-hidden>
             <line x1="24" y1="11" x2="24" y2="37" pathLength={1} />
@@ -110,7 +103,7 @@ export function WelcomeSplash() {
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s, ${2.15 + i * 0.08}s` }}>
+            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s` }}>
               {ch}
             </span>
           ))}
@@ -119,8 +112,8 @@ export function WelcomeSplash() {
         <div className="wow-tagline">Your health, beautifully in one place</div>
       </div>
 
-      <div className="wow-bubbles" aria-hidden>
-        {bubbles.map((s, i) => (
+      <div className="wow-sparks" aria-hidden>
+        {sparks.map((s, i) => (
           <span
             key={i}
             style={
@@ -131,7 +124,6 @@ export function WelcomeSplash() {
                 animationDelay: s.delay,
                 animationDuration: s.duration,
                 '--drift': s.drift,
-                '--c': s.color,
               } as React.CSSProperties
             }
           />
