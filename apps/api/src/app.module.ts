@@ -23,6 +23,7 @@ import { RewardsModule } from './rewards/rewards.module';
 import { HealthTrackingModule } from './health/health.module';
 import { OtpSettingsModule } from './otp-settings/otp-settings.module';
 import { DocumentsModule } from './documents/documents.module';
+import { StaffAlertsModule } from './staff-alerts/staff-alerts.module';
 import { HealthController } from './health.controller';
 import { NotificationsService } from './notifications/notifications.service';
 
@@ -69,6 +70,7 @@ import { NotificationsService } from './notifications/notifications.service';
         };
       },
     }),
+    StaffAlertsModule,
     UsersModule,
     AuthModule,
     CatalogModule,

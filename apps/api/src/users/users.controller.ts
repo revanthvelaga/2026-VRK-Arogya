@@ -28,6 +28,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { LeaveStatus } from '../common/enums/leave-status.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
+import { StaffAlertsService } from '../staff-alerts/staff-alerts.service';
 
 // Two distinct audiences share this controller:
 //  - /users/me/* — any authenticated role, always about the caller's own
@@ -39,7 +40,10 @@ import { AuthenticatedUser } from '../common/types/authenticated-user';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly staffAlerts: StaffAlertsService,
+  ) {}
 
   // ---- Self-service profile (any role) ----
 
@@ -55,13 +59,15 @@ export class UsersController {
 
   @Post('me/certificates')
   @UseInterceptors(FileInterceptor('file', certificateMulterOptions))
-  uploadCertificate(
+  async uploadCertificate(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UploadCertificateDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('file is required');
-    return this.usersService.uploadCertificate(user.userId, user.role, dto.title, file);
+    const cert = await this.usersService.uploadCertificate(user.userId, user.role, dto.title, file);
+    this.staffAlerts.record(user, 'CERTIFICATE', (agent) => `${agent} uploaded a certificate: ${dto.title}.`, `/staff/${user.userId}`);
+    return cert;
   }
 
   @Get('me/certificates')
@@ -79,8 +85,12 @@ export class UsersController {
   }
 
   @Post('me/leaves')
-  requestLeave(@CurrentUser() user: AuthenticatedUser, @Body() dto: RequestLeaveDto) {
-    return this.usersService.requestLeave(user.userId, user.role, dto);
+  async requestLeave(@CurrentUser() user: AuthenticatedUser, @Body() dto: RequestLeaveDto) {
+    const leave = await this.usersService.requestLeave(user.userId, user.role, dto);
+    const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const days = dto.startDate === dto.endDate ? day(dto.startDate) : `${day(dto.startDate)} to ${day(dto.endDate)}`;
+    this.staffAlerts.record(user, 'LEAVE_REQUEST', (agent) => `${agent} asked for leave: ${days}. Tap to approve or reject.`, '/leaves');
+    return leave;
   }
 
   @Get('me/leaves')

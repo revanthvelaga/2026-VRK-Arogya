@@ -20,6 +20,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
+import { StaffAlertsService } from '../staff-alerts/staff-alerts.service';
 
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)
@@ -27,6 +28,7 @@ export class BookingsController {
   constructor(
     private readonly bookingsService: BookingsService,
     private readonly visitService: VisitService,
+    private readonly staffAlerts: StaffAlertsService,
   ) {}
 
   @Post()
@@ -87,15 +89,29 @@ export class BookingsController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Patch(':id/en-route')
-  enRoute(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: EnRouteDto) {
-    return this.visitService.markEnRoute(id, dto.etaMinutes, user);
+  async enRoute(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: EnRouteDto) {
+    const result = await this.visitService.markEnRoute(id, dto.etaMinutes, user);
+    this.staffAlerts.record(
+      user,
+      'ON_THE_WAY',
+      async (agent) => `${agent} is on the way to ${await this.staffAlerts.bookingLabel(id)} (about ${dto.etaMinutes} min).`,
+      `/bookings/${id}`,
+    );
+    return result;
   }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Post(':id/verify-otp')
-  verifyOtp(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: VerifyDoorOtpDto) {
-    return this.visitService.verifyDoorOtp(id, dto.otp, user);
+  async verifyOtp(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: VerifyDoorOtpDto) {
+    const result = await this.visitService.verifyDoorOtp(id, dto.otp, user);
+    this.staffAlerts.record(
+      user,
+      'ARRIVED',
+      async (agent) => `${agent} reached ${await this.staffAlerts.bookingLabel(id)} and checked in with the door code.`,
+      `/bookings/${id}`,
+    );
+    return result;
   }
 
   @Post(':id/rating')

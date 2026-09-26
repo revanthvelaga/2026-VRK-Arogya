@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useApi } from '../lib/useApi';
+import { AgentAlertsBell, useAgentAlerts } from './AgentAlerts';
 import {
   IconBox,
   IconCalendar,
@@ -64,6 +65,8 @@ export function Layout() {
   // Phones only (the drawer is a plain sidebar above 720px): the sidebar
   // slides in over the page instead of sitting beside it.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Admins hear about what agents do in the field.
+  const agentAlerts = useAgentAlerts(user?.role === 'ADMIN');
 
   // Close the drawer whenever navigation actually happens.
   useEffect(() => {
@@ -108,6 +111,8 @@ export function Layout() {
             <div className="mobile-topbar-sub">{isAgent ? 'Agent Portal' : 'Arogya Admin'}</div>
           </div>
         </div>
+        <div className="mobile-topbar-actions">
+          {!isAgent && <AgentAlertsBell {...agentAlerts} />}
         <button
           type="button"
           className="mobile-menu-btn"
@@ -117,6 +122,7 @@ export function Layout() {
         >
           {menuOpen ? <IconX size={20} /> : <IconMenu size={20} />}
         </button>
+        </div>
       </header>
 
       {menuOpen && <div className="sidebar-scrim" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
@@ -130,6 +136,7 @@ export function Layout() {
             Arogya
             <span>{isAgent ? 'Agent Portal' : 'Admin Console'}</span>
           </div>
+          {!isAgent && <AgentAlertsBell {...agentAlerts} className="sidebar-bell" />}
         </div>
         {navItems.map((item) => (
           <NavLink

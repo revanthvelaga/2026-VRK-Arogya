@@ -24,6 +24,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
+import { StaffAlertsService } from '../staff-alerts/staff-alerts.service';
 
 // No single '/samples' resource root — a sample only ever makes sense in
 // the context of the booking it came from, so routes hang off '/bookings'
@@ -34,6 +35,7 @@ export class SamplesController {
   constructor(
     private readonly samplesService: SamplesService,
     private readonly visitService: VisitService,
+    private readonly staffAlerts: StaffAlertsService,
   ) {}
 
   @UseGuards(RolesGuard)
@@ -55,12 +57,14 @@ export class SamplesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Patch('samples/:id/status')
-  updateStatus(
+  async updateStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateSampleStatusDto,
   ) {
-    return this.samplesService.updateStatus(id, user.userId, dto);
+    const sample = await this.samplesService.updateStatus(id, user.userId, dto);
+    this.staffAlerts.sampleUpdate(user, sample.bookingId, dto.status);
+    return sample;
   }
 
   @Get('samples/:id/history')
