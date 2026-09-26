@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -832,14 +832,18 @@ export function InsightsPage() {
     error: patientsError,
     reload: reloadPatients,
   } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const [searchParams] = useSearchParams();
   const [patientId, setPatientId] = useState('');
 
+  // ?patient=<id> (from the account page's family list) opens that person;
+  // otherwise start on the customer's own profile.
   useEffect(() => {
     if (!patientId && patients && patients.length > 0) {
+      const requested = patients.find((p) => p.id === searchParams.get('patient'));
       const self = patients.find((p) => p.relationship === 'SELF');
-      setPatientId(self?.id ?? patients[0].id);
+      setPatientId(requested?.id ?? self?.id ?? patients[0].id);
     }
-  }, [patients, patientId]);
+  }, [patients, patientId, searchParams]);
 
   const selectedPatient = patients?.find((p) => p.id === patientId);
 

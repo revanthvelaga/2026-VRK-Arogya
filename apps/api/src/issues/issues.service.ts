@@ -39,6 +39,10 @@ export class IssuesService {
     return this.issuesRepo.find({ where: { bookingId }, order: { createdAt: 'DESC' } });
   }
 
+  findMine(userId: string): Promise<Issue[]> {
+    return this.issuesRepo.find({ where: { raisedBy: userId }, order: { createdAt: 'DESC' } });
+  }
+
   findAll(): Promise<Issue[]> {
     return this.issuesRepo.find({ order: { createdAt: 'DESC' } });
   }

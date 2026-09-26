@@ -209,6 +209,16 @@ export const IconLayers = icon(
 
 export const IconChevronDown = icon(<polyline points="5.5 8.5 12 15 18.5 8.5" />);
 
+export const IconChevronRight = icon(<polyline points="9 5.5 15.5 12 9 18.5" />);
+
+export const IconWallet = icon(
+  <>
+    <path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h12v3" />
+    <rect x="3.5" y="7.5" width="17" height="11.5" rx="2" />
+    <path d="M16 13.25h1.5" />
+  </>,
+);
+
 export const IconAlertTriangle = icon(
   <>
     <path d="M12 3.5L2 20.5h20L12 3.5z" />

@@ -45,6 +45,7 @@ export function App() {
                 <Route path="/bookings/:id/invoice" element={<InvoicePage />} />
                 <Route path="/insights" element={<InsightsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:section" element={<ProfilePage />} />
               </Route>
             </Route>
           </Routes>

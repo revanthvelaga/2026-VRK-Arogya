@@ -32,6 +32,13 @@ export class IssuesController {
     return this.issuesService.findForBooking(bookingId, user);
   }
 
+  // Every ticket this customer has raised, across all their bookings —
+  // the "My tickets" list on their account page.
+  @Get('issues/mine')
+  findMine(@CurrentUser() user: AuthenticatedUser) {
+    return this.issuesService.findMine(user.userId);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Get('issues')
