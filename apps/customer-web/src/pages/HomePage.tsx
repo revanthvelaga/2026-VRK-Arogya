@@ -7,6 +7,7 @@ import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
+import { CompareToggle } from '../components/CompareToggle';
 import { SEGMENTS } from '../lib/segments';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
 import {
@@ -41,6 +42,7 @@ type QuickAction =
 
 const QUICK_ACTIONS: QuickAction[] = [
   { kind: 'link', to: '/catalog', label: 'Full body packages', icon: IconLayers, art: 'art-5' },
+  { kind: 'link', to: '/compare', label: 'Compare packages', icon: IconBox, art: 'art-3' },
   ...(supportPhoneConfigured
     ? ([
         { kind: 'external', href: telHref(), label: 'Book via call', icon: IconPhone, art: 'art-4' },
@@ -111,6 +113,7 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
         <div className="rich-card-meta">
           <span>Contains {testCount} test{testCount === 1 ? '' : 's'}</span>
         </div>
+        <CompareToggle packageId={pkg.id} />
         <div className="rich-card-footer">
           <div className="rich-card-price">{formatCurrency(pkg.price)}</div>
           <button

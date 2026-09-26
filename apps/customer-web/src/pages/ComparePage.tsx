@@ -141,6 +141,31 @@ export function ComparePage() {
                   </td>
                 ))}
               </tr>
+              <tr className="compare-meta compare-save">
+                <td>You save</td>
+                {packages.map((p) => {
+                  const separately = (p.tests ?? []).reduce((sum, t) => sum + Number(t.price), 0);
+                  const saving = separately - Number(p.price);
+                  return (
+                    <td key={p.id}>
+                      {saving > 0 ? (
+                        <>
+                          <b>{formatCurrency(saving)}</b>
+                          <small>vs {formatCurrency(separately)} separately</small>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              <tr className="compare-meta">
+                <td>Price per test</td>
+                {packages.map((p) => (
+                  <td key={p.id}>{p.tests?.length ? formatCurrency(Math.round(Number(p.price) / p.tests.length)) : '—'}</td>
+                ))}
+              </tr>
               <tr className="compare-meta">
                 <td>Night before</td>
                 {packages.map((p) => (

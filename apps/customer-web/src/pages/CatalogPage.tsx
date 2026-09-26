@@ -7,6 +7,7 @@ import { TIER_LABEL } from '../lib/visitPlan';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
+import { CompareToggle } from '../components/CompareToggle';
 import {
   IconBox,
   IconChevronDown,
@@ -156,6 +157,7 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
             </>
           )}
         </div>
+        <CompareToggle packageId={pkg.id} />
         <div className="rich-card-footer">
           <div className="rich-card-price">{formatCurrency(pkg.price)}</div>
           <button

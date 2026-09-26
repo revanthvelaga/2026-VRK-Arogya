@@ -5713,7 +5713,7 @@ a.suggest-name:hover {
 .cart-notice {
   position: fixed;
   left: 50%;
-  bottom: 150px;
+  top: 84px;
   transform: translateX(-50%);
   z-index: 70;
   width: min(460px, calc(100vw - 24px));
@@ -5751,4 +5751,83 @@ a.suggest-name:hover {
 .add-btn:disabled {
   opacity: 0.65;
   cursor: default;
+}
+
+/* ---------- Package comparison ---------- */
+.compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin: 2px 0 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.compare-toggle.on {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.compare-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 96px;
+  z-index: 55;
+  width: min(460px, calc(100vw - 24px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--accent-soft-strong);
+  box-shadow: 0 16px 40px -16px rgba(16, 24, 44, 0.4);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.compare-bar.above-cart {
+  bottom: 186px;
+}
+
+.compare-bar > svg {
+  color: var(--accent-ink);
+  flex-shrink: 0;
+}
+
+.compare-bar span {
+  flex: 1;
+}
+
+.compare-bar-clear {
+  border: 0;
+  background: var(--surface-2);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.compare-save td b {
+  display: block;
+  color: var(--green);
+}
+
+.compare-save td small {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-faint);
 }
