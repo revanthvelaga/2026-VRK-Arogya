@@ -266,6 +266,16 @@ async function fetchAsBlobUrl(path: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
+// The raw file, for handing on elsewhere (e.g. a Google Drive backup).
+export async function fetchBlob(path: string): Promise<Blob> {
+  const session = await freshSession();
+  const headers: Record<string, string> = {};
+  if (session?.accessToken) headers.Authorization = `Bearer ${session.accessToken}`;
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+  if (!res.ok) throw new ApiError(res.status, `Request failed (${res.status})`);
+  return res.blob();
+}
+
 export async function downloadFile(path: string, fileName: string): Promise<void> {
   const url = await fetchAsBlobUrl(path);
   const link = document.createElement('a');

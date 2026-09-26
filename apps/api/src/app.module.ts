@@ -22,6 +22,7 @@ import { AiModule } from './ai/ai.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { HealthTrackingModule } from './health/health.module';
 import { OtpSettingsModule } from './otp-settings/otp-settings.module';
+import { DocumentsModule } from './documents/documents.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -85,6 +86,7 @@ import { HealthController } from './health.controller';
     RewardsModule,
     HealthTrackingModule,
     OtpSettingsModule,
+    DocumentsModule,
   ],
   controllers: [HealthController],
 })

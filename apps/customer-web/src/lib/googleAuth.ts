@@ -14,6 +14,14 @@ declare global {
           }) => void;
           renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
         };
+        oauth2?: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: { access_token?: string; expires_in?: number; error?: string }) => void;
+            error_callback?: (error: { type: string }) => void;
+          }) => { requestAccessToken: (options?: { prompt?: string }) => void };
+        };
       };
     };
   }
@@ -23,7 +31,7 @@ export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | 
 
 let loadPromise: Promise<void> | null = null;
 
-function loadGsiScript(): Promise<void> {
+export function loadGsiScript(): Promise<void> {
   if (window.google?.accounts?.id) return Promise.resolve();
   if (loadPromise) return loadPromise;
   loadPromise = new Promise((resolve, reject) => {

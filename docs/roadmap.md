@@ -34,6 +34,9 @@ a free-text schedule — no reminders).
   app could do fully offline on-device reminders later.
 
 ### 3. Insurance cards (lightweight first)
+_Started:_ customers can already upload insurance cards, Aadhaar and other
+papers under Account → My documents (with Google Drive backup). What's
+below is the next step: structured policy details used at booking.
 - Per patient: insurer, policy number, TPA, card photos (front/back),
   "OPD covered" flag. Visible only to the account owner and admins.
 - Pick the card when booking; policy details printed on the 80D invoice;
@@ -58,6 +61,12 @@ Suggested order: Targets → Medicine reminders → Insurance cards.
       the OAuth client's Authorized JavaScript origins include
       `https://arogya-customer-web.onrender.com`, and the consent screen
       is published (or your Gmail is a test user).
+
+- [ ] **Google Drive backup (My documents):** in Google Cloud console,
+      same project as the Google sign-in client → APIs & Services →
+      enable **Google Drive API**; OAuth consent screen → Data access →
+      add the scope `.../auth/drive.file`. Until then the "Back up to
+      Google Drive" button shows an error from Google.
 
 ## Before the first real customer (launch checklist)
 - [ ] A lab (own or partner) to process samples, and trained staff for

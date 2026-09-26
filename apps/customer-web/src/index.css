@@ -5058,3 +5058,104 @@ a.suggest-name:hover {
 [id^='sec-'] {
   scroll-margin-top: 130px;
 }
+
+/* ---------- My documents ---------- */
+.doc-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.doc-privacy svg {
+  color: var(--accent-ink);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.doc-card,
+.drive-card {
+  margin-top: 12px;
+}
+
+.doc-card-top,
+.drive-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.drive-card-head {
+  margin-bottom: 12px;
+}
+
+.doc-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doc-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-card-text b {
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+}
+
+.doc-card-text small {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.doc-card-drive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  margin-top: 3px;
+}
+
+.doc-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 48px;
+}
+
+.doc-card-delete {
+  color: var(--red);
+}
+
+.drive-card-ok,
+.drive-card-err {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+}
+
+.drive-card-ok {
+  color: var(--green);
+}
+
+.drive-card-err {
+  color: var(--red);
+}

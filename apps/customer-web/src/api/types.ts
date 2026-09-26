@@ -504,3 +504,16 @@ export interface CareOverview {
   caregivers: CareLinkView[];
   caringFor: CareLinkView[];
 }
+
+export type DocumentCategory = 'INSURANCE' | 'AADHAAR' | 'PAN' | 'PRESCRIPTION' | 'MEDICAL' | 'OTHER';
+
+export interface CustomerDocument {
+  id: string;
+  patientId: string | null;
+  category: DocumentCategory;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}

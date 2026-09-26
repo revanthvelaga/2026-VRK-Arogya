@@ -13,6 +13,7 @@ import {
   IconCheckCircle,
   IconChevronRight,
   IconFileText,
+  IconFolder,
   IconGift,
   IconLogout,
   IconMessage,
@@ -24,11 +25,12 @@ import {
 } from '../components/Icons';
 import { ReferEarnCard } from '../components/ReferEarnCard';
 import { FamilyAccessCard } from '../components/FamilyAccessCard';
+import { MyDocuments } from '../components/MyDocuments';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
-type Section = 'edit' | 'wallet' | 'offers' | 'tickets' | 'family';
-const SECTIONS: Section[] = ['edit', 'wallet', 'offers', 'tickets', 'family'];
+type Section = 'edit' | 'wallet' | 'offers' | 'tickets' | 'family' | 'documents';
+const SECTIONS: Section[] = ['edit', 'wallet', 'offers', 'tickets', 'family', 'documents'];
 
 // The account page: a menu of everything that belongs to the customer
 // (bookings, reports, wallet, offers, tickets, family), each opening its
@@ -49,6 +51,12 @@ export function ProfilePage() {
       {active === 'offers' && <OffersSection />}
       {active === 'tickets' && <TicketsSection />}
       {active === 'family' && <FamilySection />}
+      {active === 'documents' && (
+        <>
+          <SectionHeader title="My documents" sub="Insurance cards, Aadhaar, prescriptions and other important papers in one place." />
+          <MyDocuments />
+        </>
+      )}
     </>
   );
 }
@@ -138,6 +146,7 @@ function AccountMenu() {
       <div className="account-group-title">My health</div>
       <div className="card account-group">
         <AccountRow to="/insights?view=reports" icon={<IconFileText size={17} />} label="My reports" sub="View, download or share your reports" />
+        <AccountRow to="/profile/documents" icon={<IconFolder size={17} />} label="My documents" sub="Insurance, Aadhaar and other papers" />
         <AccountRow to="/profile/family" icon={<IconUsers size={17} />} label="Family members" sub="Profiles and family access" />
       </div>
 
