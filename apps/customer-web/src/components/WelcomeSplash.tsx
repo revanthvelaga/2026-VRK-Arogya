@@ -1,19 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
-import { IconPlus } from './Icons';
 
-const SHOW_MS = 1700;
-const FADE_MS = 350;
+const SHOW_MS = 2900;
+const EXIT_MS = 650;
+const REDUCED_MS = 700;
 
-// The moment after signing in: the Arogya mark animates in with a short
-// greeting, then fades away to reveal Home (like many apps do). Shown once
-// per sign-in, never on a normal page reload. Tap to skip.
+// The moment after signing in: a heartbeat line draws across a softly
+// glowing sky, bursts into light at its peak, and the Arogya mark rises
+// out of it — the plus draws itself, a shine sweeps the glass tile, the
+// name assembles letter by letter while sparks drift up — then the whole
+// screen closes into a circle to reveal Home. Tap anywhere to skip.
+// Shown once per sign-in, never on reload; a plain fade under reduced motion.
 export function WelcomeSplash() {
   const { welcome, clearWelcome } = useAuth();
   const [name, setName] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  // Sparks: fixed per mount so they don't jump on re-render.
+  const sparks = useMemo(
+    () =>
+      Array.from({ length: 22 }, (_, i) => ({
+        left: `${(i * 37 + 11) % 100}%`,
+        size: 3 + ((i * 7) % 5),
+        delay: `${0.9 + ((i * 13) % 17) / 10}s`,
+        duration: `${2.2 + ((i * 11) % 9) / 5}s`,
+        drift: `${((i % 5) - 2) * 14}px`,
+      })),
+    [],
+  );
 
   useEffect(() => {
     if (!welcome) return;
@@ -24,9 +41,9 @@ export function WelcomeSplash() {
       .get<ProfileResponse>('/users/me')
       .then((p) => setName(p.fullName?.trim().split(/\s+/)[0] ?? null))
       .catch(() => undefined);
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const t1 = setTimeout(() => setLeaving(true), reduced ? 600 : SHOW_MS);
-    const t2 = setTimeout(clearWelcome, (reduced ? 600 : SHOW_MS) + FADE_MS);
+    const show = reduced ? REDUCED_MS : SHOW_MS;
+    const t1 = setTimeout(() => setLeaving(true), show);
+    const t2 = setTimeout(clearWelcome, show + EXIT_MS);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -38,32 +55,79 @@ export function WelcomeSplash() {
 
   const pretty = name ? name.charAt(0).toUpperCase() + name.slice(1) : null;
   const greeting =
-    welcome === 'new'
-      ? `Welcome to Arogya${pretty ? `, ${pretty}` : ''}`
-      : `Welcome back${pretty ? `, ${pretty}` : ''}`;
+    welcome === 'new' ? `Welcome to Arogya${pretty ? `, ${pretty}` : ''}` : `Welcome back${pretty ? `, ${pretty}` : ''}`;
 
   return (
     <div
-      className={`welcome-splash${leaving ? ' leaving' : ''}`}
+      className={`wow-splash${leaving ? ' leaving' : ''}`}
       role="status"
       aria-live="polite"
+      aria-label={greeting}
       onClick={() => {
         setLeaving(true);
-        setTimeout(clearWelcome, FADE_MS);
+        setTimeout(clearWelcome, EXIT_MS);
       }}
     >
-      <div className="welcome-mark">
-        <span className="welcome-ring" />
-        <span className="welcome-ring r2" />
-        <span className="welcome-logo">
-          <IconPlus size={40} />
-        </span>
+      <div className="wow-aurora" aria-hidden>
+        <span className="a1" />
+        <span className="a2" />
+        <span className="a3" />
       </div>
-      <div className="welcome-brand">Arogya</div>
-      <div className="welcome-greeting">{greeting}</div>
-      <div className="welcome-sub">Your health, all in one place</div>
-      <div className="welcome-progress">
-        <span />
+      <div className="wow-grid" aria-hidden />
+
+      <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="ecgGrad" x1="0" x2="1">
+            <stop offset="0" stopColor="#5eead4" stopOpacity="0" />
+            <stop offset="0.35" stopColor="#5eead4" />
+            <stop offset="0.65" stopColor="#93c5fd" />
+            <stop offset="1" stopColor="#93c5fd" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          pathLength={1}
+          d="M0 60 H150 L162 60 L170 44 L178 60 L186 60 L194 8 L204 108 L214 34 L222 60 L232 60 L240 50 L248 60 H400"
+        />
+      </svg>
+
+      <div className="wow-center">
+        <div className="wow-burst" aria-hidden />
+        <div className="wow-burst b2" aria-hidden />
+        <div className="wow-tile">
+          <svg viewBox="0 0 48 48" className="wow-plus" aria-hidden>
+            <line x1="24" y1="11" x2="24" y2="37" pathLength={1} />
+            <line x1="11" y1="24" x2="37" y2="24" pathLength={1} />
+          </svg>
+          <span className="wow-shine" aria-hidden />
+        </div>
+
+        <div className="wow-word" aria-hidden>
+          {'Arogya'.split('').map((ch, i) => (
+            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s` }}>
+              {ch}
+            </span>
+          ))}
+        </div>
+        <div className="wow-greeting">{greeting}</div>
+        <div className="wow-tagline">Your health, beautifully in one place</div>
+      </div>
+
+      <div className="wow-sparks" aria-hidden>
+        {sparks.map((s, i) => (
+          <span
+            key={i}
+            style={
+              {
+                left: s.left,
+                width: s.size,
+                height: s.size,
+                animationDelay: s.delay,
+                animationDuration: s.duration,
+                '--drift': s.drift,
+              } as React.CSSProperties
+            }
+          />
+        ))}
       </div>
     </div>
   );
