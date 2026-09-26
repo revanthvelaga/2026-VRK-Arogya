@@ -5244,3 +5244,56 @@ a.suggest-name:hover {
 .family-stop {
   color: var(--red);
 }
+
+.person-input {
+  position: relative;
+}
+
+.person-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46px;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: 4px;
+}
+
+.person-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.person-suggest-item:hover {
+  background: var(--grey-soft);
+}
+
+.person-suggest-item small {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.person-suggest-empty {
+  padding: 10px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.person-dot.small {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}

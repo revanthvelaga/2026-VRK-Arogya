@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
-import type { CareLinkView, CareOverview, Patient } from '../api/types';
+import type { CareLinkView, CareOverview, CarePerson, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
-import { IconUsers, IconX } from './Icons';
+import { IconPhone, IconUsers, IconX } from './Icons';
 
 // Tick-boxes for which of my family members someone can see.
 function PeoplePicker({
@@ -31,6 +31,101 @@ function PeoplePicker({
           </label>
         );
       })}
+    </div>
+  );
+}
+
+// Android Chrome's contact picker (not available on iPhone/desktop).
+interface ContactsApi {
+  select: (props: string[], opts: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>>;
+}
+const contactsApi = (navigator as Navigator & { contacts?: ContactsApi }).contacts;
+
+const digitsOf = (v: string) => {
+  const d = v.replace(/\D/g, '');
+  return d.length > 10 ? d.slice(-10) : d;
+};
+
+// Type a name or a number. A name brings up people you're already
+// connected with; "Pick from contacts" opens the phone's own contact list.
+function PersonInput({
+  value,
+  onChange,
+  onPick,
+  known,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onPick: (name: string, phone: string) => void;
+  known: CarePerson[];
+}) {
+  const [open, setOpen] = useState(false);
+  const typed = value.trim().toLowerCase();
+  const byName = /[a-z]/i.test(typed);
+  const matches = byName ? known.filter((p) => p.fullName.toLowerCase().includes(typed)).slice(0, 5) : [];
+
+  const pickContact = async () => {
+    try {
+      const [c] = await contactsApi!.select(['name', 'tel'], { multiple: false });
+      const tel = c?.tel?.find((t) => digitsOf(t).length >= 10);
+      if (tel) onPick(c?.name?.[0] ?? '', digitsOf(tel));
+    } catch {
+      // Picker closed — nothing to do.
+    }
+  };
+
+  return (
+    <div className="person-input">
+      <div className="family-invite">
+        <input
+          placeholder="Name or mobile number"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          maxLength={40}
+          autoComplete="off"
+          required
+        />
+      </div>
+      {open && byName && (
+        <div className="person-suggest" role="listbox">
+          {matches.length ? (
+            matches.map((p) => (
+              <button
+                type="button"
+                role="option"
+                aria-selected={false}
+                key={p.id}
+                className="person-suggest-item"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onPick(p.fullName, digitsOf(p.phone ?? ''));
+                  setOpen(false);
+                }}
+              >
+                <span className="person-dot small">{p.fullName.charAt(0)}</span>
+                <span>
+                  <b>{p.fullName}</b>
+                  {p.phone && <small>{p.phone}</small>}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="person-suggest-empty">
+              No match yet — type their mobile number{contactsApi ? ' or pick from your contacts' : ''}.
+            </div>
+          )}
+        </div>
+      )}
+      {contactsApi && (
+        <button type="button" className="btn btn-small" style={{ marginTop: 8 }} onClick={pickContact}>
+          <IconPhone size={13} /> Pick from contacts
+        </button>
+      )}
     </div>
   );
 }
@@ -123,12 +218,18 @@ function CaregiverRow({
 export function FamilyAccessCard() {
   const careApi = useApi<CareOverview>(() => api.get('/care'), []);
   const { data: allPatients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
-  const [phone, setPhone] = useState('');
+  const [who, setWho] = useState('');
+  const [chosen, setChosen] = useState<{ name: string; phone: string } | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const data = careApi.data;
   const myPatients = (allPatients ?? []).filter((p) => !p.sharedBy);
+  // People already connected either way — the name suggestions.
+  const known = [...(data?.caringFor ?? []), ...(data?.caregivers ?? [])]
+    .map((l) => l.person)
+    .filter((p, i, all) => p.phone && all.findIndex((q) => q.id === p.id) === i);
+  const phone = chosen?.phone ?? (/[a-z]/i.test(who) ? '' : digitsOf(who));
 
   const run = async (fn: () => Promise<unknown>): Promise<boolean> => {
     setBusy(true);
@@ -151,8 +252,13 @@ export function FamilyAccessCard() {
       setError('Choose at least one person to share.');
       return;
     }
+    if (phone.length !== 10) {
+      setError('Enter a 10-digit mobile number, or pick someone from the suggestions.');
+      return;
+    }
     if (await run(() => api.post('/care/invite', { phone, patientIds: picked }))) {
-      setPhone('');
+      setWho('');
+      setChosen(null);
       setPicked([]);
     }
   };
@@ -168,23 +274,25 @@ export function FamilyAccessCard() {
       </p>
 
       <form onSubmit={invite}>
-        <div className="family-edit-label">1. Their mobile number</div>
-        <div className="family-invite">
-          <input
-            inputMode="tel"
-            placeholder="Their mobile number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ]/g, ''))}
-            maxLength={14}
-            required
-          />
-        </div>
+        <div className="family-edit-label">1. Who do you want to share with?</div>
+        <PersonInput
+          value={who}
+          onChange={(v) => {
+            setWho(v);
+            setChosen(null);
+          }}
+          onPick={(name, ph) => {
+            setChosen({ name, phone: ph });
+            setWho(name ? `${name} · ${ph}` : ph);
+          }}
+          known={known}
+        />
         <div className="family-edit-label">2. Who can they see?</div>
         <PeoplePicker patients={myPatients} selected={picked} onChange={setPicked} />
         <button
           className="btn btn-primary"
           style={{ marginTop: 10 }}
-          disabled={busy || phone.replace(/\D/g, '').length < 10 || picked.length === 0}
+          disabled={busy || phone.length !== 10 || picked.length === 0}
         >
           Invite
         </button>

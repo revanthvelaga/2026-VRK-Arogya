@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Transform } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, IsUUID, Matches } from 'class-validator';
 import { CareService } from './care.service';
+import { normalizeIndianPhone } from '../common/utils/phone.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -8,8 +10,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 
 class InviteCaregiverDto {
+  // "96185 21244", "+91-96185-21244" → "9618521244"
+  @Transform(({ value }) => normalizeIndianPhone(value))
   @IsString()
-  @Matches(/^(\+?91)?\d{10}$/, { message: 'Enter a 10-digit mobile number' })
+  @Matches(/^\d{10}$/, { message: 'Enter a 10-digit mobile number' })
   phone: string;
 
   @IsArray()
@@ -42,7 +46,7 @@ export class CareController {
 
   @Post('invite')
   async invite(@CurrentUser() user: AuthenticatedUser, @Body() dto: InviteCaregiverDto) {
-    const { caregiverId } = await this.careService.invite(user.userId, dto.phone.replace(/\s/g, ''), dto.patientIds);
+    const { caregiverId } = await this.careService.invite(user.userId, dto.phone, dto.patientIds);
     const ownerName = await this.careService.nameOf(user.userId);
     await this.notificationsService.notify(
       caregiverId,
