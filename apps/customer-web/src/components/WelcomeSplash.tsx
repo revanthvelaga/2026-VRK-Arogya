@@ -8,11 +8,11 @@ const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
 // Pastel bubble colours: mint, sky, lavender, peach.
-const BUBBLE_COLORS = ['#8fe3d6', '#9cc9f5', '#c9b8f5', '#f8c9b4'];
+const BUBBLE_COLORS = ['#6fd6c7', '#84b8ef', '#b3a0ee', '#f2b39b'];
 
 // The moment after signing in: a heartbeat line draws across a soft pastel
-// sky and blooms into light at its peak. A lotus of pastel petals unfurls
-// behind the Arogya mark — the plus draws itself, a shine sweeps the tile,
+// sky and blooms into light at its peak. The Arogya mark rises over a
+// slowly turning glow — the plus draws itself, a shine sweeps the tile,
 // gentle ripples pulse outwards — the name assembles letter by letter and
 // waves, while glassy bubbles float up. Then the screen closes into a
 // circle to reveal Home. Tap anywhere to skip.
@@ -82,10 +82,10 @@ export function WelcomeSplash() {
       <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
         <defs>
           <linearGradient id="ecgGrad" x1="0" x2="1">
-            <stop offset="0" stopColor="#5fcfc4" stopOpacity="0" />
-            <stop offset="0.35" stopColor="#5fcfc4" />
-            <stop offset="0.65" stopColor="#8cbcf0" />
-            <stop offset="1" stopColor="#8cbcf0" stopOpacity="0" />
+            <stop offset="0" stopColor="#3dbdb1" stopOpacity="0" />
+            <stop offset="0.35" stopColor="#3dbdb1" />
+            <stop offset="0.65" stopColor="#6aa6e6" />
+            <stop offset="1" stopColor="#6aa6e6" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path
@@ -96,38 +96,6 @@ export function WelcomeSplash() {
 
       <div className="wow-center">
         <div className="wow-halo" aria-hidden />
-        <svg className="wow-bloom" viewBox="-130 -130 260 260" aria-hidden>
-          <defs>
-            <linearGradient id="petalOuter" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0" stopColor="#b9d8fb" />
-              <stop offset="1" stopColor="#dcd2fb" />
-            </linearGradient>
-            <linearGradient id="petalInner" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0" stopColor="#a6eadf" />
-              <stop offset="1" stopColor="#d4f5ef" />
-            </linearGradient>
-          </defs>
-          <g className="wow-bloom-spin">
-            {Array.from({ length: 8 }, (_, i) => (
-              <path
-                key={`o${i}`}
-                className="wow-petal"
-                d="M0 0 C -30 -28 -28 -84 0 -112 C 28 -84 30 -28 0 0 Z"
-                fill="url(#petalOuter)"
-                style={{ '--r': `${i * 45}deg`, animationDelay: `${0.9 + i * 0.05}s` } as React.CSSProperties}
-              />
-            ))}
-            {Array.from({ length: 8 }, (_, i) => (
-              <path
-                key={`i${i}`}
-                className="wow-petal inner"
-                d="M0 0 C -22 -22 -20 -62 0 -84 C 20 -62 22 -22 0 0 Z"
-                fill="url(#petalInner)"
-                style={{ '--r': `${22.5 + i * 45}deg`, animationDelay: `${1.05 + i * 0.05}s` } as React.CSSProperties}
-              />
-            ))}
-          </g>
-        </svg>
         <div className="wow-burst" aria-hidden />
         <span className="wow-ripple" aria-hidden />
         <span className="wow-ripple r2" aria-hidden />
