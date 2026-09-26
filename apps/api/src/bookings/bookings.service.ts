@@ -202,6 +202,7 @@ export class BookingsService {
       customerId,
       NotificationType.BOOKING_CREATED,
       `Your booking for ${savedBooking.scheduledAt.toLocaleString('en-IN')} is confirmed. Total: ₹${totalAmount}.`,
+      savedBooking.patientId,
     );
     if (fullyCovered) await this.walletService.rewardReferralIfDue(customerId, savedBooking.id);
 

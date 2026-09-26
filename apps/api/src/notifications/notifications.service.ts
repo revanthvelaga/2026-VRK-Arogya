@@ -40,7 +40,9 @@ export class NotificationsService {
   // complete at normal request speed whether or not email delivery ever
   // gets there, so it's fire-and-forget from here: `deliverEmail` runs in
   // the background and only ever updates the row once it's done.
-  async notify(userId: string, type: NotificationType, message: string): Promise<Notification> {
+  // `patientId` says who the update is about, so family-access
+  // caregivers only get copies about the people shared with them.
+  async notify(userId: string, type: NotificationType, message: string, patientId?: string | null): Promise<Notification> {
     const notification = await this.notificationsRepo.save(
       this.notificationsRepo.create({ userId, type, message }),
     );
@@ -54,7 +56,7 @@ export class NotificationsService {
     // Family access: caregivers get a copy of everything the account they
     // look after is told (bookings, agent on the way, reports, reminders).
     if (type !== NotificationType.CARE_INVITE) {
-      this.mirrorToCaregivers(userId, type, message).catch((err) =>
+      this.mirrorToCaregivers(userId, type, message, patientId ?? null).catch((err) =>
         this.logger.warn(`Caregiver copy failed for ${userId}: ${(err as Error).message}`),
       );
     }
@@ -62,12 +64,20 @@ export class NotificationsService {
     return notification;
   }
 
-  private async mirrorToCaregivers(ownerId: string, type: NotificationType, message: string): Promise<void> {
+  private async mirrorToCaregivers(
+    ownerId: string,
+    type: NotificationType,
+    message: string,
+    patientId: string | null,
+  ): Promise<void> {
+    // A caregiver sharing everyone gets every update; one sharing only
+    // some people gets updates about those people only.
     const rows = (await this.notificationsRepo.query(
       `SELECT cl.caregiver_id, u.full_name
          FROM care_links cl JOIN users u ON u.id::text = cl.owner_id
-        WHERE cl.owner_id = $1 AND cl.status = 'ACTIVE'`,
-      [ownerId],
+        WHERE cl.owner_id = $1 AND cl.status = 'ACTIVE'
+          AND (cl.patient_ids IS NULL OR ($2::uuid IS NOT NULL AND $2::uuid = ANY(cl.patient_ids)))`,
+      [ownerId, patientId],
     )) as Array<{ caregiver_id: string; full_name: string }>;
     for (const r of rows) {
       const copy = await this.notificationsRepo.save(

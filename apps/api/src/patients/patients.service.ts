@@ -34,15 +34,13 @@ export class PatientsService {
   // a caregiver (tagged with whose they are).
   async findAllForAccount(accountId: string): Promise<PatientWithAccess[]> {
     const own = await this.patientsRepo.find({ where: { accountId, isActive: true }, order: { createdAt: 'ASC' } });
-    const owners = await this.careService.ownersCaredForBy(accountId);
-    if (!owners.length) return own;
+    const sharedIds = await this.careService.sharedPatientIds(accountId);
+    if (!sharedIds.length) return own;
     const shared = await this.patientsRepo.find({
-      where: { accountId: In(owners), isActive: true },
+      where: { id: In(sharedIds), isActive: true },
       order: { createdAt: 'ASC' },
     });
-    const ownerNames = new Map(
-      shared.filter((p) => p.relationship === Relationship.SELF).map((p) => [p.accountId, p.fullName]),
-    );
+    const ownerNames = await this.careService.ownerNames([...new Set(shared.map((p) => p.accountId))]);
     return [
       ...own,
       ...shared.map((p) => Object.assign(p, { sharedBy: { accountId: p.accountId, name: ownerNames.get(p.accountId) ?? 'Family' } })),
@@ -50,17 +48,16 @@ export class PatientsService {
   }
 
   // Every patient this account may act for — its own and, through an
-  // active family-access link, the families it looks after.
+  // active family-access link, the people each family chose to share.
   async accessiblePatientIds(accountId: string): Promise<string[]> {
-    const owners = [accountId, ...(await this.careService.ownersCaredForBy(accountId))];
-    const rows = await this.patientsRepo.find({ where: { accountId: In(owners) }, select: ['id'] });
-    return rows.map((r) => r.id);
+    const own = await this.patientsRepo.find({ where: { accountId }, select: ['id'] });
+    return [...own.map((r) => r.id), ...(await this.careService.sharedPatientIds(accountId))];
   }
 
   async canAccessPatient(patientId: string, accountId: string): Promise<boolean> {
     const patient = await this.patientsRepo.findOne({ where: { id: patientId }, select: ['id', 'accountId'] });
     if (!patient) return false;
-    return patient.accountId === accountId || this.careService.isActiveCaregiver(patient.accountId, accountId);
+    return patient.accountId === accountId || this.careService.canCaregiverAccess(patientId, patient.accountId, accountId);
   }
 
   async findOne(id: string): Promise<Patient> {
@@ -72,7 +69,7 @@ export class PatientsService {
   // The owner, or a caregiver with active family access.
   async findOneForAccount(id: string, accountId: string): Promise<Patient> {
     const patient = await this.findOne(id);
-    if (patient.accountId !== accountId && !(await this.careService.isActiveCaregiver(patient.accountId, accountId))) {
+    if (patient.accountId !== accountId && !(await this.careService.canCaregiverAccess(id, patient.accountId, accountId))) {
       throw new ForbiddenException('Not your patient profile');
     }
     return patient;

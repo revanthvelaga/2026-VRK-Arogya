@@ -88,6 +88,7 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
       NotificationType.AGENT_ON_THE_WAY,
       `${agent?.full_name ?? 'Your sample collector'} is on the way and should reach you in about ${etaMinutes} minutes. ` +
         `Share door code ${otp} with them when they arrive.`,
+      booking.patientId,
     );
     return { agentEnRouteAt: now, agentEtaAt: new Date(now.getTime() + etaMinutes * 60_000) };
   }
@@ -251,7 +252,7 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
           { prepReminderSentAt: new Date() },
         );
         if (!claimed.affected) continue;
-        await this.notificationsService.notify(booking.customerId, NotificationType.PREP_REMINDER, message);
+        await this.notificationsService.notify(booking.customerId, NotificationType.PREP_REMINDER, message, booking.patientId);
       }
       if (due.length) this.logger.log(`Sent ${due.length} preparation reminder(s)`);
       return due.length;

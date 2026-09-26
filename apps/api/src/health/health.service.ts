@@ -260,6 +260,7 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
             p.account_id,
             NotificationType.RETEST_DUE,
             `Time for ${who} ${item.testName} recheck — last done on ${last}. Rebook from Insights in one tap.`,
+            p.id,
           );
           sent++;
         }

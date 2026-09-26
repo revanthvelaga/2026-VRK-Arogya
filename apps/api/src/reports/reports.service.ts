@@ -79,6 +79,7 @@ export class ReportsService {
       booking.customerId,
       NotificationType.REPORT_READY,
       `Your report for booking ${bookingId.slice(0, 8)} is ready to download.`,
+      booking.patientId,
     );
 
     return this.toPublic(report);

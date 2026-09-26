@@ -498,6 +498,9 @@ export interface CareLinkView {
   status: 'PENDING' | 'ACTIVE';
   createdAt: string;
   person: CarePerson;
+  // true for older links that share everyone on the account.
+  sharesAll: boolean;
+  patients: Array<{ id: string; fullName: string; relationship: Relationship }>;
 }
 
 export interface CareOverview {

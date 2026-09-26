@@ -1,9 +1,9 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 // Family access: the account owner (say, a parent in Vizag) lets a
-// caregiver (their son abroad) see and manage every patient profile on
-// their account — bookings, reports, Insights, reminders — and receive a
-// copy of their notifications. Starts PENDING until the caregiver accepts.
+// caregiver (their son abroad) see and manage the patient profiles they
+// choose — bookings, reports, Insights, reminders — and receive a copy of
+// the notifications about those people. Starts PENDING until accepted.
 @Entity('care_links')
 @Index(['ownerId', 'caregiverId'], { unique: true })
 export class CareLink {
@@ -18,6 +18,11 @@ export class CareLink {
 
   @Column({ type: 'varchar', length: 10, default: 'PENDING' })
   status: 'PENDING' | 'ACTIVE';
+
+  // Which of the owner's patients are shared. null = all of them (links
+  // made before sharing could be chosen per person).
+  @Column({ name: 'patient_ids', type: 'uuid', array: true, nullable: true })
+  patientIds: string[] | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

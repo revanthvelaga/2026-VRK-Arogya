@@ -3,6 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CareLink } from './entities/care-link.entity';
 
+interface PatientRow {
+  id: string;
+  full_name: string;
+  relationship: string;
+}
+
 interface UserRow {
   id: string;
   full_name: string;
@@ -29,6 +35,27 @@ export class CareService {
     return (await this.users([userId])).get(userId)?.full_name ?? 'A family member';
   }
 
+  async ownerNames(ownerIds: string[]): Promise<Map<string, string>> {
+    const rows = await this.users(ownerIds);
+    return new Map([...rows].map(([id, r]) => [id, r.full_name]));
+  }
+
+  private async activePatientsOf(ownerId: string): Promise<PatientRow[]> {
+    return (await this.dataSource.query(
+      `SELECT id, full_name, relationship FROM patients WHERE account_id = $1 AND is_active = true ORDER BY created_at`,
+      [ownerId],
+    )) as PatientRow[];
+  }
+
+  // Only the owner's own, active patients can be shared.
+  private async validPatientIds(ownerId: string, patientIds: string[]): Promise<string[]> {
+    const own = new Set((await this.activePatientsOf(ownerId)).map((p) => p.id));
+    const ids = [...new Set(patientIds)];
+    if (!ids.length) throw new BadRequestException('Choose at least one person to share');
+    if (ids.some((id) => !own.has(id))) throw new BadRequestException('You can only share your own family members');
+    return ids;
+  }
+
   async list(userId: string) {
     const links = await this.linksRepo.find({
       where: [{ ownerId: userId }, { caregiverId: userId }],
@@ -40,19 +67,31 @@ export class CareService {
       fullName: people.get(id)?.full_name ?? 'Unknown',
       phone: people.get(id)?.phone ?? undefined,
     });
+    // Names of the people each link shares, for both sides to see.
+    const ownerIds = [...new Set(links.map((l) => l.ownerId))];
+    const patientsByOwner = new Map(await Promise.all(ownerIds.map(async (o) => [o, await this.activePatientsOf(o)] as const)));
+    const shared = (l: CareLink) =>
+      (patientsByOwner.get(l.ownerId) ?? [])
+        .filter((p) => !l.patientIds || l.patientIds.includes(p.id))
+        .map((p) => ({ id: p.id, fullName: p.full_name, relationship: p.relationship }));
+    const view = (l: CareLink, other: string) => ({
+      id: l.id,
+      status: l.status,
+      createdAt: l.createdAt,
+      person: person(other),
+      sharesAll: l.patientIds === null,
+      patients: shared(l),
+    });
     return {
-      // People who can see my family's health.
-      caregivers: links
-        .filter((l) => l.ownerId === userId)
-        .map((l) => ({ id: l.id, status: l.status, createdAt: l.createdAt, person: person(l.caregiverId) })),
+      // People who can see (some of) my family's health.
+      caregivers: links.filter((l) => l.ownerId === userId).map((l) => view(l, l.caregiverId)),
       // Families I look after (or have been invited to).
-      caringFor: links
-        .filter((l) => l.caregiverId === userId)
-        .map((l) => ({ id: l.id, status: l.status, createdAt: l.createdAt, person: person(l.ownerId) })),
+      caringFor: links.filter((l) => l.caregiverId === userId).map((l) => view(l, l.ownerId)),
     };
   }
 
-  async invite(ownerId: string, rawPhone: string) {
+  async invite(ownerId: string, rawPhone: string, patientIds: string[]) {
+    const ids = await this.validPatientIds(ownerId, patientIds);
     const phone = rawPhone.replace(/\D/g, '').slice(-10);
     const [caregiver] = (await this.dataSource.query(
       `SELECT id, full_name, phone FROM users WHERE phone = $1 AND role = 'CUSTOMER'`,
@@ -64,7 +103,7 @@ export class CareService {
     if (caregiver.id === ownerId) throw new BadRequestException("You can't add yourself");
     const existing = await this.linksRepo.findOne({ where: { ownerId, caregiverId: caregiver.id } });
     if (existing) throw new ConflictException(`${caregiver.full_name} is already ${existing.status === 'ACTIVE' ? 'added' : 'invited'}`);
-    const link = await this.linksRepo.save(this.linksRepo.create({ ownerId, caregiverId: caregiver.id }));
+    const link = await this.linksRepo.save(this.linksRepo.create({ ownerId, caregiverId: caregiver.id, patientIds: ids }));
     return { link, caregiverName: caregiver.full_name, caregiverId: caregiver.id };
   }
 
@@ -73,6 +112,14 @@ export class CareService {
     if (!link || link.caregiverId !== userId) throw new NotFoundException('Invitation not found');
     link.status = 'ACTIVE';
     link.acceptedAt = new Date();
+    return this.linksRepo.save(link);
+  }
+
+  // Owner only: change which people this caregiver can see.
+  async updatePatients(id: string, ownerId: string, patientIds: string[]) {
+    const link = await this.linksRepo.findOne({ where: { id } });
+    if (!link || link.ownerId !== ownerId) throw new NotFoundException('Not found');
+    link.patientIds = await this.validPatientIds(ownerId, patientIds);
     return this.linksRepo.save(link);
   }
 
@@ -85,13 +132,22 @@ export class CareService {
     await this.linksRepo.delete(id);
   }
 
-  // Accounts whose family this user actively looks after.
-  async ownersCaredForBy(caregiverId: string): Promise<string[]> {
-    const links = await this.linksRepo.find({ where: { caregiverId, status: 'ACTIVE' } });
-    return links.map((l) => l.ownerId);
+  // Every patient (of other accounts) this user may act for through an
+  // accepted family-access link — only the people each owner chose.
+  async sharedPatientIds(caregiverId: string): Promise<string[]> {
+    const rows = (await this.dataSource.query(
+      `SELECT p.id
+         FROM care_links cl
+         JOIN patients p ON p.account_id = cl.owner_id
+        WHERE cl.caregiver_id = $1 AND cl.status = 'ACTIVE'
+          AND (cl.patient_ids IS NULL OR p.id = ANY(cl.patient_ids))`,
+      [caregiverId],
+    )) as Array<{ id: string }>;
+    return rows.map((r) => r.id);
   }
 
-  async isActiveCaregiver(ownerId: string, caregiverId: string): Promise<boolean> {
-    return this.linksRepo.exists({ where: { ownerId, caregiverId, status: 'ACTIVE' } });
+  async canCaregiverAccess(patientId: string, ownerId: string, caregiverId: string): Promise<boolean> {
+    const link = await this.linksRepo.findOne({ where: { ownerId, caregiverId, status: 'ACTIVE' } });
+    return !!link && (link.patientIds === null || link.patientIds.includes(patientId));
   }
 }
