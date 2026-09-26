@@ -1,5 +1,9 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
+// Rendered straight into <body> so no page layout, sticky top bar or
+// bottom tab bar can sit on top of the form.
 export function Modal({
   title,
   onClose,
@@ -9,7 +13,16 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
-  return (
+  // The page behind stays put while the form scrolls.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return createPortal(
     <div
       className="modal-overlay"
       onMouseDown={(e) => {
@@ -17,9 +30,15 @@ export function Modal({
       }}
     >
       <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
-        <h2>{title}</h2>
+        <div className="modal-head">
+          <h2>{title}</h2>
+          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

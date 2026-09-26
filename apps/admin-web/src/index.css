@@ -681,7 +681,9 @@ tbody tr:hover {
   justify-content: center;
   padding: 60px 20px;
   overflow-y: auto;
-  z-index: 20;
+  overscroll-behavior: contain;
+  /* Above the mobile top bar, bottom tabs and side drawer. */
+  z-index: 100;
   animation: fadeIn 0.15s ease both;
 }
 
@@ -716,9 +718,40 @@ tbody tr:hover {
   }
 }
 
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
 .modal h2 {
   font-size: 19px;
-  margin-bottom: 18px;
+  margin: 0;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin: -4px -6px 0 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .modal-overlay {
+    padding: 16px 12px calc(24px + env(safe-area-inset-bottom));
+  }
+  .modal {
+    padding: 20px 18px;
+  }
 }
 
 .modal-actions {
