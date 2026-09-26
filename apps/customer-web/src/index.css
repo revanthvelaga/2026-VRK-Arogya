@@ -1617,17 +1617,14 @@ tbody tr:hover {
 
 /* ---------- Login ---------- */
 .login-screen {
-  min-height: 100vh;
+  /* Card near the top rather than centred in a full-height box — on tall
+     screens (tablets) centring left a big empty gap above it. */
+  min-height: calc(100vh - 160px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: clamp(4px, 2vh, 24px) 0 40px;
   position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(640px 420px at 12% -6%, var(--accent-soft), transparent 60%),
-    radial-gradient(560px 420px at 105% 8%, #e8eefd, transparent 60%),
-    var(--bg);
 }
 
 .login-card {
