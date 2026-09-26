@@ -188,8 +188,15 @@ export function NotificationBell() {
           if (!open) void load();
         }}
       >
-        <IconBell size={19} />
-        {unread > 0 && <span className="cart-icon-badge">{unread > 9 ? '9+' : unread}</span>}
+        {/* A small ring whenever the unread count goes up. */}
+        <span className={unread > 0 ? 'bell-ring' : undefined} key={`bell-${unread}`}>
+          <IconBell size={19} />
+        </span>
+        {unread > 0 && (
+          <span className="cart-icon-badge" key={unread}>
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
       </button>
 
       {open && (

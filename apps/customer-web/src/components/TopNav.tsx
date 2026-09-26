@@ -60,7 +60,12 @@ export function TopNav() {
           {user && <NotificationBell />}
           <Link to="/book" className="cart-icon-btn" aria-label="Cart">
             <IconBag size={19} />
-            {items.length > 0 && <span className="cart-icon-badge">{items.length}</span>}
+            {items.length > 0 && (
+              // Keyed on the count so it pops each time something is added.
+              <span className="cart-icon-badge" key={items.length}>
+                {items.length}
+              </span>
+            )}
           </Link>
           {user ? (
             <>

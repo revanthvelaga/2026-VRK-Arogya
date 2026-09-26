@@ -6095,3 +6095,257 @@ a.suggest-name:hover {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Motion ----------
+   Small, quick and purposeful: pages slide in, lists arrive in sequence,
+   buttons respond to a press, counts pop when they change. Everything
+   here is switched off for people who ask their phone for reduced motion. */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bellRing {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(8deg);
+  }
+  60% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes growBar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.page-enter {
+  animation: pageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Lists and grids: items arrive one after another. */
+.quick-actions > *,
+.carousel > *,
+.catalog-grid > *,
+.segment-row > *,
+.booking-cards > *,
+.account-group > *,
+.goal-list > *,
+.notif-list > *,
+.chat > *,
+.ticket-bookings > *,
+.report-list > *,
+.trend-grid > *,
+.share-pick > *,
+.doc-card,
+.ticket-card,
+.offer-card {
+  animation: riseIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(2) {
+  animation-delay: 0.04s;
+}
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(3) {
+  animation-delay: 0.08s;
+}
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(4) {
+  animation-delay: 0.12s;
+}
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(5) {
+  animation-delay: 0.16s;
+}
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(6) {
+  animation-delay: 0.2s;
+}
+:is(.quick-actions, .carousel, .catalog-grid, .segment-row, .booking-cards, .account-group, .goal-list, .notif-list, .chat, .ticket-bookings, .report-list, .trend-grid, .share-pick) > :nth-child(n + 7) {
+  animation-delay: 0.24s;
+}
+
+/* Press feedback on anything tappable. */
+.btn:active:not(:disabled),
+.add-btn:active:not(:disabled),
+.filter-chip:active,
+.compare-toggle:active,
+.share-pick-item:active,
+.cart-icon-btn:active,
+.profile-avatar-btn:active,
+.logout-icon-btn:active,
+.quick-action:active,
+.account-row:active,
+.ticket-booking:active,
+.notif-item:active {
+  transform: scale(0.97);
+}
+
+.add-btn,
+.filter-chip,
+.compare-toggle,
+.share-pick-item,
+.cart-icon-btn,
+.quick-action,
+.ticket-booking {
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-btn.added {
+  animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Cards lift slightly under a mouse (not on touch screens). */
+@media (hover: hover) {
+  .rich-card,
+  .quick-action,
+  .booking-card,
+  .ticket-card-link,
+  .ticket-booking-card,
+  .offer-card {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .rich-card:hover,
+  .quick-action:hover,
+  .booking-card:hover,
+  .ticket-card-link:hover,
+  .ticket-booking-card:hover,
+  .offer-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+.cart-icon-badge {
+  animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bell-ring {
+  display: inline-flex;
+  transform-origin: 50% 2px;
+  animation: bellRing 0.9s ease 0.3s;
+}
+
+.notif-panel {
+  animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+@keyframes noticeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.cart-notice {
+  animation: noticeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.compare-bar,
+.cart-notice {
+  will-change: transform;
+}
+
+.compare-bar {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.goal-bar span {
+  transform-origin: left center;
+  animation: growBar 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.overlap-note,
+.overlap-warning,
+.error-banner {
+  animation: riseIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
