@@ -3,15 +3,19 @@ import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const SHOW_MS = 2900;
+const SHOW_MS = 3300;
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
-// The moment after signing in: a heartbeat line draws across a softly
-// glowing sky, bursts into light at its peak, and the Arogya mark rises
-// out of it — the plus draws itself, a shine sweeps the glass tile, the
-// name assembles letter by letter while sparks drift up — then the whole
-// screen closes into a circle to reveal Home. Tap anywhere to skip.
+// Pastel bubble colours: mint, sky, lavender, peach.
+const BUBBLE_COLORS = ['#8fe3d6', '#9cc9f5', '#c9b8f5', '#f8c9b4'];
+
+// The moment after signing in: a heartbeat line draws across a soft pastel
+// sky and blooms into light at its peak. A lotus of pastel petals unfurls
+// behind the Arogya mark — the plus draws itself, a shine sweeps the tile,
+// gentle ripples pulse outwards — the name assembles letter by letter and
+// waves, while glassy bubbles float up. Then the screen closes into a
+// circle to reveal Home. Tap anywhere to skip.
 // Shown once per sign-in, never on reload; a plain fade under reduced motion.
 export function WelcomeSplash() {
   const { welcome, clearWelcome } = useAuth();
@@ -19,15 +23,16 @@ export function WelcomeSplash() {
   const [leaving, setLeaving] = useState(false);
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  // Sparks: fixed per mount so they don't jump on re-render.
-  const sparks = useMemo(
+  // Bubbles: fixed per mount so they don't jump on re-render.
+  const bubbles = useMemo(
     () =>
-      Array.from({ length: 22 }, (_, i) => ({
-        left: `${(i * 37 + 11) % 100}%`,
-        size: 3 + ((i * 7) % 5),
-        delay: `${0.9 + ((i * 13) % 17) / 10}s`,
-        duration: `${2.2 + ((i * 11) % 9) / 5}s`,
-        drift: `${((i % 5) - 2) * 14}px`,
+      Array.from({ length: 18 }, (_, i) => ({
+        left: `${(i * 37 + 7) % 96}%`,
+        size: 8 + ((i * 7) % 6) * 4,
+        delay: `${0.4 + ((i * 13) % 17) / 9}s`,
+        duration: `${3.2 + ((i * 11) % 9) / 4}s`,
+        drift: `${((i % 5) - 2) * 18}px`,
+        color: BUBBLE_COLORS[i % BUBBLE_COLORS.length],
       })),
     [],
   );
@@ -73,7 +78,6 @@ export function WelcomeSplash() {
         <span className="a2" />
         <span className="a3" />
       </div>
-      <div className="wow-grid" aria-hidden />
 
       <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
         <defs>
@@ -91,8 +95,43 @@ export function WelcomeSplash() {
       </svg>
 
       <div className="wow-center">
+        <div className="wow-halo" aria-hidden />
+        <svg className="wow-bloom" viewBox="-130 -130 260 260" aria-hidden>
+          <defs>
+            <linearGradient id="petalOuter" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor="#b9d8fb" />
+              <stop offset="1" stopColor="#dcd2fb" />
+            </linearGradient>
+            <linearGradient id="petalInner" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor="#a6eadf" />
+              <stop offset="1" stopColor="#d4f5ef" />
+            </linearGradient>
+          </defs>
+          <g className="wow-bloom-spin">
+            {Array.from({ length: 8 }, (_, i) => (
+              <path
+                key={`o${i}`}
+                className="wow-petal"
+                d="M0 0 C -30 -28 -28 -84 0 -112 C 28 -84 30 -28 0 0 Z"
+                fill="url(#petalOuter)"
+                style={{ '--r': `${i * 45}deg`, animationDelay: `${0.9 + i * 0.05}s` } as React.CSSProperties}
+              />
+            ))}
+            {Array.from({ length: 8 }, (_, i) => (
+              <path
+                key={`i${i}`}
+                className="wow-petal inner"
+                d="M0 0 C -22 -22 -20 -62 0 -84 C 20 -62 22 -22 0 0 Z"
+                fill="url(#petalInner)"
+                style={{ '--r': `${22.5 + i * 45}deg`, animationDelay: `${1.05 + i * 0.05}s` } as React.CSSProperties}
+              />
+            ))}
+          </g>
+        </svg>
         <div className="wow-burst" aria-hidden />
-        <div className="wow-burst b2" aria-hidden />
+        <span className="wow-ripple" aria-hidden />
+        <span className="wow-ripple r2" aria-hidden />
+        <span className="wow-ripple r3" aria-hidden />
         <div className="wow-tile">
           <svg viewBox="0 0 48 48" className="wow-plus" aria-hidden>
             <line x1="24" y1="11" x2="24" y2="37" pathLength={1} />
@@ -103,7 +142,7 @@ export function WelcomeSplash() {
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s` }}>
+            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s, ${2.15 + i * 0.08}s` }}>
               {ch}
             </span>
           ))}
@@ -112,8 +151,8 @@ export function WelcomeSplash() {
         <div className="wow-tagline">Your health, beautifully in one place</div>
       </div>
 
-      <div className="wow-sparks" aria-hidden>
-        {sparks.map((s, i) => (
+      <div className="wow-bubbles" aria-hidden>
+        {bubbles.map((s, i) => (
           <span
             key={i}
             style={
@@ -124,6 +163,7 @@ export function WelcomeSplash() {
                 animationDelay: s.delay,
                 animationDuration: s.duration,
                 '--drift': s.drift,
+                '--c': s.color,
               } as React.CSSProperties
             }
           />
