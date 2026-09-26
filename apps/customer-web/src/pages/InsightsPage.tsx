@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
-import type { MyReportValue, Patient } from '../api/types';
+import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
@@ -47,11 +48,114 @@ function calculateAge(dateOfBirth: string): number {
   return age;
 }
 
+// A whole-number age turns into a Jan 1 date of birth — same trade-off
+// PatientPicker's "add family member" form makes: an exact birth date
+// isn't usually top of mind, an approximate age is.
+function approxDateOfBirthFromAge(age: number): string {
+  const year = new Date().getFullYear() - age;
+  return `${year}-01-01`;
+}
+
+function EditPatientForm({ patient, onSaved, onCancel }: { patient: Patient; onSaved: () => void; onCancel: () => void }) {
+  const [fullName, setFullName] = useState(patient.fullName);
+  const [relationship, setRelationship] = useState<Relationship>(patient.relationship);
+  const [gender, setGender] = useState<Gender | ''>(patient.gender ?? '');
+  const [age, setAge] = useState(patient.dateOfBirth ? String(calculateAge(patient.dateOfBirth)) : '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!fullName.trim()) {
+      setError('Enter a name.');
+      return;
+    }
+    const ageNum = age.trim() ? Number(age) : undefined;
+    if (ageNum != null && (!Number.isFinite(ageNum) || ageNum < 0 || ageNum > 120)) {
+      setError('Enter a valid age.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.patch(`/patients/${patient.id}`, {
+        fullName: fullName.trim(),
+        relationship,
+        gender: gender || undefined,
+        dateOfBirth: ageNum != null ? approxDateOfBirthFromAge(ageNum) : undefined,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+      {error && <div className="error-banner">{error}</div>}
+      <div className="form-grid">
+        <div className="field field-full">
+          <label>Full name</label>
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
+        </div>
+        {patient.relationship !== 'SELF' && (
+          <div className="field">
+            <label>Relationship</label>
+            <select value={relationship} onChange={(e) => setRelationship(e.target.value as Relationship)}>
+              {(['SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'] as Relationship[]).map((r) => (
+                <option key={r} value={r}>
+                  {relationshipLabel(r)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="field">
+          <label>Gender (optional)</label>
+          <select value={gender} onChange={(e) => setGender(e.target.value as Gender | '')}>
+            <option value="">Not specified</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div className="field">
+          <label>Age (approx.)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            placeholder="e.g. 45"
+          />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="submit" className="btn btn-primary btn-small" disabled={busy}>
+          {busy ? 'Saving…' : 'Save changes'}
+        </button>
+        <button type="button" className="btn btn-small" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function PatientProfileCard({ patient, onChanged }: { patient: Patient; onChanged: () => void }) {
+  const [editing, setEditing] = useState(false);
   const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
   const address = [patient.fullAddress, patient.landmark, patient.areaAddress, patient.pincode]
     .filter(Boolean)
     .join(', ');
+
+  useEffect(() => {
+    setEditing(false);
+  }, [patient.id]);
 
   return (
     <div className="card">
@@ -92,9 +196,25 @@ function PatientProfileCard({ patient, onChanged }: { patient: Patient; onChange
               .join(' · ') || 'No demographic details on file yet'}
           </div>
         </div>
+        {!editing && (
+          <button type="button" className="explain-btn" style={{ marginTop: 0 }} onClick={() => setEditing(true)}>
+            Edit
+          </button>
+        )}
       </div>
 
-      {(patient.phone || patient.alternatePhone || address) && (
+      {editing && (
+        <EditPatientForm
+          patient={patient}
+          onSaved={() => {
+            setEditing(false);
+            onChanged();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+
+      {!editing && (patient.phone || patient.alternatePhone || address) && (
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'grid', gap: 8 }}>
           {patient.phone && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-soft)' }}>
