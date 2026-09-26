@@ -75,6 +75,27 @@ export function NotificationBell() {
   const [seen, setSeen] = useState<string[]>(() => readSeen());
   const [loaded, setLoaded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Place the panel under the bell but always fully on screen — the bell
+  // sits on the left of the header on some tablets and on the right on
+  // phones and desktops.
+  const place = useCallback(() => {
+    const r = buttonRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const vw = window.innerWidth;
+    const width = Math.min(380, vw - 24);
+    const left = Math.min(Math.max(12, r.right - width), vw - width - 12);
+    setPos({ top: r.bottom + 10, left, width });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, place]);
 
   const load = useCallback(async () => {
     const [n, c] = await Promise.allSettled([
@@ -157,6 +178,7 @@ export function NotificationBell() {
   return (
     <div className="notif-wrap" ref={panelRef}>
       <button
+        ref={buttonRef}
         type="button"
         className="cart-icon-btn"
         aria-label={unread ? `Notifications, ${unread} new` : 'Notifications'}
@@ -171,7 +193,12 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="notif-panel" role="dialog" aria-label="Notifications">
+        <div
+          className="notif-panel"
+          role="dialog"
+          aria-label="Notifications"
+          style={pos ? { top: pos.top, left: pos.left, width: pos.width } : undefined}
+        >
           <div className="notif-head">
             <b>Notifications</b>
             {unread > 0 && (

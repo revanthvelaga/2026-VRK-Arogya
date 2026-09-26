@@ -24,6 +24,7 @@ import { HealthTrackingModule } from './health/health.module';
 import { OtpSettingsModule } from './otp-settings/otp-settings.module';
 import { DocumentsModule } from './documents/documents.module';
 import { HealthController } from './health.controller';
+import { NotificationsService } from './notifications/notifications.service';
 
 @Module({
   imports: [
@@ -93,7 +94,10 @@ import { HealthController } from './health.controller';
 export class AppModule implements OnApplicationBootstrap {
   private readonly logger = new Logger(AppModule.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // A fresh cloud database (Supabase, a new Render Postgres, etc.) has no
   // catalog/centers to book against, and there's no shell access on a free
@@ -110,6 +114,11 @@ export class AppModule implements OnApplicationBootstrap {
             AND EXISTS (SELECT 1 FROM samples s WHERE s.booking_id = b.id AND s.status <> 'BOOKED')`,
       )
       .catch((err: Error) => this.logger.warn(`Booking status backfill skipped: ${err.message}`));
+
+    await this.notificationsService
+      .fixOldBookingMessages()
+      .then((n) => n && this.logger.log(`Rewrote ${n} old booking message(s) in India time`))
+      .catch((err: Error) => this.logger.warn(`Old booking message fix skipped: ${err.message}`));
 
     const [{ count }] = await this.dataSource.query('SELECT COUNT(*)::int AS count FROM tests');
     if (count > 0) return;

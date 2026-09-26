@@ -2117,6 +2117,11 @@ tbody tr:hover {
     overflow-x: auto;
     flex: none;
   }
+  /* The menu drops to its own row here, so push the bell/cart/account
+     buttons to the right corner of the top row. */
+  .site-header-actions {
+    margin-left: auto;
+  }
   .hero {
     grid-template-columns: 1fr;
   }
@@ -5311,9 +5316,9 @@ a.suggest-name:hover {
 }
 
 .notif-panel {
-  position: absolute;
-  right: -90px;
-  top: calc(100% + 10px);
+  position: fixed;
+  right: 12px;
+  top: 72px;
   width: min(380px, calc(100vw - 24px));
   max-height: min(70vh, 560px);
   display: flex;
@@ -5326,15 +5331,6 @@ a.suggest-name:hover {
   overflow: hidden;
 }
 
-@media (max-width: 520px) {
-  .notif-panel {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    top: 72px;
-    width: auto;
-  }
-}
 
 .notif-head {
   display: flex;

@@ -1,3 +1,4 @@
+import { formatInr, formatIstDateTime } from '../common/utils/format.util';
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
@@ -95,6 +96,30 @@ export class NotificationsService {
     notification.emailSent = true;
     notification.emailPreviewUrl = previewUrl;
     await this.notificationsRepo.save(notification);
+  }
+
+  // Booking confirmations written before times were formatted in India
+  // time read "26/9/2026, 5:00:00 am … Total: ₹2827.28" (the server's UTC
+  // clock, raw number). Rewrite those in place; new ones never match.
+  async fixOldBookingMessages(): Promise<number> {
+    const rows = (await this.notificationsRepo.query(
+      `SELECT id, message FROM notifications WHERE message LIKE '%Your booking for %/%/%, %:%:% is confirmed. Total: ₹%'`,
+    )) as Array<{ id: string; message: string }>;
+    const re =
+      /^(For [^:]+: )?Your booking for (\d{1,2})\/(\d{1,2})\/(\d{4}), (\d{1,2}):(\d{2}):\d{2}\s?(am|pm) is confirmed\. Total: ₹([\d.]+)\.$/i;
+    let fixed = 0;
+    for (const r of rows) {
+      const m = re.exec(r.message);
+      if (!m) continue;
+      const [, prefix = '', d, mo, y, h, min, ap, total] = m;
+      let hour = Number(h) % 12;
+      if (ap.toLowerCase() === 'pm') hour += 12;
+      const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), hour, Number(min)));
+      const message = `${prefix}Your booking for ${formatIstDateTime(when)} is confirmed. Total: ${formatInr(total)}.`;
+      await this.notificationsRepo.update(r.id, { message });
+      fixed++;
+    }
+    return fixed;
   }
 
   // The bell shows the latest 50; older ones aren't worth scrolling to.
