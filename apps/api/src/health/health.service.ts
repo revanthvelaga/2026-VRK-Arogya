@@ -12,7 +12,8 @@ import { VitalReading } from './entities/vital-reading.entity';
 import { HealthGoal } from './entities/health-goal.entity';
 import { Medicine } from './entities/medicine.entity';
 import { RetestReminder } from './entities/retest-reminder.entity';
-import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateMedicineDto } from './dto/health.dto';
+import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateGoalDto, UpdateMedicineDto } from './dto/health.dto';
+import { AiService } from '../ai/ai.service';
 import { PatientsService } from '../patients/patients.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
@@ -45,6 +46,7 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     private readonly patientsService: PatientsService,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
+    private readonly ai: AiService,
   ) {}
 
   // Every read and write here is for one patient, and only their own
@@ -94,15 +96,95 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
   async listGoals(patientId: string, userId: string) {
     await this.assertPatient(patientId, userId);
     const rows = await this.goalsRepo.find({ where: { patientId }, order: { createdAt: 'ASC' } });
-    return rows.map((g) => ({ ...g, target: Number(g.target) }));
+    return rows.map((g) => this.goalOut(g));
+  }
+
+  private goalOut(g: HealthGoal) {
+    return { ...g, target: Number(g.target), startValue: g.startValue != null ? Number(g.startValue) : null };
   }
 
   async addGoal(dto: CreateGoalDto, userId: string) {
     await this.assertPatient(dto.patientId, userId);
     const count = await this.goalsRepo.count({ where: { patientId: dto.patientId } });
     if (count >= 10) throw new BadRequestException('Up to 10 goals per person');
-    const saved = await this.goalsRepo.save(this.goalsRepo.create({ ...dto, unit: dto.unit ?? null }));
-    return { ...saved, target: Number(saved.target) };
+    const saved = await this.goalsRepo.save(
+      this.goalsRepo.create({
+        ...dto,
+        unit: dto.unit ?? null,
+        startValue: dto.startValue ?? null,
+        targetDate: dto.targetDate ? dto.targetDate.slice(0, 10) : null,
+      }),
+    );
+    return this.goalOut(saved);
+  }
+
+  async updateGoal(id: string, dto: UpdateGoalDto, userId: string) {
+    const goal = await this.goalsRepo.findOne({ where: { id } });
+    if (!goal) throw new NotFoundException('Goal not found');
+    await this.assertPatient(goal.patientId, userId);
+    if (dto.label !== undefined) goal.label = dto.label;
+    if (dto.direction !== undefined) goal.direction = dto.direction;
+    if (dto.target !== undefined) goal.target = dto.target;
+    if (dto.targetDate !== undefined) goal.targetDate = dto.targetDate ? dto.targetDate.slice(0, 10) : null;
+    return this.goalOut(await this.goalsRepo.save(goal));
+  }
+
+  // The readings a goal is measured against, oldest first.
+  private async goalSeries(goal: HealthGoal): Promise<Array<{ date: Date; value: number }>> {
+    if (goal.metric.startsWith('test:')) {
+      const rows = (await this.dataSource.query(
+        `SELECT rv.value, r.generated_at
+           FROM report_values rv
+           JOIN reports r ON r.id = rv.report_id
+           JOIN bookings b ON b.id = r.booking_id
+          WHERE b.patient_id = $1 AND rv.test_id = $2
+          ORDER BY r.generated_at`,
+        [goal.patientId, goal.metric.slice(5)],
+      )) as Array<{ value: string; generated_at: Date }>;
+      return rows.map((r) => ({ date: new Date(r.generated_at), value: Number(r.value) }));
+    }
+    const rows = await this.vitalsRepo.find({
+      where: { patientId: goal.patientId, type: goal.metric as VitalReading['type'] },
+      order: { recordedAt: 'ASC' },
+      take: 500,
+    });
+    return rows.map((r) => ({ date: r.recordedAt, value: Number(r.value) }));
+  }
+
+  // A few practical, goal-specific tips — not medical advice, and never a
+  // change to medicines.
+  async goalAdvice(id: string, userId: string): Promise<{ advice: string }> {
+    const goal = await this.goalsRepo.findOne({ where: { id } });
+    if (!goal) throw new NotFoundException('Goal not found');
+    const patient = await this.assertPatient(goal.patientId, userId);
+    const series = (await this.goalSeries(goal)).slice(-20);
+    const unit = goal.unit ?? '';
+    const day = (d: Date) => d.toISOString().slice(0, 10);
+    const age = patient.dateOfBirth
+      ? Math.floor((Date.now() - new Date(patient.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))
+      : null;
+    const facts = [
+      `Goal: ${goal.label} (keep it ${goal.direction.toLowerCase()} ${Number(goal.target)} ${unit}).`,
+      goal.startValue != null ? `Started at ${Number(goal.startValue)} ${unit} on ${day(goal.createdAt)}.` : '',
+      goal.targetDate ? `Wants to reach it by ${goal.targetDate}. Today is ${day(new Date())}.` : 'No deadline set.',
+      series.length
+        ? `Readings (date: value): ${series.map((r) => `${day(r.date)}: ${r.value}`).join(', ')}.`
+        : 'No readings logged yet.',
+      age != null ? `Age about ${age}.` : '',
+      patient.gender ? `Gender: ${patient.gender.toLowerCase()}.` : '',
+    ].filter(Boolean);
+    const advice = await this.ai.text({
+      system:
+        'You are a friendly health coach inside an Indian diagnostic-lab app. Given one personal goal and the ' +
+        'readings so far, reply in plain simple English with: first one short line on how they are doing and ' +
+        'whether the pace is realistic (safe weight change is about 0.5–1 kg per week); then 3 or 4 short, ' +
+        'practical tips as lines starting with "- ", suited to Indian food and daily routine. Never suggest ' +
+        'starting, stopping or changing any medicine; if readings look worrying (very high sugar or BP, fast ' +
+        'unexplained weight change), say to see a doctor. No headings, no markdown bold, under 120 words.',
+      prompt: facts.join('\n'),
+      maxTokens: 400,
+    });
+    return { advice: advice.trim() };
   }
 
   async deleteGoal(id: string, userId: string) {

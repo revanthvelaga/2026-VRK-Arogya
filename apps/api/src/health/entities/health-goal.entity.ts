@@ -28,6 +28,16 @@ export class HealthGoal {
   @Column({ type: 'varchar', length: 20, nullable: true })
   unit?: string | null;
 
+  // Where the goal started (the reading at the time it was set), so
+  // progress and the chart have a fixed starting point.
+  @Column({ name: 'start_value', type: 'numeric', precision: 8, scale: 2, nullable: true })
+  startValue?: number | null;
+
+  // Optional "by when" — drives the planned line on the chart and the
+  // "ahead / behind plan" message.
+  @Column({ name: 'target_date', type: 'date', nullable: true })
+  targetDate?: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

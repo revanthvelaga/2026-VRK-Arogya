@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
-import type { HealthGoal, Medicine, MyReportValue, VitalReading, VitalType } from '../api/types';
+import type { Medicine, VitalReading, VitalType } from '../api/types';
 import { useApi } from '../lib/useApi';
-import { formatDateTime, formatNumber } from '../lib/format';
+import { formatDateTime } from '../lib/format';
 import { formatVital, VITAL_BY_TYPE, VITALS, vitalOutOfRange } from '../lib/vitals';
 import { TrendChart } from './TrendChart';
+import { VITALS_CHANGED } from './Goals';
 import { LoadingLine } from './Spinner';
-import { IconCheckCircle, IconHeart, IconPill, IconPlus, IconTarget, IconX } from './Icons';
+import { IconHeart, IconPill, IconPlus, IconX } from './Icons';
 
 function nowLocalInput(): string {
   const d = new Date();
@@ -56,6 +57,7 @@ export function VitalsCard({ patientId }: { patientId: string }) {
       setValue2('');
       setAdding(false);
       vitalsApi.reload();
+      window.dispatchEvent(new Event(VITALS_CHANGED));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save');
     } finally {
@@ -66,7 +68,15 @@ export function VitalsCard({ patientId }: { patientId: string }) {
   const remove = async (id: string) => {
     await api.delete(`/health/vitals/${id}`);
     vitalsApi.reload();
+    window.dispatchEvent(new Event(VITALS_CHANGED));
   };
+
+  // A reading logged from a goal should show up here too.
+  const reloadVitals = vitalsApi.reload;
+  useEffect(() => {
+    window.addEventListener(VITALS_CHANGED, reloadVitals);
+    return () => window.removeEventListener(VITALS_CHANGED, reloadVitals);
+  }, [reloadVitals]);
 
   return (
     <div className="card">
@@ -186,178 +196,8 @@ export function VitalsCard({ patientId }: { patientId: string }) {
   );
 }
 
-// ---------------------------------------------------------------------
-// Goals
-// ---------------------------------------------------------------------
-
-interface MetricOption {
-  key: string;
-  label: string;
-  unit: string;
-}
-
-// Oldest → newest readings for a goal's metric: a home vital, or a lab
-// test by id.
-function seriesFor(metric: string, vitals: VitalReading[], lab: MyReportValue[]): Array<{ date: string; value: number }> {
-  if (metric.startsWith('test:')) {
-    const testId = metric.slice(5);
-    return lab
-      .filter((v) => v.testId === testId)
-      .map((v) => ({ date: v.reportGeneratedAt, value: Number(v.value) }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }
-  return vitals
-    .filter((r) => r.type === metric)
-    .map((r) => ({ date: r.recordedAt, value: r.value }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-export function GoalsCard({ patientId, labValues }: { patientId: string; labValues: MyReportValue[] }) {
-  const goalsApi = useApi<HealthGoal[]>(() => api.get(`/health/goals?patientId=${patientId}`), [patientId]);
-  const vitalsApi = useApi<VitalReading[]>(() => api.get(`/health/vitals?patientId=${patientId}`), [patientId]);
-  const [adding, setAdding] = useState(false);
-  const [metric, setMetric] = useState('WEIGHT');
-  const [direction, setDirection] = useState<'BELOW' | 'ABOVE'>('BELOW');
-  const [target, setTarget] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const options = useMemo<MetricOption[]>(() => {
-    const vitals = VITALS.filter((v) => v.type !== 'SUGAR_RANDOM').map((v) => ({
-      key: v.type,
-      label: v.type === 'BP' ? 'Blood pressure (top number)' : v.label,
-      unit: v.unit,
-    }));
-    const seen = new Set<string>();
-    const tests: MetricOption[] = [];
-    for (const v of labValues) {
-      if (!v.testId || seen.has(v.testId)) continue;
-      seen.add(v.testId);
-      tests.push({ key: `test:${v.testId}`, label: v.testName, unit: v.unit ?? '' });
-    }
-    return [...vitals, ...tests];
-  }, [labValues]);
-
-  const vitals = vitalsApi.data ?? [];
-  const selected = options.find((o) => o.key === metric);
-
-  const add = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!selected) return;
-    setError(null);
-    try {
-      await api.post('/health/goals', {
-        patientId,
-        metric,
-        direction,
-        target: Number(target),
-        unit: selected.unit || undefined,
-        label: `${selected.label.replace(' (top number)', '')} ${direction === 'BELOW' ? 'below' : 'above'} ${target}${
-          selected.unit ? ` ${selected.unit}` : ''
-        }`,
-      });
-      setTarget('');
-      setAdding(false);
-      goalsApi.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add goal');
-    }
-  };
-
-  const remove = async (id: string) => {
-    await api.delete(`/health/goals/${id}`);
-    goalsApi.reload();
-  };
-
-  const goals = goalsApi.data ?? [];
-
-  return (
-    <div className="card">
-      <div className="card-head-row">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 0 }}>
-          <IconTarget size={16} style={{ color: 'var(--accent-ink)' }} /> My goals
-        </div>
-        <button type="button" className="btn btn-small" onClick={() => setAdding((v) => !v)}>
-          {adding ? <IconX size={13} /> : <IconPlus size={13} />} {adding ? 'Close' : 'New goal'}
-        </button>
-      </div>
-
-      {adding && (
-        <form className="inline-form" onSubmit={add} style={{ marginTop: 12 }}>
-          <label className="field">
-            <span>Measure</span>
-            <select value={metric} onChange={(e) => setMetric(e.target.value)}>
-              {options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Keep it</span>
-            <select value={direction} onChange={(e) => setDirection(e.target.value as 'BELOW' | 'ABOVE')}>
-              <option value="BELOW">Below</option>
-              <option value="ABOVE">Above</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Target {selected?.unit ? `(${selected.unit})` : ''}</span>
-            <input type="number" step="any" value={target} onChange={(e) => setTarget(e.target.value)} required />
-          </label>
-          <button className="btn btn-primary">Add goal</button>
-          {error && <div className="error-banner" style={{ gridColumn: '1 / -1' }}>{error}</div>}
-        </form>
-      )}
-
-      {goals.length === 0 && !adding ? (
-        <p className="page-sub" style={{ margin: '8px 0 0' }}>
-          Set a target like “HbA1c below 5.7” or “Weight below 75 kg” — progress updates by itself as new readings and
-          reports come in.
-        </p>
-      ) : (
-        <div className="goal-list">
-          {goals.map((g) => {
-            const series = seriesFor(g.metric, vitals, labValues);
-            const current = series[series.length - 1]?.value;
-            const start = series[0]?.value;
-            const met = current != null && (g.direction === 'BELOW' ? current <= g.target : current >= g.target);
-            let pct = met ? 100 : 0;
-            if (!met && current != null && start != null && start !== g.target) {
-              pct = Math.max(0, Math.min(100, ((start - current) / (start - g.target)) * 100));
-            }
-            const gap = current != null ? Math.abs(current - g.target) : null;
-            return (
-              <div className={`goal${met ? ' met' : ''}`} key={g.id}>
-                <div className="goal-head">
-                  <b>{g.label}</b>
-                  <button type="button" aria-label="Remove goal" onClick={() => remove(g.id)}>
-                    <IconX size={12} />
-                  </button>
-                </div>
-                <div className="goal-bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-                <div className="goal-sub">
-                  {current == null ? (
-                    'No readings yet'
-                  ) : met ? (
-                    <>
-                      <IconCheckCircle size={13} /> Achieved — now {formatNumber(current)} {g.unit ?? ''}
-                    </>
-                  ) : (
-                    <>
-                      Now {formatNumber(current)} {g.unit ?? ''} · {formatNumber(Number(gap!.toFixed(2)))} {g.unit ?? ''} to go
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+// Goals live in ./Goals — re-exported so pages keep one import.
+export { GoalsCard } from './Goals';
 
 // ---------------------------------------------------------------------
 // Medicines

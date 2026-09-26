@@ -438,6 +438,8 @@ export interface HealthGoal {
   direction: 'BELOW' | 'ABOVE';
   target: number;
   unit?: string | null;
+  startValue?: number | null;
+  targetDate?: string | null;
   createdAt: string;
 }
 

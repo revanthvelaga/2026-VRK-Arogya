@@ -8,12 +8,14 @@ import { HealthService } from './health.service';
 import { HealthTrackingController } from './health.controller';
 import { PatientsModule } from '../patients/patients.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([VitalReading, HealthGoal, Medicine, RetestReminder]),
     PatientsModule,
     NotificationsModule,
+    AiModule,
   ],
   controllers: [HealthTrackingController],
   providers: [HealthService],

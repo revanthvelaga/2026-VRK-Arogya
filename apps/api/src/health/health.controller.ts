@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { HealthService } from './health.service';
-import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateMedicineDto } from './dto/health.dto';
+import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateMedicineDto, UpdateGoalDto } from './dto/health.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
@@ -35,6 +35,16 @@ export class HealthTrackingController {
   @Post('goals')
   addGoal(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateGoalDto) {
     return this.healthService.addGoal(dto, user.userId);
+  }
+
+  @Patch('goals/:id')
+  updateGoal(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateGoalDto) {
+    return this.healthService.updateGoal(id, dto, user.userId);
+  }
+
+  @Get('goals/:id/advice')
+  goalAdvice(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.healthService.goalAdvice(id, user.userId);
   }
 
   @Delete('goals/:id')
