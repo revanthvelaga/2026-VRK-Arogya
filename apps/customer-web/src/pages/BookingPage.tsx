@@ -249,7 +249,19 @@ export function BookingPage() {
     const item = items.find((x) => x.kind === kind && x.id === id);
     if (item) cart.add({ kind, id, name: item.name, price: item.price, meta: item.meta });
   };
+  const [overlapNote, setOverlapNote] = useState<string | null>(null);
   const toggleTest = (id: string) => {
+    // A test a chosen package already includes can't be added on its own.
+    if (!selectedTestIds.includes(id)) {
+      const pkg = (packages ?? []).find(
+        (p) => selectedPackageIds.includes(p.id) && (p.tests ?? []).some((t) => t.id === id),
+      );
+      if (pkg) {
+        const name = (tests ?? []).find((t) => t.id === id)?.name ?? 'This test';
+        setOverlapNote(`${name} is already included in ${pkg.name}.`);
+        return;
+      }
+    }
     syncCart('test', id, !selectedTestIds.includes(id));
     setSelectedTestIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -278,6 +290,19 @@ export function BookingPage() {
     }
     return out;
   }, [packages, selectedPackageIds, selectedTestIds]);
+
+  // Never keep both: drop the standalone test and say so.
+  useEffect(() => {
+    if (!overlaps.length) return;
+    setSelectedTestIds((prev) => prev.filter((id) => !overlaps.some((o) => o.testId === id)));
+    overlaps.forEach((o) => cart.remove('test', o.testId));
+    setOverlapNote(
+      `${overlaps.map((o) => o.testName).join(', ')} removed — already included in ${overlaps[0].packageName} (saved ${formatCurrency(
+        overlaps.reduce((sum, o) => sum + o.price, 0),
+      )}).`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlaps]);
 
   // "You might also like" — tests/packages that share package membership
   // with what's already selected, not the entire catalog. A selected test
@@ -461,16 +486,11 @@ export function BookingPage() {
                 ))
               )}
 
-              {overlaps.map((o) => (
-                <div className="overlap-warning" key={o.testId} role="alert">
-                  <span>
-                    <b>{o.testName}</b> is already included in <b>{o.packageName}</b> — you'd pay for it twice.
-                  </span>
-                  <button type="button" className="btn btn-small" onClick={() => toggleTest(o.testId)}>
-                    Remove it · save {formatCurrency(o.price)}
-                  </button>
+              {overlapNote && (
+                <div className="overlap-note" role="status">
+                  {overlapNote} You won't be charged for it twice.
                 </div>
-              ))}
+              )}
 
               {relatedItems.length > 0 && (
                 <>

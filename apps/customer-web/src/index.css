@@ -5699,3 +5699,56 @@ a.suggest-name:hover {
   white-space: normal;
   max-width: 100%;
 }
+
+.overlap-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cart-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  z-index: 70;
+  width: min(460px, calc(100vw - 24px));
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.45;
+  box-shadow: 0 16px 40px -14px rgba(16, 24, 44, 0.5);
+}
+
+.cart-notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #6ee7b7;
+}
+
+.cart-notice span {
+  flex: 1;
+}
+
+.cart-notice button {
+  border: 0;
+  background: none;
+  color: #fff;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.add-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}

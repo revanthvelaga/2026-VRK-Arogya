@@ -73,6 +73,7 @@ function DetailHeader({
   added,
   onAdd,
   onRemove,
+  inPackage,
   meta,
 }: {
   name: string;
@@ -81,6 +82,8 @@ function DetailHeader({
   added: boolean;
   onAdd: () => void;
   onRemove: () => void;
+  // Set when a package in the cart already includes this test.
+  inPackage?: string;
   meta: string;
 }) {
   return (
@@ -95,8 +98,15 @@ function DetailHeader({
         <div className="rich-card-price" style={{ fontSize: 20 }}>
           {formatCurrency(price)}
         </div>
-        <button className={`add-btn${added ? ' added' : ''}`} onClick={added ? onRemove : onAdd}>
-          {added ? (
+        <button
+          className={`add-btn${added ? ' added' : ''}`}
+          onClick={added ? onRemove : onAdd}
+          disabled={!added && !!inPackage}
+          title={inPackage ? `Included in ${inPackage}` : undefined}
+        >
+          {!added && inPackage ? (
+            `In ${inPackage}`
+          ) : added ? (
             <>
               <IconX size={13} /> Remove
             </>
@@ -114,7 +124,7 @@ function DetailHeader({
 export function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: test, loading, error } = useApi<Test>(() => api.get(`/catalog/tests/${id}`), [id]);
-  const { add, remove, has } = useCart();
+  const { add, remove, has, includedIn } = useCart();
 
   if (loading) return <LoadingLine label="Loading test…" />;
   if (error) return <div className="error-banner">{error}</div>;
@@ -135,6 +145,7 @@ export function TestDetailPage() {
         added={added}
         onAdd={() => add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })}
         onRemove={() => remove('test', test.id)}
+        inPackage={includedIn(test.id)}
         meta={`Report in ${test.turnaroundHours}h`}
       />
 

@@ -53,8 +53,9 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 function TestTile({ test, index }: { test: Test; index: number }) {
-  const { add, remove, has } = useCart();
+  const { add, remove, has, includedIn } = useCart();
   const added = has('test', test.id);
+  const inPackage = !added ? includedIn(test.id) : undefined;
   return (
     <div className="rich-card carousel-card">
       <div className={`rich-card-art ${artFor(test.id + index)}`}>
@@ -71,13 +72,15 @@ function TestTile({ test, index }: { test: Test; index: number }) {
           <div className="rich-card-price">{formatCurrency(test.price)}</div>
           <button
             className={`add-btn${added ? ' added' : ''}`}
+            disabled={!!inPackage}
+            title={inPackage ? `Included in ${inPackage}` : undefined}
             onClick={() =>
               added
                 ? remove('test', test.id)
                 : add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })
             }
           >
-            {added ? (
+            {inPackage ? 'In package' : added ? (
               <>
                 <IconX size={13} /> Remove
               </>

@@ -31,8 +31,9 @@ function matchesAudience(itemAudience: Audience, filter: Audience | null): boole
 }
 
 function TestCard({ test, index }: { test: Test; index: number }) {
-  const { add, remove, has } = useCart();
+  const { add, remove, has, includedIn } = useCart();
   const added = has('test', test.id);
+  const inPackage = !added ? includedIn(test.id) : undefined;
   const [detailsOpen, setDetailsOpen] = useState(false);
   const hasDetails = test.description || test.preparationInstructions || test.reportInfo;
 
@@ -104,13 +105,15 @@ function TestCard({ test, index }: { test: Test; index: number }) {
           <div className="rich-card-price">{formatCurrency(test.price)}</div>
           <button
             className={`add-btn${added ? ' added' : ''}`}
+            disabled={!!inPackage}
+            title={inPackage ? `Included in ${inPackage}` : undefined}
             onClick={() =>
               added
                 ? remove('test', test.id)
                 : add({ kind: 'test', id: test.id, name: test.name, price: Number(test.price) })
             }
           >
-            {added ? (
+            {inPackage ? 'In package' : added ? (
               <>
                 <IconX size={13} /> Remove
               </>

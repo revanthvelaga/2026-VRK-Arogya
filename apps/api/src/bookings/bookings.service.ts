@@ -214,6 +214,25 @@ export class BookingsService {
   // never trusted from the client.
   private async priceItems(dtoItems: CreateBookingDto['items']): Promise<PricedItem[]> {
     const items: PricedItem[] = [];
+    // Tests each chosen package already covers — the same test can't also
+    // be booked (and paid for) on its own, or twice.
+    const coveredBy = new Map<string, string>();
+    const seen = new Set<string>();
+    for (const item of dtoItems) {
+      const key = item.testId ? `t:${item.testId}` : `p:${item.packageId}`;
+      if (seen.has(key)) throw new BadRequestException('The same test or package is in the booking twice');
+      seen.add(key);
+      if (item.packageId && !item.testId) {
+        const pkg = await this.packagesService.findOne(item.packageId);
+        for (const t of pkg.tests ?? []) coveredBy.set(t.id, pkg.name);
+      }
+    }
+    for (const item of dtoItems) {
+      if (item.testId && !item.packageId && coveredBy.has(item.testId)) {
+        const test = await this.testsService.findOne(item.testId);
+        throw new BadRequestException(`${test.name} is already included in ${coveredBy.get(item.testId)} — remove it to avoid paying twice`);
+      }
+    }
     for (const item of dtoItems) {
       if (!!item.testId === !!item.packageId) {
         throw new BadRequestException(

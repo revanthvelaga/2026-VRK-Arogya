@@ -20,15 +20,20 @@ import { formatCurrency, formatDateTime } from '../lib/format';
 type Tab = 'rx' | 'symptoms';
 
 function AddButton({ kind, id, name, price }: { kind: 'test' | 'package'; id: string; name: string; price: number }) {
-  const { add, remove, has } = useCart();
+  const { add, remove, has, includedIn } = useCart();
   const added = has(kind, id);
+  const inPackage = kind === 'test' && !added ? includedIn(id) : undefined;
   return (
     <button
       type="button"
       className={`add-btn${added ? ' added' : ''}`}
       onClick={() => (added ? remove(kind, id) : add({ kind, id, name, price }))}
+      disabled={!!inPackage}
+      title={inPackage ? `Included in ${inPackage}` : undefined}
     >
-      {added ? (
+      {inPackage ? (
+        'In package'
+      ) : added ? (
         <>
           <IconX size={13} /> Remove
         </>
