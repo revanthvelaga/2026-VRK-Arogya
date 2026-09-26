@@ -302,6 +302,7 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [raised, setRaised] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -312,6 +313,7 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
       setSubject('');
       setDescription('');
       setFormOpen(false);
+      setRaised(true);
       issuesApi.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not raise the issue');
@@ -329,6 +331,12 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
           {formOpen ? 'Cancel' : 'Raise an issue'}
         </button>
       </div>
+
+      {raised && !formOpen && (
+        <div className="overlap-note" role="status" style={{ marginBottom: 12 }}>
+          Ticket raised. <Link to="/profile/tickets">See it in My tickets →</Link>
+        </div>
+      )}
 
       {formOpen && (
         <div className="card">

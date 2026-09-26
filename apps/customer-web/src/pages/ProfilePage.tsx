@@ -26,6 +26,7 @@ import {
 import { ReferEarnCard } from '../components/ReferEarnCard';
 import { FamilyAccessCard } from '../components/FamilyAccessCard';
 import { MyDocuments } from '../components/MyDocuments';
+import { Tickets } from '../components/Tickets';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
@@ -394,49 +395,11 @@ function OffersSection() {
   );
 }
 
-const TICKET_STATUS: Record<Issue['status'], { label: string; className: string }> = {
-  OPEN: { label: 'Open', className: 'badge-amber' },
-  IN_PROGRESS: { label: 'In progress', className: 'badge-accent' },
-  RESOLVED: { label: 'Resolved', className: 'badge-neutral' },
-};
-
 function TicketsSection() {
-  const { data: tickets, loading, error } = useApi<Issue[]>(() => api.get('/issues/mine'), []);
-
   return (
     <>
-      <SectionHeader title="My tickets" sub="Problems you've reported and where each one stands." />
-      {loading && <LoadingLine label="Loading tickets…" />}
-      {error && <div className="error-banner">{error}</div>}
-      {!loading && !error && (tickets ?? []).length === 0 && (
-        <EmptyState
-          icon={<IconMessage size={20} />}
-          title="No tickets yet"
-          subtitle="Had a problem with a test? Open the booking and tap “Raise an issue”."
-        />
-      )}
-      {(tickets ?? []).map((t) => {
-        const status = TICKET_STATUS[t.status];
-        return (
-          <div className="card ticket-card" key={t.id}>
-            <div className="ticket-card-top">
-              <b>{t.subject}</b>
-              <span className={`badge ${status.className}`}>{status.label}</span>
-            </div>
-            <p className="ticket-card-desc">{t.description}</p>
-            <div className="ticket-card-meta">
-              <span>
-                Raised {formatDateTime(t.createdAt)}
-                {t.resolvedAt && ` · Resolved ${formatDateTime(t.resolvedAt)}`}
-              </span>
-              <Link to={`/bookings/${t.bookingId}`}>View booking</Link>
-            </div>
-          </div>
-        );
-      })}
-      <Link to="/bookings" className="btn btn-small" style={{ marginTop: 4 }}>
-        <IconMessage size={13} /> Raise a new issue from a booking
-      </Link>
+      <SectionHeader title="My tickets" sub="Report a problem with a booking and follow it here." />
+      <Tickets />
     </>
   );
 }

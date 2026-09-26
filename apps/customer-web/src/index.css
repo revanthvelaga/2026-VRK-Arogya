@@ -5831,3 +5831,119 @@ a.suggest-name:hover {
   font-size: 11px;
   color: var(--ink-faint);
 }
+
+/* ---------- Raise a ticket ---------- */
+.ticket-raise-btn {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.ticket-new {
+  margin-bottom: 14px;
+}
+
+.ticket-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.ticket-steps span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.ticket-steps span.on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.ticket-steps span.done {
+  color: var(--green);
+}
+
+.ticket-q {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 4px 0 10px;
+}
+
+.ticket-bookings {
+  display: grid;
+  gap: 8px;
+}
+
+.ticket-booking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ticket-booking:hover {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+}
+
+.ticket-booking-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.ticket-booking-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticket-booking-text b {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.ticket-booking-text small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.ticket-picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  margin-bottom: 12px;
+}
+
+.ticket-picked span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ticket-picked small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
