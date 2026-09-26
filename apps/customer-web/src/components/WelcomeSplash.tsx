@@ -78,10 +78,10 @@ export function WelcomeSplash() {
       <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
         <defs>
           <linearGradient id="ecgGrad" x1="0" x2="1">
-            <stop offset="0" stopColor="#5eead4" stopOpacity="0" />
-            <stop offset="0.35" stopColor="#5eead4" />
-            <stop offset="0.65" stopColor="#93c5fd" />
-            <stop offset="1" stopColor="#93c5fd" stopOpacity="0" />
+            <stop offset="0" stopColor="#5fcfc4" stopOpacity="0" />
+            <stop offset="0.35" stopColor="#5fcfc4" />
+            <stop offset="0.65" stopColor="#8cbcf0" />
+            <stop offset="1" stopColor="#8cbcf0" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path

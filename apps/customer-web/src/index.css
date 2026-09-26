@@ -6358,8 +6358,8 @@ a.suggest-name:hover {
   overflow: hidden;
   display: grid;
   place-items: center;
-  color: #fff;
-  background: radial-gradient(120% 90% at 50% 40%, #0b3b4f 0%, #071a2c 55%, #040b16 100%);
+  color: #2c5552;
+  background: radial-gradient(120% 90% at 50% 40%, #ffffff 0%, #f1fbfa 55%, #e8f3fb 100%);
   cursor: pointer;
   clip-path: circle(150% at 50% 44%);
   animation: wowIn 0.35s ease both;
@@ -6373,9 +6373,8 @@ a.suggest-name:hover {
 .wow-aurora span {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.55;
-  mix-blend-mode: screen;
+  filter: blur(70px);
+  opacity: 0.5;
 }
 
 .wow-aurora .a1 {
@@ -6383,7 +6382,7 @@ a.suggest-name:hover {
   height: 70vmax;
   left: -25vmax;
   top: -30vmax;
-  background: #0ea5a0;
+  background: #b6ece6;
   animation: auroraA 7s ease-in-out infinite alternate;
 }
 
@@ -6392,7 +6391,7 @@ a.suggest-name:hover {
   height: 60vmax;
   right: -25vmax;
   bottom: -25vmax;
-  background: #2f6fed;
+  background: #c7ddfb;
   animation: auroraB 8s ease-in-out infinite alternate;
 }
 
@@ -6401,8 +6400,8 @@ a.suggest-name:hover {
   height: 40vmax;
   left: 30%;
   top: 55%;
-  background: #8b5cf6;
-  opacity: 0.35;
+  background: #e3d9fb;
+  opacity: 0.45;
   animation: auroraA 9s ease-in-out infinite alternate-reverse;
 }
 
@@ -6411,8 +6410,8 @@ a.suggest-name:hover {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(94, 234, 212, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(94, 234, 212, 0.07) 1px, transparent 1px);
+    linear-gradient(rgba(20, 184, 166, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.06) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 70%);
   animation: fadeIn 1.2s ease both;
@@ -6436,7 +6435,7 @@ a.suggest-name:hover {
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 6px rgba(94, 234, 212, 0.9)) drop-shadow(0 0 16px rgba(94, 234, 212, 0.5));
+  filter: drop-shadow(0 0 6px rgba(94, 234, 212, 0.55));
   animation:
     ecgDraw 1.05s cubic-bezier(0.55, 0.1, 0.35, 1) 0.15s forwards,
     ecgFade 0.6s ease 1.25s forwards;
@@ -6462,14 +6461,14 @@ a.suggest-name:hover {
   height: 110px;
   margin-left: -55px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(94, 234, 212, 0.6) 35%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(167, 243, 208, 0.45) 35%, transparent 70%);
   opacity: 0;
   animation: burst 1s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
 }
 
 .wow-burst.b2 {
   background: none;
-  border: 2px solid rgba(147, 197, 253, 0.8);
+  border: 2px solid rgba(125, 211, 252, 0.55);
   animation: ringBurst 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.95s forwards;
 }
 
@@ -6479,13 +6478,13 @@ a.suggest-name:hover {
   width: 110px;
   height: 110px;
   border-radius: 32px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(145deg, #7fdcd3, #8cc4f5);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
-    0 20px 60px -10px rgba(14, 165, 160, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 18px 44px -14px rgba(56, 160, 170, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -6506,7 +6505,7 @@ a.suggest-name:hover {
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9));
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
   animation: ecgDraw 0.45s cubic-bezier(0.65, 0, 0.35, 1) 1.2s forwards;
 }
 
@@ -6534,7 +6533,7 @@ a.suggest-name:hover {
 .wow-word span {
   display: inline-block;
   opacity: 0;
-  background: linear-gradient(180deg, #ffffff 30%, #a5f3fc 100%);
+  background: linear-gradient(180deg, #2a9d95 20%, #5b9fd6 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -6553,7 +6552,7 @@ a.suggest-name:hover {
   margin-top: 6px;
   font-size: 13.5px;
   letter-spacing: 0.3px;
-  color: rgba(204, 251, 241, 0.8);
+  color: #6b8a94;
   opacity: 0;
   animation: textRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.85s forwards;
 }
@@ -6563,8 +6562,8 @@ a.suggest-name:hover {
   position: absolute;
   bottom: -10px;
   border-radius: 50%;
-  background: #ccfbf1;
-  box-shadow: 0 0 10px 2px rgba(94, 234, 212, 0.8);
+  background: #a7e9e1;
+  box-shadow: 0 0 8px 2px rgba(167, 233, 225, 0.7);
   opacity: 0;
   animation-name: sparkRise;
   animation-timing-function: ease-out;
