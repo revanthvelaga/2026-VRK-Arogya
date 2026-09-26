@@ -1,3 +1,4 @@
+import { inArogyaApp } from './inApp';
 // Google Identity Services (the "Sign in with Google" button) is loaded
 // as a plain script tag on demand, the same way razorpay.ts loads
 // checkout.js — it's Google's own recommended integration path and
@@ -27,7 +28,9 @@ declare global {
   }
 }
 
-export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+// Google blocks its sign-in inside embedded web views (the Arogya app),
+// so there it's treated as not set up: the button and Drive sync hide.
+export const googleClientId = inArogyaApp ? undefined : (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined);
 
 let loadPromise: Promise<void> | null = null;
 

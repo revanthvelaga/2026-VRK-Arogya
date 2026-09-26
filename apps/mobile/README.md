@@ -1,5 +1,22 @@
 # Arogya Mobile
 
+> **Since v1.1 (versionCode 3) the app is the Arogya website in a
+> full-screen web view** (`App.tsx`), so every feature on
+> https://arogya-customer-web.onrender.com is in the app as soon as the
+> site deploys. The native layer adds the Android back button,
+> phone/WhatsApp/UPI links, location permission and saving downloads via
+> the share sheet (the page posts `{type:'download', url, fileName, token}`
+> — see `customer-web/src/lib/inApp.ts`). Google sign-in and Drive sync are
+> hidden inside the app because Google blocks them in embedded web views.
+> The native screens under `src/` are no longer used by `App.tsx`.
+>
+> **To make a new APK:** from this folder run
+> `npx eas-cli build -p android --profile preview`, sign in with the Expo
+> account that owns the `arogya` project, wait for the build (about 10–15
+> minutes), then open the link it prints on the phone and install.
+> Only needed again if `App.tsx` / app settings change — website changes
+> reach the app without a new build.
+
 A React Native (Expo) app for customers — browse the catalog, book a test,
 and track a sample all the way to delivery, from a phone. Built for the
 step 9 build-order item: reaching customers who don't have reliable

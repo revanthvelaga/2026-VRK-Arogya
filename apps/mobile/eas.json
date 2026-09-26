@@ -14,11 +14,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://arogya-api-im0i.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://arogya-api-im0i.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://arogya-customer-web.onrender.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_WEB_URL": "https://arogya-customer-web.onrender.com"
+      }
     }
   },
   "submit": {

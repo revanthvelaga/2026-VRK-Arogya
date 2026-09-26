@@ -1,3 +1,4 @@
+import { inArogyaApp, nativeBridge } from '../lib/inApp';
 import type { AuthSession, JwtPayload } from './types';
 
 const STORAGE_KEY = 'arogya_admin_session';
@@ -276,7 +277,19 @@ export async function fetchBlob(path: string): Promise<Blob> {
   return res.blob();
 }
 
+// Inside the app a web view can't save a blob, so the app fetches the file
+// itself (with this session's token) and opens the phone's share sheet.
+async function handOffToApp(path: string, fileName: string): Promise<boolean> {
+  if (!inArogyaApp || !nativeBridge) return false;
+  const session = await freshSession();
+  nativeBridge.postMessage(
+    JSON.stringify({ type: 'download', url: `${BASE_URL}${path}`, fileName, token: session?.accessToken }),
+  );
+  return true;
+}
+
 export async function downloadFile(path: string, fileName: string): Promise<void> {
+  if (await handOffToApp(path, fileName)) return;
   const url = await fetchAsBlobUrl(path);
   const link = document.createElement('a');
   link.href = url;
@@ -291,7 +304,8 @@ export async function downloadFile(path: string, fileName: string): Promise<void
 // prompt. The blob URL is deliberately not revoked immediately — the new
 // tab needs it to still be valid after this function returns; the browser
 // frees it when that tab is closed or navigated away.
-export async function viewFile(path: string): Promise<void> {
+export async function viewFile(path: string, fileName = 'arogya-file'): Promise<void> {
+  if (await handOffToApp(path, fileName)) return;
   const url = await fetchAsBlobUrl(`${path}${path.includes('?') ? '&' : '?'}view=1`);
   window.open(url, '_blank', 'noopener');
 }
