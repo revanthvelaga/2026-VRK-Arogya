@@ -262,3 +262,14 @@ export const IconTag = icon(
     <circle cx="7.5" cy="7.5" r="1.3" />
   </>,
 );
+
+export const IconPhone = icon(
+  <path d="M4.5 3.5h3.4l1.6 4.4-2 1.7a13.5 13.5 0 006.9 6.9l1.7-2 4.4 1.6v3.4a1.5 1.5 0 01-1.6 1.5A17 17 0 013 5.1a1.5 1.5 0 011.5-1.6z" />,
+);
+
+export const IconBell = icon(
+  <>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </>,
+);

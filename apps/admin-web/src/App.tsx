@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { WelcomeSplash } from './components/WelcomeSplash';
 import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -43,6 +44,7 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <WelcomeSplash />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

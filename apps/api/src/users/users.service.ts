@@ -228,8 +228,12 @@ export class UsersService {
     return this.usersRepo.findOne({ where: { phone } });
   }
 
+  // Case-insensitive: Google returns lowercase, people type "Name@Gmail.com".
   findByEmail(email: string): Promise<User | null> {
-    return this.usersRepo.findOne({ where: { email } });
+    return this.usersRepo
+      .createQueryBuilder('u')
+      .where('LOWER(u.email) = LOWER(:email)', { email: email.trim() })
+      .getOne();
   }
 
   findById(id: string): Promise<User | null> {

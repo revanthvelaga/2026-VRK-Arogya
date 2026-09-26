@@ -23,12 +23,12 @@ export class AuthController {
 
   @Post('google')
   googleLogin(@Body() dto: GoogleLoginDto) {
-    return this.authService.googleLogin(dto.idToken, dto.referralCode);
+    return this.authService.googleLogin(dto.idToken, dto.referralCode, dto.portal);
   }
 
   @Post('phone-otp')
   phoneOtpLogin(@Body() dto: PhoneOtpLoginDto) {
-    return this.authService.phoneOtpLogin(dto.idToken, dto.fullName, dto.referralCode);
+    return this.authService.phoneOtpLogin(dto.idToken, dto.fullName, dto.referralCode, dto.portal);
   }
 
   @Post('refresh')

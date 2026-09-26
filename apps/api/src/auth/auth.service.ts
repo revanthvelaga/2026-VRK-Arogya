@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
@@ -9,6 +9,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
 import { WalletService } from '../rewards/wallet.service';
+import type { User } from '../users/user.entity';
 
 // Every sign-in must be repeated at least this often.
 const MAX_SESSION_SECONDS = 7 * 24 * 60 * 60;
@@ -60,10 +61,14 @@ export class AuthService {
   // "Sign in with Google" — same account either way: an existing email
   // logs straight in, a new one is created and given the usual SELF
   // patient profile, same as register().
-  async googleLogin(idToken: string, referralCode?: string) {
+  async googleLogin(idToken: string, referralCode?: string, portal?: 'ADMIN' | 'STAFF') {
     const { email, name } = await this.googleAuthService.verify(idToken);
 
     let user = await this.usersService.findByEmail(email);
+    if (portal) {
+      this.assertStaffPortal(user, portal, 'This Google account isn’t linked to a staff account. Ask your admin to add this email to your profile.');
+      return this.issueTokens(user!.id, user!.phone, user!.role);
+    }
     if (!user) {
       user = await this.usersService.createOAuthUser({
         fullName: name?.trim() || email.split('@')[0],
@@ -82,10 +87,14 @@ export class AuthService {
   // Mobile OTP — the frontend verifies the code with Firebase directly
   // and only reaches us with the resulting (already-verified) token, so
   // there's no OTP to check here, only whose phone it belongs to.
-  async phoneOtpLogin(idToken: string, fullName?: string, referralCode?: string) {
+  async phoneOtpLogin(idToken: string, fullName?: string, referralCode?: string, portal?: 'ADMIN' | 'STAFF') {
     const { phone } = await this.firebasePhoneAuthService.verify(idToken);
 
     let user = await this.usersService.findByPhone(phone);
+    if (portal) {
+      this.assertStaffPortal(user, portal, 'This mobile number isn’t linked to a staff account.');
+      return this.issueTokens(user!.id, user!.phone, user!.role);
+    }
     if (!user) {
       if (!fullName?.trim()) {
         throw new PreconditionFailedException('New account — enter your name to finish signing up.');
@@ -98,6 +107,21 @@ export class AuthService {
     }
 
     return this.issueTokens(user.id, user.phone, user.role);
+  }
+
+  // Staff console sign-ins: the account must already exist with the
+  // portal's role — OTP and Google never create staff accounts.
+  private assertStaffPortal(user: User | null, portal: 'ADMIN' | 'STAFF', notStaffMessage: string) {
+    if (!user || (user.role !== Role.ADMIN && user.role !== Role.STAFF)) {
+      throw new ForbiddenException(notStaffMessage);
+    }
+    if (user.role !== portal) {
+      throw new ForbiddenException(
+        portal === Role.ADMIN
+          ? 'This is an agent account — use the Agent Login tab instead.'
+          : 'This is an admin account — use the Admin Login tab instead.',
+      );
+    }
   }
 
   // "Forgot password" — Firebase has already verified the phone (the same

@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { clearSignOutMessage, peekSignOutMessage } from '../api/client';
 import { IconPlus, IconTruck, IconUser } from '../components/Icons';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { StaffOtpSignIn } from '../components/StaffOtpSignIn';
+import { googleClientId } from '../lib/googleAuth';
+import { firebasePhoneAuthConfigured } from '../lib/firebaseAuth';
 
 interface LocationState {
   from?: { pathname: string };
@@ -12,10 +16,13 @@ interface LocationState {
 type LoginMode = 'ADMIN' | 'STAFF';
 
 export function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<LoginMode>('ADMIN');
+  const [method, setMethod] = useState<'password' | 'otp'>('password');
+  const modeRef = useRef<LoginMode>(mode);
+  modeRef.current = mode;
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +51,16 @@ export function LoginPage() {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Google calls back with whichever tab was showing when it was tapped.
+  const onGoogleCredential = async (idToken: string) => {
+    setError(null);
+    try {
+      await loginWithGoogle(idToken, modeRef.current);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed');
     }
   };
 
@@ -98,44 +115,70 @@ export function LoginPage() {
           </div>
         )}
         {error && <div className="error-banner">{error}</div>}
-        <form onSubmit={onSubmit}>
-          <div className="field">
-            <label htmlFor="phone">Phone</label>
-            <input
-              id="phone"
-              autoComplete="tel-national"
-              inputMode="numeric"
-              placeholder="9999999999"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
-          </div>
-          <div className="field">
-            <div className="field-label-row">
-              <label htmlFor="password">Password</label>
-              <Link to="/forgot-password" className="auth-inline-link">
-                Forgot password?
-              </Link>
+        {method === 'password' ? (
+          <form onSubmit={onSubmit}>
+            <div className="field">
+              <label htmlFor="phone">Mobile number</label>
+              <input
+                id="phone"
+                autoComplete="tel-national"
+                inputMode="numeric"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+              />
             </div>
-            <input
-              id="password"
-              autoComplete="current-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+            <div className="field">
+              <div className="field-label-row">
+                <label htmlFor="password">Password</label>
+                <Link to="/forgot-password" className="auth-inline-link">
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                autoComplete="current-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={submitting}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              {submitting ? 'Signing in…' : `Sign in as ${mode === 'ADMIN' ? 'Admin' : 'Agent'}`}
+            </button>
+          </form>
+        ) : (
+          <StaffOtpSignIn key={mode} portal={mode} />
+        )}
+
+        {firebasePhoneAuthConfigured && (
           <button
-            className="btn btn-primary"
-            type="submit"
-            disabled={submitting}
-            style={{ width: '100%', justifyContent: 'center' }}
+            type="button"
+            className="auth-switch"
+            onClick={() => {
+              setMethod(method === 'password' ? 'otp' : 'password');
+              setError(null);
+            }}
           >
-            {submitting ? 'Signing in…' : `Sign in as ${mode === 'ADMIN' ? 'Admin' : 'Agent'}`}
+            {method === 'password' ? 'Sign in with OTP instead' : 'Sign in with password instead'}
           </button>
-        </form>
+        )}
+
+        {googleClientId && (
+          <>
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+            <GoogleSignInButton onCredential={onGoogleCredential} />
+          </>
+        )}
       </div>
     </div>
   );

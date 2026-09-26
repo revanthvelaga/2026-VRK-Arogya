@@ -101,14 +101,21 @@ services:
       # this service deploys.
       - key: VITE_API_URL
         sync: false
-      # Optional — "Forgot password?" by phone OTP on the staff login.
-      # Same public Firebase web config values as arogya-customer-web.
-      # Leave blank and that page just tells agents to ask their admin.
+      # Optional — OTP sign-in and "Forgot password?" on the staff login.
+      # Same public Firebase web config values as arogya-customer-web
+      # (also add this site's domain under Firebase > Authentication >
+      # Settings > Authorized domains). Leave blank and staff sign in
+      # with password only.
       - key: VITE_FIREBASE_API_KEY
         sync: false
       - key: VITE_FIREBASE_AUTH_DOMAIN
         sync: false
       - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      # Optional — "Continue with Google" for staff whose profile email is
+      # their Google account. Same value as on arogya-customer-web; add
+      # this site's URL to the OAuth client's Authorized JavaScript origins.
+      - key: VITE_GOOGLE_CLIENT_ID
         sync: false
 
   - type: web

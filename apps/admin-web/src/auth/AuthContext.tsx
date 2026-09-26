@@ -9,10 +9,18 @@ export interface CurrentUser {
   role: Role;
 }
 
+type Portal = 'ADMIN' | 'STAFF';
+
 interface AuthContextValue {
   user: CurrentUser | null;
-  login: (phone: string, password: string, expectedRole?: 'ADMIN' | 'STAFF') => Promise<void>;
+  login: (phone: string, password: string, expectedRole?: Portal) => Promise<void>;
+  // OTP / Google: the server only signs in an existing account of this role.
+  loginWithPhoneOtp: (idToken: string, portal: Portal) => Promise<void>;
+  loginWithGoogle: (idToken: string, portal: Portal) => Promise<void>;
   logout: () => void;
+  // True right after a sign-in, so the welcome animation plays once.
+  welcome: boolean;
+  clearWelcome: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,6 +34,7 @@ function sessionToUser(session: AuthSession | null): CurrentUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(() => sessionToUser(getSession()));
+  const [welcome, setWelcome] = useState(false);
 
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));
@@ -69,6 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw err;
     }
+    startSession(session, expectedRole);
+  };
+
+  // Shared by every sign-in method.
+  const startSession = (session: AuthSession, expectedRole?: Portal) => {
     const nextUser = sessionToUser(session);
     // The API issues a token for any valid login — CUSTOMER accounts
     // included. This console is staff/admin-only, so gate it here too.
@@ -87,14 +101,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSession(session);
     setUser(nextUser);
+    setWelcome(true);
+  };
+
+  const loginWithPhoneOtp = async (idToken: string, portal: Portal) => {
+    startSession(await api.post<AuthSession>('/auth/phone-otp', { idToken, portal }), portal);
+  };
+
+  const loginWithGoogle = async (idToken: string, portal: Portal) => {
+    startSession(await api.post<AuthSession>('/auth/google', { idToken, portal }), portal);
   };
 
   const logout = () => {
     endSession(null);
     setUser(null);
+    setWelcome(false);
   };
 
-  const value = useMemo(() => ({ user, login, logout }), [user]);
+  const value = useMemo(
+    () => ({ user, login, loginWithPhoneOtp, loginWithGoogle, logout, welcome, clearWelcome: () => setWelcome(false) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, welcome],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -765,9 +765,11 @@ tbody tr:hover {
 .login-screen {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  /* Card sits in the upper part of the screen, not dead centre — on tall
+     phones centring left a big empty gap above it. */
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: clamp(20px, 6vh, 64px) 20px 32px;
   position: relative;
   overflow: hidden;
   background:
@@ -2487,4 +2489,585 @@ tr.row-link {
 
 .issue-reply .btn {
   justify-self: start;
+}
+
+
+/* ---------- OTP and Google sign-in (same look as the customer site) ---------- */
+.auth-switch {
+  display: block;
+  margin: 12px auto 0;
+  border: 0;
+  background: none;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  text-decoration: underline;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 16px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.google-btn-wrap {
+  width: 100%;
+  /* Google's rendered button sizes itself in px and sits flush left by
+     default — center it so a shorter render (e.g. right after mount)
+     never looks stuck to one edge. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 44px;
+}
+
+.google-btn-error {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.otp-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.otp-flow .otp-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--red-soft);
+  color: #9c2822;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.otp-flow .recaptcha-note,
+.otp-flow .otp-error {
+  max-width: none;
+}
+
+.otp-flow .recaptcha-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.otp-flow .recaptcha-note a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.phone-input-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.phone-input-row:focus-within {
+  border-color: var(--accent-a);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.phone-input-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border-right: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.phone-input-row input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+  color: var(--ink);
+}
+
+.phone-input-row input:focus {
+  outline: none;
+}
+
+.otp-sent-to {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.otp-sent-to b {
+  color: var(--ink);
+}
+
+.otp-code-input {
+  width: 100%;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5em;
+  /* Nudges the run of digits back toward center — wide letter-spacing
+     otherwise pushes the visual weight to the right of the caret. */
+  text-indent: 0.5em;
+  text-align: center;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.otp-code-input::placeholder {
+  color: var(--line-strong);
+  letter-spacing: 0.5em;
+}
+
+.otp-code-input:focus {
+  outline: none;
+  border-color: var(--accent-a);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.otp-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.otp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.otp-link:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* ---------- Welcome screen after sign-in ---------- */
+.wow-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #1f4f4a;
+  background: radial-gradient(120% 90% at 50% 40%, #ffffff 0%, #effaf8 55%, #e8edfb 100%);
+  cursor: pointer;
+  clip-path: circle(150% at 50% 44%);
+  animation: wowIn 0.35s ease both;
+}
+
+.wow-splash.leaving {
+  animation: wowOut 0.65s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+/* Slow-moving coloured light */
+.wow-aurora span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+}
+
+.wow-aurora .a1 {
+  width: 70vmax;
+  height: 70vmax;
+  left: -25vmax;
+  top: -30vmax;
+  background: #aee6dd;
+  animation: auroraA 7s ease-in-out infinite alternate;
+}
+
+.wow-aurora .a2 {
+  width: 60vmax;
+  height: 60vmax;
+  right: -25vmax;
+  bottom: -25vmax;
+  background: #c2d2f7;
+  animation: auroraB 8s ease-in-out infinite alternate;
+}
+
+.wow-aurora .a3 {
+  width: 40vmax;
+  height: 40vmax;
+  left: 30%;
+  top: 55%;
+  background: #dcd4f8;
+  opacity: 0.45;
+  animation: auroraA 9s ease-in-out infinite alternate-reverse;
+}
+
+/* Faint medical-monitor grid */
+.wow-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(20, 184, 166, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 70%);
+  animation: fadeIn 1.2s ease both;
+}
+
+/* Heartbeat line */
+.wow-ecg {
+  position: absolute;
+  left: 0;
+  top: calc(44% - 60px);
+  width: 100%;
+  height: 120px;
+  overflow: visible;
+}
+
+.wow-ecg path {
+  fill: none;
+  stroke: url(#ecgGrad);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 6px rgba(69, 196, 182, 0.5));
+  animation:
+    ecgDraw 1.05s cubic-bezier(0.55, 0.1, 0.35, 1) 0.15s forwards,
+    ecgFade 0.6s ease 1.25s forwards;
+}
+
+.wow-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  margin-top: -6vh;
+}
+
+/* Light burst at the heartbeat's peak */
+.wow-burst {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  width: 110px;
+  height: 110px;
+  margin-left: -55px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(110, 215, 200, 0.4) 35%, transparent 70%);
+  opacity: 0;
+  animation: burst 1s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
+}
+
+.wow-burst.b2 {
+  background: conic-gradient(from 200deg, #6fd3c5, #8fb3f0, #b9a8f0, #6fd3c5);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  animation: ringBurst 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.95s forwards;
+}
+
+/* Glass logo tile */
+.wow-tile {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 32px;
+  background: linear-gradient(145deg, #5fcdbf 0%, #6fb6e4 55%, #86a3ec 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 18px 44px -14px rgba(70, 140, 200, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  opacity: 0;
+  animation:
+    tileIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.95s forwards,
+    tileFloat 3s ease-in-out 1.9s infinite;
+}
+
+.wow-plus {
+  width: 58px;
+  height: 58px;
+}
+
+.wow-plus line {
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+  animation: ecgDraw 0.45s cubic-bezier(0.65, 0, 0.35, 1) 1.2s forwards;
+}
+
+.wow-plus line + line {
+  animation-delay: 1.4s;
+}
+
+.wow-shine {
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.65) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: shine 1s ease 1.75s forwards;
+}
+
+/* Name, letter by letter */
+.wow-word {
+  margin-top: 20px;
+  font-size: clamp(38px, 11vw, 56px);
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.wow-word span {
+  display: inline-block;
+  opacity: 0;
+  background: linear-gradient(180deg, #1f9488 20%, #5b87d6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Room for the tails of g and y, which the text-clipped gradient would cut. */
+  padding-bottom: 0.12em;
+  animation: letterIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.wow-greeting {
+  margin-top: 16px;
+  font-size: 19px;
+  font-weight: 700;
+  opacity: 0;
+  animation: textRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.65s forwards;
+}
+
+.wow-tagline {
+  margin-top: 6px;
+  font-size: 13.5px;
+  letter-spacing: 0.3px;
+  color: #5d7f86;
+  opacity: 0;
+  animation: textRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.85s forwards;
+}
+
+/* Sparks drifting up */
+.wow-sparks span {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 50%;
+  background: #a7e9e1;
+  box-shadow: 0 0 8px 2px rgba(167, 233, 225, 0.7);
+  opacity: 0;
+  animation-name: sparkRise;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+.wow-sparks span:nth-child(3n) {
+  background: #c7d6f8;
+  box-shadow: 0 0 8px 2px rgba(143, 179, 240, 0.6);
+}
+
+.wow-sparks span:nth-child(4n) {
+  background: #ddd3f8;
+  box-shadow: 0 0 8px 2px rgba(185, 168, 240, 0.55);
+}
+
+@keyframes wowIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wowOut {
+  from {
+    clip-path: circle(150% at 50% 44%);
+  }
+  to {
+    clip-path: circle(0% at 50% 44%);
+  }
+}
+
+@keyframes auroraA {
+  to {
+    transform: translate(12vmax, 10vmax) scale(1.15);
+  }
+}
+
+@keyframes auroraB {
+  to {
+    transform: translate(-10vmax, -12vmax) scale(1.2);
+  }
+}
+
+@keyframes ecgDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ecgFade {
+  to {
+    opacity: 0.18;
+  }
+}
+
+@keyframes burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes ringBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4.5);
+  }
+}
+
+@keyframes tileIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tileFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes letterIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.8);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes textRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sparkRise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), -85vh) scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wow-splash *,
+  .wow-splash *::before {
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .wow-sparks,
+  .wow-burst {
+    display: none;
+  }
 }

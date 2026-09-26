@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 export class GoogleLoginDto {
   @IsString()
@@ -9,4 +9,10 @@ export class GoogleLoginDto {
   @IsOptional()
   @IsString()
   referralCode?: string;
+
+  // Set by the staff console: sign in only to an existing ADMIN or STAFF
+  // account of that role — never creates an account.
+  @IsOptional()
+  @IsIn(['ADMIN', 'STAFF'])
+  portal?: 'ADMIN' | 'STAFF';
 }
