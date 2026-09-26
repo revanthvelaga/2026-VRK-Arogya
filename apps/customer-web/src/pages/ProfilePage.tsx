@@ -139,7 +139,7 @@ function AccountMenu() {
       <div className="account-group-title">My health</div>
       <div className="card account-group">
         <AccountRow to="/bookings" icon={<IconCalendar size={17} />} label="My bookings" sub="Track tests, samples and visits" />
-        <AccountRow to="/insights" icon={<IconFileText size={17} />} label="My reports" sub="Results, trends and downloads" />
+        <AccountRow to="/insights#sec-reports" icon={<IconFileText size={17} />} label="My reports" sub="All your lab reports — view and download" />
         <AccountRow to="/profile/family" icon={<IconUsers size={17} />} label="Family members" sub="Profiles and family access" />
       </div>
 

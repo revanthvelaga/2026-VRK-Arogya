@@ -4669,14 +4669,13 @@ a.suggest-name:hover {
 .report-list-item {
   font: inherit;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 10px;
   width: 100%;
   padding: 11px 13px;
   border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--surface);
-  cursor: pointer;
   text-align: left;
   transition:
     border-color 0.15s ease,
@@ -4690,6 +4689,27 @@ a.suggest-name:hover {
 .report-list-item.selected {
   border-color: var(--accent-a);
   background: var(--accent-soft);
+}
+
+.report-list-item-select {
+  font: inherit;
+  color: inherit;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-list-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 26px;
 }
 
 .report-list-item-body {
@@ -5032,4 +5052,9 @@ a.suggest-name:hover {
 .ticket-card-meta a {
   font-weight: 700;
   color: var(--accent-ink);
+}
+
+/* Jump targets on Insights sit below the sticky header + jump bar. */
+[id^='sec-'] {
+  scroll-margin-top: 130px;
 }

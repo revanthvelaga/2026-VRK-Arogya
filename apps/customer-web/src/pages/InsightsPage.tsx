@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -16,6 +16,7 @@ import { AbhaBlock } from '../components/AbhaBlock';
 
 const JUMP_TARGETS = [
   { id: 'sec-results', label: 'Results' },
+  { id: 'sec-reports', label: 'Reports' },
   { id: 'sec-trends', label: 'Trends' },
   { id: 'sec-everyday', label: 'Everyday health' },
   { id: 'sec-history', label: 'History' },
@@ -25,6 +26,7 @@ import {
   IconAlertTriangle,
   IconArrowRight,
   IconBag,
+  IconDownload,
   IconFileText,
   IconMapPin,
   IconPhone,
@@ -493,6 +495,35 @@ function TrendsCard({ values }: { values: MyReportValue[] }) {
   );
 }
 
+// View / Download right on a report's row in the list, so getting the PDF
+// never needs the report to be opened first.
+function ReportFileButtons({ group }: { group: ReportGroup }) {
+  const [busy, setBusy] = useState<'view' | 'download' | null>(null);
+
+  const run = async (kind: 'view' | 'download') => {
+    setBusy(kind);
+    try {
+      if (kind === 'view') await viewFile(`/reports/${group.reportId}/download`);
+      else await downloadFile(`/reports/${group.reportId}/download`, group.reportFileName);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="report-list-item-actions">
+      <button type="button" className="btn btn-small" onClick={() => run('view')} disabled={busy !== null}>
+        <IconFileText size={13} />
+        {busy === 'view' ? 'Opening…' : 'View'}
+      </button>
+      <button type="button" className="btn btn-small btn-primary" onClick={() => run('download')} disabled={busy !== null}>
+        <IconDownload size={13} />
+        {busy === 'download' ? 'Downloading…' : 'Download'}
+      </button>
+    </div>
+  );
+}
+
 function ReportDetailCard({ group }: { group: ReportGroup }) {
   const [downloading, setDownloading] = useState(false);
   const [viewing, setViewing] = useState(false);
@@ -674,6 +705,15 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
   );
 
   const groups = useMemo(() => groupByReport(values ?? []), [values]);
+  const { hash } = useLocation();
+
+  // "My reports" on the account page links to #sec-reports — jump there
+  // once the list has actually rendered.
+  useEffect(() => {
+    if (hash === '#sec-reports' && groups.length > 0) {
+      document.getElementById('sec-reports')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [hash, groups.length]);
   const latest = groups[0];
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
@@ -763,7 +803,7 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" id="sec-reports">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <IconFileText size={15} />
           Lab reports ({groups.length})
@@ -772,34 +812,32 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
           {groups.map((g, i) => {
             const abnormalCount = g.values.filter((v) => v.isAbnormal).length;
             return (
-              <button
-                type="button"
-                key={g.reportId}
-                className={`report-list-item${g.reportId === selectedGroup?.reportId ? ' selected' : ''}`}
-                onClick={() => setSelectedReportId(g.reportId)}
-              >
-                <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
-                <div className="report-list-item-body">
-                  <div className="report-list-item-name">
-                    {g.reportFileName}
-                    {i === 0 && (
-                      <span className="badge badge-accent" style={{ marginLeft: 8 }}>
-                        Latest
-                      </span>
-                    )}
+              <div key={g.reportId} className={`report-list-item${g.reportId === selectedGroup?.reportId ? ' selected' : ''}`}>
+                <button type="button" className="report-list-item-select" onClick={() => setSelectedReportId(g.reportId)}>
+                  <IconFileText size={16} style={{ marginTop: 1, flexShrink: 0, color: 'var(--accent-ink)' }} />
+                  <div className="report-list-item-body">
+                    <div className="report-list-item-name">
+                      {g.reportFileName}
+                      {i === 0 && (
+                        <span className="badge badge-accent" style={{ marginLeft: 8 }}>
+                          Latest
+                        </span>
+                      )}
+                    </div>
+                    <div className="report-list-item-meta">
+                      {formatDateTime(g.reportGeneratedAt)} · {g.values.length} parameter
+                      {g.values.length === 1 ? '' : 's'}
+                      {abnormalCount > 0 && (
+                        <span className="report-list-item-flag">
+                          {' '}
+                          · {abnormalCount} out of range
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="report-list-item-meta">
-                    {formatDateTime(g.reportGeneratedAt)} · {g.values.length} parameter
-                    {g.values.length === 1 ? '' : 's'}
-                    {abnormalCount > 0 && (
-                      <span className="report-list-item-flag">
-                        {' '}
-                        · {abnormalCount} out of range
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
+                </button>
+                <ReportFileButtons group={g} />
+              </div>
             );
           })}
         </div>

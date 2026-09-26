@@ -258,6 +258,14 @@ export const IconUpload = icon(
   </>,
 );
 
+export const IconDownload = icon(
+  <>
+    <path d="M4 15.5v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+    <polyline points="7.5 11 12 15.5 16.5 11" />
+    <line x1="12" y1="15.5" x2="12" y2="3.5" />
+  </>,
+);
+
 export const IconStethoscope = icon(
   <>
     <path d="M5 3.5v5a5 5 0 0010 0v-5" />
