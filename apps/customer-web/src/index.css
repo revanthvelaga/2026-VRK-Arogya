@@ -5676,3 +5676,26 @@ a.suggest-name:hover {
   font-size: 11px;
   color: var(--ink-soft);
 }
+
+.overlap-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.overlap-warning span {
+  flex: 1 1 200px;
+}
+
+.overlap-warning .btn {
+  white-space: normal;
+  max-width: 100%;
+}

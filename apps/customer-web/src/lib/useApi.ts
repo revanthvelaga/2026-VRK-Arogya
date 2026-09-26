@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../api/client';
 
 interface UseApiResult<T> {
@@ -15,9 +15,16 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[]): UseApiRes
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const lastDeps = useRef<unknown[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Different inputs (another center, another patient…) — drop the old
+    // answer so it's never shown as if it belonged to the new one. A plain
+    // reload() of the same inputs keeps it on screen while refreshing.
+    const prev = lastDeps.current;
+    if (prev && (prev.length !== deps.length || prev.some((d, i) => !Object.is(d, deps[i])))) setData(null);
+    lastDeps.current = deps;
     setLoading(true);
     setError(null);
     fetcher()

@@ -14,6 +14,7 @@ import { Medicine } from './entities/medicine.entity';
 import { RetestReminder } from './entities/retest-reminder.entity';
 import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateGoalDto, UpdateMedicineDto } from './dto/health.dto';
 import { AiService } from '../ai/ai.service';
+import { goalTargetProblem } from './goal-limits';
 import { PatientsService } from '../patients/patients.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
@@ -105,6 +106,8 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
 
   async addGoal(dto: CreateGoalDto, userId: string) {
     await this.assertPatient(dto.patientId, userId);
+    const problem = goalTargetProblem(dto.metric, dto.target);
+    if (problem) throw new BadRequestException(problem);
     const count = await this.goalsRepo.count({ where: { patientId: dto.patientId } });
     if (count >= 10) throw new BadRequestException('Up to 10 goals per person');
     const saved = await this.goalsRepo.save(
@@ -124,7 +127,11 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     await this.assertPatient(goal.patientId, userId);
     if (dto.label !== undefined) goal.label = dto.label;
     if (dto.direction !== undefined) goal.direction = dto.direction;
-    if (dto.target !== undefined) goal.target = dto.target;
+    if (dto.target !== undefined) {
+      const problem = goalTargetProblem(goal.metric, dto.target);
+      if (problem) throw new BadRequestException(problem);
+      goal.target = dto.target;
+    }
     if (dto.targetDate !== undefined) goal.targetDate = dto.targetDate ? dto.targetDate.slice(0, 10) : null;
     return this.goalOut(await this.goalsRepo.save(goal));
   }

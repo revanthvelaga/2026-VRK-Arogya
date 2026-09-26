@@ -135,7 +135,7 @@ export function BookingPage() {
       .sort((a, b) => a.distanceKm - b.distanceKm);
   }, [centers, userCoords]);
 
-  const { data: pickupPoints } = useApi<PickupPoint[]>(
+  const { data: pickupPoints, loading: pickupPointsLoading } = useApi<PickupPoint[]>(
     () => (centerId ? api.get(`/pickup-points?centerId=${centerId}`) : Promise.resolve([])),
     [centerId],
   );
@@ -175,10 +175,12 @@ export function BookingPage() {
 
   // Center changed after an address was already picked — re-validate
   // against the new center rather than silently keeping a stale result.
+  // A pickup point belongs to one center, so a new center clears it too.
   useEffect(() => {
     setHomeAddress(null);
     setHomeAddressText('');
     setHomeAddressPincode('');
+    setPickupPointId('');
   }, [centerId]);
 
   useEffect(() => {
@@ -210,7 +212,12 @@ export function BookingPage() {
   };
 
   const slots = scheduledDate && scheduledPeriod ? suggestedSlotsForPeriod(scheduledDate, scheduledPeriod) : [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Local date — toISOString() is UTC, which is still "yesterday" in India
+  // until 5:30 am.
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   const items: SelectableItem[] = useMemo(() => {
     const t = (tests ?? []).map((x) => ({
@@ -256,6 +263,21 @@ export function BookingPage() {
       (i.kind === 'test' && selectedTestIds.includes(i.id)) ||
       (i.kind === 'package' && selectedPackageIds.includes(i.id)),
   );
+
+  // A test picked on its own that one of the chosen packages already
+  // includes — it would be paid for twice.
+  const overlaps = useMemo(() => {
+    const out: Array<{ testId: string; testName: string; price: number; packageName: string }> = [];
+    for (const pkg of packages ?? []) {
+      if (!selectedPackageIds.includes(pkg.id)) continue;
+      for (const t of pkg.tests ?? []) {
+        if (selectedTestIds.includes(t.id) && !out.some((o) => o.testId === t.id)) {
+          out.push({ testId: t.id, testName: t.name, price: Number(t.price), packageName: pkg.name });
+        }
+      }
+    }
+    return out;
+  }, [packages, selectedPackageIds, selectedTestIds]);
 
   // "You might also like" — tests/packages that share package membership
   // with what's already selected, not the entire catalog. A selected test
@@ -439,6 +461,17 @@ export function BookingPage() {
                 ))
               )}
 
+              {overlaps.map((o) => (
+                <div className="overlap-warning" key={o.testId} role="alert">
+                  <span>
+                    <b>{o.testName}</b> is already included in <b>{o.packageName}</b> — you'd pay for it twice.
+                  </span>
+                  <button type="button" className="btn btn-small" onClick={() => toggleTest(o.testId)}>
+                    Remove it · save {formatCurrency(o.price)}
+                  </button>
+                </div>
+              ))}
+
               {relatedItems.length > 0 && (
                 <>
                   <div className="section-title" style={{ marginTop: selected.length ? 18 : 6 }}>
@@ -567,13 +600,21 @@ export function BookingPage() {
               {collectionMode === 'PICKUP_POINT' && (
                 <div className="field" style={{ marginTop: 4 }}>
                   <label>Pickup point</label>
-                  <PickupPointPicker
-                    points={pickupPoints ?? []}
-                    selectedId={pickupPointId}
-                    onSelect={setPickupPointId}
-                  />
-                  {(pickupPoints ?? []).length === 0 && (
-                    <span className="field-hint">No pickup points registered for this center yet.</span>
+                  {pickupPointsLoading ? (
+                    <span className="field-hint">Loading pickup points for {selectedCenter?.name ?? 'this center'}…</span>
+                  ) : (
+                    <>
+                      <PickupPointPicker
+                        points={pickupPoints ?? []}
+                        selectedId={pickupPointId}
+                        onSelect={setPickupPointId}
+                      />
+                      {(pickupPoints ?? []).length === 0 && (
+                        <span className="field-hint">
+                          No pickup points for {selectedCenter?.name ?? 'this center'} yet — choose Walk in or Home visit.
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -672,8 +713,14 @@ export function BookingPage() {
                       value={scheduledDate}
                       min={todayStr}
                       onChange={(e) => {
-                        setScheduledDate(e.target.value);
-                        setScheduledPeriod(null);
+                        const date = e.target.value;
+                        setScheduledDate(date);
+                        // Open the first part of the day that still has
+                        // times, so the times show straight away.
+                        const first = (Object.keys(SLOT_PERIODS) as SlotPeriod[]).find(
+                          (p) => suggestedSlotsForPeriod(date, p).length > 0,
+                        );
+                        setScheduledPeriod(date ? (first ?? null) : null);
                         setScheduledSlot(null);
                       }}
                       required
@@ -681,6 +728,9 @@ export function BookingPage() {
 
                     {scheduledDate && (
                       <div style={{ marginTop: 10 }}>
+                        <div className="field-hint" style={{ margin: '0 0 6px' }}>
+                          {scheduledSlot ? `Time: ${formatSlotLabel(scheduledSlot)}` : 'Now pick a time:'}
+                        </div>
                         <div className="period-row">
                           {(Object.keys(SLOT_PERIODS) as SlotPeriod[]).map((p) => (
                             <button

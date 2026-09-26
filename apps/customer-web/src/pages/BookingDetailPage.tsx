@@ -391,7 +391,10 @@ export function BookingDetailPage() {
 
   const booking = bookingApi.data;
   const samples = samplesApi.data ?? [];
-  const canCancel = booking && (booking.status === 'PENDING' || booking.status === 'CONFIRMED');
+  // Once any sample has been collected the lab is already on it.
+  const sampleCollected = samples.some((smp) => smp.status !== 'BOOKED');
+  const canCancel =
+    booking && (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && !samplesApi.loading && !sampleCollected;
 
   // While the agent is on the way, refresh every 30s so check-in at the
   // door shows up without the customer having to reload.

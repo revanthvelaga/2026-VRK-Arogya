@@ -24,6 +24,21 @@ type Point = { date: string; value: number };
 
 const DAY = 86_400_000;
 
+// Believable targets for home measures (same limits the server enforces).
+const GOAL_LIMITS: Record<string, { min: number; max: number; unit: string; hint?: string }> = {
+  WEIGHT: { min: 2, max: 300, unit: 'kg' },
+  SUGAR_FASTING: { min: 50, max: 400, unit: 'mg/dL', hint: 'Fasting sugar targets are usually 70–130 mg/dL. If your meter shows mmol/L, multiply by 18.' },
+  SUGAR_RANDOM: { min: 50, max: 600, unit: 'mg/dL', hint: 'If your meter shows mmol/L, multiply by 18.' },
+  BP: { min: 70, max: 250, unit: 'mmHg', hint: 'Use the top (systolic) number, e.g. 130.' },
+  PULSE: { min: 30, max: 220, unit: 'bpm' },
+};
+
+function targetProblem(metric: string, target: number): string | null {
+  const lim = GOAL_LIMITS[metric];
+  if (!lim || (target >= lim.min && target <= lim.max)) return null;
+  return `A target of ${target} ${lim.unit} doesn't look right — it should be between ${lim.min} and ${lim.max} ${lim.unit}.${lim.hint ? ` ${lim.hint}` : ''}`;
+}
+
 // Oldest → newest readings for a goal's metric: a home vital, or a lab
 // test by id.
 function seriesFor(metric: string, vitals: VitalReading[], lab: MyReportValue[]): Point[] {
@@ -90,7 +105,8 @@ function GoalItem({
   const since = series.filter((p) => new Date(p.date).getTime() >= created - DAY);
   const current = series[series.length - 1];
   const startValue = goal.startValue ?? since[0]?.value ?? series[0]?.value;
-  const met = current != null && (goal.direction === 'BELOW' ? current.value <= goal.target : current.value >= goal.target);
+  const badTarget = targetProblem(goal.metric, goal.target);
+  const met = !badTarget && current != null && (goal.direction === 'BELOW' ? current.value <= goal.target : current.value >= goal.target);
   let pct = met ? 100 : 0;
   if (!met && current && startValue != null && startValue !== goal.target) {
     pct = Math.max(0, Math.min(100, ((startValue - current.value) / (startValue - goal.target)) * 100));
@@ -173,6 +189,11 @@ function GoalItem({
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
     const target = Number(editTarget);
+    const problem = targetProblem(goal.metric, target);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     const name = goal.label.split(' to ')[0];
     const ok = await run(() =>
       api.patch(`/health/goals/${goal.id}`, {
@@ -225,6 +246,15 @@ function GoalItem({
         </span>
       </div>
 
+      {badTarget && (
+        <div className="overlap-warning" role="alert" style={{ marginTop: 10 }}>
+          <span>{badTarget} Progress for this goal is hidden until it's fixed.</span>
+          <button type="button" className="btn btn-small" onClick={() => setEditing(true)}>
+            Fix target
+          </button>
+        </div>
+      )}
+
       <div className="goal-stats">
         <div>
           <small>Start</small>
@@ -243,38 +273,42 @@ function GoalItem({
         </div>
       </div>
 
-      <div className="goal-bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-        <span style={{ width: `${pct}%` }} />
-      </div>
-      <div className="goal-sub">
-        {current == null ? (
-          isLab ? 'Updates when your next report arrives.' : 'Log your first reading below.'
-        ) : met ? (
-          <>
-            <IconCheckCircle size={13} /> Achieved — well done! Keep it there.
-          </>
-        ) : (
-          <>
-            {Math.round(pct)}% of the way · {round(toGo!)} {unit} to go
-            {daysLeft != null && daysLeft >= 0 ? ` · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left` : ''}
-          </>
+      {!badTarget && (
+        <>
+        <div className="goal-bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+          <span style={{ width: `${pct}%` }} />
+        </div>
+        <div className="goal-sub">
+          {current == null ? (
+            isLab ? 'Updates when your next report arrives.' : 'Log your first reading below.'
+          ) : met ? (
+            <>
+              <IconCheckCircle size={13} /> Achieved — well done! Keep it there.
+            </>
+          ) : (
+            <>
+              {Math.round(pct)}% of the way · {round(toGo!)} {unit} to go
+              {daysLeft != null && daysLeft >= 0 ? ` · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left` : ''}
+            </>
+          )}
+        </div>
+        {pace && (
+          <p className={`goal-pace ${pace.tone}`}>
+            <IconTrend size={13} /> {pace.text}
+          </p>
         )}
-      </div>
-      {pace && (
-        <p className={`goal-pace ${pace.tone}`}>
-          <IconTrend size={13} /> {pace.text}
-        </p>
-      )}
 
-      {(chartReadings.length > 0 || (startValue != null && deadline)) && (
-        <GoalChart
-          readings={chartReadings}
-          target={goal.target}
-          unit={unit}
-          start={startValue != null ? { date: goal.createdAt, value: startValue } : null}
-          targetDate={goal.targetDate}
-          label={goal.label}
-        />
+        {(chartReadings.length > 0 || (startValue != null && deadline)) && (
+          <GoalChart
+            readings={chartReadings}
+            target={goal.target}
+            unit={unit}
+            start={startValue != null ? { date: goal.createdAt, value: startValue } : null}
+            targetDate={goal.targetDate}
+            label={goal.label}
+          />
+        )}
+        </>
       )}
 
       {editing && (
@@ -408,6 +442,11 @@ export function GoalsCard({ patientId, labValues }: { patientId: string; labValu
     setError(null);
     const current = currentInput.trim() ? Number(currentInput) : latest?.value;
     const tgt = Number(target);
+    const problem = targetProblem(metric, tgt);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     if (current != null && current === tgt) {
       setError("That's already your current value — pick a different target.");
       return;

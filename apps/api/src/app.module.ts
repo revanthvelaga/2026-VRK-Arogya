@@ -101,6 +101,16 @@ export class AppModule implements OnApplicationBootstrap {
   // an empty database seeds itself. Every later boot sees existing rows and
   // does nothing, so this never clobbers real data once there is any.
   async onApplicationBootstrap() {
+    // Bookings whose sample was collected before collection started
+    // confirming them — idempotent, so safe on every boot.
+    await this.dataSource
+      .query(
+        `UPDATE bookings b SET status = 'CONFIRMED'
+          WHERE b.status = 'PENDING'
+            AND EXISTS (SELECT 1 FROM samples s WHERE s.booking_id = b.id AND s.status <> 'BOOKED')`,
+      )
+      .catch((err: Error) => this.logger.warn(`Booking status backfill skipped: ${err.message}`));
+
     const [{ count }] = await this.dataSource.query('SELECT COUNT(*)::int AS count FROM tests');
     if (count > 0) return;
     this.logger.log('Empty database detected on boot — running the catalog/centers seed once.');

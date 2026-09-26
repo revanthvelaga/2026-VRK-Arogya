@@ -137,6 +137,7 @@ export class SamplesService {
       sample.safetyPpeUsed = dto.ppeUsed ?? false;
       sample.safetyHygieneFollowed = dto.hygieneFollowed ?? false;
       if (dto.barcode) sample.sampleBarcode = dto.barcode;
+      await this.bookingsService.confirmIfPending(sample.bookingId);
     }
 
     if (dto.status === SampleStatus.ROUTED_TO_PARTNER_LAB) {

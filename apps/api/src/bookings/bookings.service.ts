@@ -1,3 +1,4 @@
+import { formatInr, formatIstDateTime } from '../common/utils/format.util';
 import {
   BadRequestException,
   ForbiddenException,
@@ -201,7 +202,7 @@ export class BookingsService {
     await this.notificationsService.notify(
       customerId,
       NotificationType.BOOKING_CREATED,
-      `Your booking for ${savedBooking.scheduledAt.toLocaleString('en-IN')} is confirmed. Total: ₹${totalAmount}.`,
+      `Your booking for ${formatIstDateTime(savedBooking.scheduledAt)} is confirmed. Total: ${formatInr(totalAmount)}.`,
       savedBooking.patientId,
     );
     if (fullyCovered) await this.walletService.rewardReferralIfDue(customerId, savedBooking.id);
@@ -415,11 +416,28 @@ export class BookingsService {
     if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {
       throw new BadRequestException(`Cannot cancel a booking with status ${booking.status}`);
     }
+    // Once a sample has been collected the lab is already working on it.
+    if (await this.sampleCollected(booking.id)) {
+      throw new BadRequestException('This booking can no longer be cancelled — the sample has already been collected.');
+    }
     booking.status = BookingStatus.CANCELLED;
     const saved = await this.bookingsRepo.save(booking);
     // Wallet credit spent on it goes straight back.
     await this.walletService.refundBooking(booking.customerId, Number(booking.walletUsed), booking.id);
     return saved;
+  }
+
+  async sampleCollected(bookingId: string): Promise<boolean> {
+    const rows = (await this.dataSource.query(
+      `SELECT 1 FROM samples WHERE booking_id = $1 AND status <> 'BOOKED' LIMIT 1`,
+      [bookingId],
+    )) as unknown[];
+    return rows.length > 0;
+  }
+
+  // A collected sample means the booking is definitely going ahead.
+  async confirmIfPending(bookingId: string): Promise<void> {
+    await this.bookingsRepo.update({ id: bookingId, status: BookingStatus.PENDING }, { status: BookingStatus.CONFIRMED });
   }
 
   async updateStatus(id: string, dto: UpdateBookingStatusDto): Promise<Booking> {
