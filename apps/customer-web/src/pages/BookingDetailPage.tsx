@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Booking, Issue, Report, Sample, SampleStatusHistoryEntry } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -392,6 +392,8 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
 
 export function BookingDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
+  // Opened from somewhere else (a ticket, say) — go back there, not to the list.
+  const backTo = (useLocation().state as { backTo?: { path: string; label: string } } | null)?.backTo;
   const bookingApi = useApi<Booking>(() => api.get(`/bookings/${id}`), [id]);
   const samplesApi = useApi<Sample[]>(() => api.get(`/bookings/${id}/samples`), [id]);
   const [cancelling, setCancelling] = useState(false);
@@ -434,9 +436,9 @@ export function BookingDetailPage() {
 
   return (
     <>
-      <Link to="/bookings" className="back-link">
+      <Link to={backTo?.path ?? '/bookings'} className="back-link">
         <IconArrowLeft size={14} />
-        Back to my bookings
+        {backTo?.label ?? 'Back to my bookings'}
       </Link>
       <div className="page-header">
         <div>

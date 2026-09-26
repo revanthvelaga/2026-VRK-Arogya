@@ -2,11 +2,80 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { IssueThread } from '../api/types';
+import type { Booking, IssueThread, Package, Patient, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
-import { formatDateTime } from '../lib/format';
+import { formatCurrency, formatDateTime } from '../lib/format';
 import { LoadingLine } from '../components/Spinner';
-import { IconArrowLeft } from '../components/Icons';
+import { IconArrowLeft, IconCalendar, IconChevronRight } from '../components/Icons';
+
+const MODE: Record<Booking['collectionMode'], string> = {
+  WALK_IN: 'Walk-in at center',
+  PICKUP_POINT: 'Pickup point',
+  HOME_VISIT: 'Home visit',
+};
+
+// What the ticket is about, at a glance — tap through to the full booking
+// and come straight back here.
+function BookingSummary({ bookingId, ticketId }: { bookingId: string; ticketId: string }) {
+  const { data: b, error } = useApi<Booking>(() => api.get(`/bookings/${bookingId}`), [bookingId]);
+  const { data: tests } = useApi<Test[]>(() => api.get('/catalog/tests'), []);
+  const { data: packages } = useApi<Package[]>(() => api.get('/catalog/packages'), []);
+  const { data: patients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  if (error) return null;
+  if (!b) return <LoadingLine label="Loading booking…" />;
+
+  const names = new Map<string, string>();
+  (tests ?? []).forEach((t) => names.set(t.id, t.name));
+  (packages ?? []).forEach((p) => names.set(p.id, p.name));
+  const items = b.items.map((i) => names.get(i.testId ?? i.packageId ?? '')).filter(Boolean).join(', ');
+  const patient = (patients ?? []).find((p) => p.id === b.patientId)?.fullName;
+  const where =
+    b.collectionMode === 'HOME_VISIT'
+      ? b.homeAddressLine ?? 'Home visit'
+      : b.collectionMode === 'PICKUP_POINT'
+        ? b.pickupPointName ?? 'Pickup point'
+        : b.centerName ?? 'Center';
+
+  return (
+    <Link
+      className="card ticket-booking-card"
+      to={`/bookings/${bookingId}`}
+      state={{ backTo: { path: `/tickets/${ticketId}`, label: 'Back to ticket' } }}
+    >
+      <div className="ticket-booking-card-head">
+        <span className="ticket-booking-icon">
+          <IconCalendar size={16} />
+        </span>
+        <b>About this booking</b>
+        <span className="ticket-open-link">
+          Open <IconChevronRight size={14} />
+        </span>
+      </div>
+      <dl className="ticket-booking-facts">
+        <dt>Tests</dt>
+        <dd>{items || 'Lab tests'}</dd>
+        {patient && (
+          <>
+            <dt>For</dt>
+            <dd>{patient}</dd>
+          </>
+        )}
+        <dt>When</dt>
+        <dd>{formatDateTime(b.scheduledAt)}</dd>
+        <dt>Where</dt>
+        <dd>
+          {MODE[b.collectionMode]} · {where}
+        </dd>
+        <dt>Status</dt>
+        <dd>
+          {b.status.charAt(0) + b.status.slice(1).toLowerCase()} · Payment {b.paymentStatus.toLowerCase()}
+        </dd>
+        <dt>Total</dt>
+        <dd>{formatCurrency(b.totalAmount)}</dd>
+      </dl>
+    </Link>
+  );
+}
 
 const STATUS: Record<IssueThread['status'], { label: string; className: string; note: string }> = {
   OPEN: { label: 'Open', className: 'badge-amber', note: "We've got your ticket and will reply here soon." },
@@ -73,9 +142,10 @@ export function TicketDetailPage() {
         <p className="page-sub" style={{ margin: '6px 0 0' }}>{status.note}</p>
         <div className="ticket-card-meta" style={{ marginTop: 8 }}>
           <span>Raised {formatDateTime(t.createdAt)}</span>
-          <Link to={`/bookings/${t.bookingId}`}>View booking</Link>
         </div>
       </div>
+
+      <BookingSummary bookingId={t.bookingId} ticketId={t.id} />
 
       <div className="chat">
         <div className="chat-msg mine">
