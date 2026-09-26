@@ -62,11 +62,14 @@ Suggested order: Targets → Medicine reminders → Insurance cards.
       `https://arogya-customer-web.onrender.com`, and the consent screen
       is published (or your Gmail is a test user).
 
-- [ ] **Google Drive backup (My documents):** in Google Cloud console,
-      same project as the Google sign-in client → APIs & Services →
-      enable **Google Drive API**; OAuth consent screen → Data access →
-      add the scope `.../auth/drive.file`. Until then the "Back up to
-      Google Drive" button shows an error from Google.
+- [ ] **Google Drive sync (My documents):** in Google Cloud console,
+      same project as the Google sign-in client:
+      1. APIs & Services → enable **Google Drive API**.
+      2. Google Auth Platform → Data access → add scope `.../auth/drive.file`.
+      3. Google Auth Platform → Audience → **Publish app** (or add each
+         tester's Gmail under Test users). While the app is in "Testing",
+         Google shows "Access blocked … has not completed the Google
+         verification process" (Error 403 access_denied).
 
 ## Before the first real customer (launch checklist)
 - [ ] A lab (own or partner) to process samples, and trained staff for

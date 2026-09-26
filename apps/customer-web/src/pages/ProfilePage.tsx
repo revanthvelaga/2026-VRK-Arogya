@@ -53,7 +53,7 @@ export function ProfilePage() {
       {active === 'family' && <FamilySection />}
       {active === 'documents' && (
         <>
-          <SectionHeader title="My documents" sub="Insurance cards, Aadhaar, prescriptions and other important papers in one place." />
+          <SectionHeader title="My documents" sub="Upload insurance cards, Aadhaar, prescriptions and more — we sort them for you." />
           <MyDocuments />
         </>
       )}
