@@ -10,7 +10,6 @@ import { EmptyState } from '../components/EmptyState';
 import {
   IconActivity,
   IconArrowLeft,
-  IconCalendar,
   IconCheckCircle,
   IconChevronRight,
   IconFileText,
@@ -138,7 +137,6 @@ function AccountMenu() {
 
       <div className="account-group-title">My health</div>
       <div className="card account-group">
-        <AccountRow to="/bookings" icon={<IconCalendar size={17} />} label="My bookings" sub="Track tests, samples and visits" />
         <AccountRow to="/insights?view=reports" icon={<IconFileText size={17} />} label="My reports" sub="View, download or share your reports" />
         <AccountRow to="/profile/family" icon={<IconUsers size={17} />} label="Family members" sub="Profiles and family access" />
       </div>
