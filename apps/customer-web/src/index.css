@@ -6524,11 +6524,11 @@ a.suggest-name:hover {
 
 /* Name, letter by letter */
 .wow-word {
-  margin-top: 26px;
+  margin-top: 20px;
   font-size: clamp(38px, 11vw, 56px);
   font-weight: 800;
   letter-spacing: 1px;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 .wow-word span {
@@ -6538,6 +6538,8 @@ a.suggest-name:hover {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  /* Room for the tails of g and y, which the text-clipped gradient would cut. */
+  padding-bottom: 0.12em;
   animation: letterIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
