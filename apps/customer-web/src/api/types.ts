@@ -325,6 +325,23 @@ export interface Issue {
   resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
+  // From /issues/mine.
+  staffReplies?: number;
+  lastMessageAt?: string | null;
+  lastFromStaff?: boolean;
+}
+
+export interface IssueComment {
+  id: string;
+  message: string;
+  fromStaff: boolean;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface IssueThread extends Issue {
+  raisedByName: string;
+  comments: IssueComment[];
 }
 
 export interface Payment {

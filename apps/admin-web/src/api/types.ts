@@ -452,3 +452,16 @@ export interface Coupon {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface IssueComment {
+  id: string;
+  message: string;
+  fromStaff: boolean;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface IssueThread extends Issue {
+  raisedByName: string;
+  comments: IssueComment[];
+}

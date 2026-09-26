@@ -15,6 +15,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { TicketDetailPage } from './pages/TicketDetailPage';
 import { SmartBookPage } from './pages/SmartBookPage';
 import { ComparePage } from './pages/ComparePage';
 import { InvoicePage } from './pages/InvoicePage';
@@ -46,6 +47,7 @@ export function App() {
                 <Route path="/insights" element={<InsightsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/profile/:section" element={<ProfilePage />} />
+                <Route path="/tickets/:id" element={<TicketDetailPage />} />
               </Route>
             </Route>
           </Routes>

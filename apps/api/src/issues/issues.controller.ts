@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueStatusDto } from './dto/update-issue-status.dto';
+import { AddIssueCommentDto } from './dto/add-issue-comment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -37,6 +38,21 @@ export class IssuesController {
   @Get('issues/mine')
   findMine(@CurrentUser() user: AuthenticatedUser) {
     return this.issuesService.findMine(user.userId);
+  }
+
+  // The ticket and its conversation — for the customer or staff.
+  @Get('issues/:id')
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.issuesService.findOneWithThread(id, user);
+  }
+
+  @Post('issues/:id/comments')
+  addComment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddIssueCommentDto,
+  ) {
+    return this.issuesService.addComment(id, user, dto);
   }
 
   @UseGuards(RolesGuard)

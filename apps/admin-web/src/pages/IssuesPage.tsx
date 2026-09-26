@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Issue, IssueStatus } from '../api/types';
+import type { Issue, IssueStatus, IssueThread } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingLine } from '../components/Spinner';
@@ -9,12 +10,70 @@ import { EmptyState } from '../components/EmptyState';
 import { IconInbox } from '../components/Icons';
 import { formatDateTime, issueStatusVariant, statusLabel } from '../lib/format';
 
+// The conversation on one issue, loaded when opened, with a reply box.
+// Replies notify the customer and move an open issue to "in progress".
+function IssueConversation({ issueId, onChanged }: { issueId: string; onChanged: () => void }) {
+  const { data, loading, reload } = useApi<IssueThread>(() => api.get(`/issues/${issueId}`), [issueId]);
+  const [reply, setReply] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!reply.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post(`/issues/${issueId}/comments`, { message: reply.trim() });
+      setReply('');
+      reload();
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading && !data) return <LoadingLine label="Loading conversation…" />;
+  if (!data) return null;
+  return (
+    <div className="issue-thread">
+      <div className="issue-msg customer">
+        <b>{data.raisedByName}</b> · {formatDateTime(data.createdAt)}
+        <p>{data.description}</p>
+      </div>
+      {data.comments.map((c) => (
+        <div key={c.id} className={`issue-msg ${c.fromStaff ? 'staff' : 'customer'}`}>
+          <b>{c.authorName}</b>
+          {c.fromStaff ? ' (staff)' : ''} · {formatDateTime(c.createdAt)}
+          <p>{c.message}</p>
+        </div>
+      ))}
+      <form onSubmit={send} className="issue-reply">
+        <textarea
+          rows={2}
+          value={reply}
+          onChange={(e) => setReply(e.target.value)}
+          placeholder="Reply to the customer — they get a notification"
+          maxLength={2000}
+        />
+        {error && <div className="error-banner">{error}</div>}
+        <button className="btn btn-small btn-primary" disabled={busy || !reply.trim()}>
+          {busy ? 'Sending…' : 'Send reply'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 const STATUS_FILTERS: Array<IssueStatus | 'ALL'> = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED'];
 
 export function IssuesPage() {
   const { data: issues, loading, error, reload } = useApi<Issue[]>(() => api.get('/issues'), []);
   const [filter, setFilter] = useState<IssueStatus | 'ALL'>('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (!issues) return [];
@@ -93,10 +152,14 @@ export function IssuesPage() {
                   Resolve
                 </button>
               )}
+              <button className="btn btn-small" onClick={() => setOpenId(openId === issue.id ? null : issue.id)}>
+                {openId === issue.id ? 'Hide conversation' : 'Reply / conversation'}
+              </button>
               <Link className="btn btn-small" to={`/bookings/${issue.bookingId}`}>
                 View booking
               </Link>
             </div>
+            {openId === issue.id && <IssueConversation issueId={issue.id} onChanged={reload} />}
           </div>
         ))
       )}

@@ -213,20 +213,23 @@ export function Tickets() {
       {tickets.map((t) => {
         const status = TICKET_STATUS[t.status];
         return (
-          <div className="card ticket-card" key={t.id}>
+          <Link className="card ticket-card ticket-card-link" key={t.id} to={`/tickets/${t.id}`}>
             <div className="ticket-card-top">
               <b>{t.subject}</b>
               <span className={`badge ${status.className}`}>{status.label}</span>
             </div>
             <p className="ticket-card-desc">{t.description}</p>
+            {t.lastFromStaff && <span className="ticket-replied">Support replied — tap to read</span>}
             <div className="ticket-card-meta">
               <span>
                 Raised {formatDateTime(t.createdAt)}
                 {t.resolvedAt && ` · Resolved ${formatDateTime(t.resolvedAt)}`}
               </span>
-              <Link to={`/bookings/${t.bookingId}`}>View booking</Link>
+              <span className="ticket-open-link">
+                {t.staffReplies ? `${t.staffReplies} repl${t.staffReplies === 1 ? 'y' : 'ies'} · ` : ''}Open →
+              </span>
             </div>
-          </div>
+          </Link>
         );
       })}
     </>
