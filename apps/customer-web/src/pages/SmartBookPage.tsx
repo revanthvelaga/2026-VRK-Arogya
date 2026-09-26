@@ -242,6 +242,7 @@ function SymptomsTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TestFinderResult | null>(null);
+  const [askedFor, setAskedFor] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,6 +257,11 @@ function SymptomsTab() {
           gender: gender || undefined,
         }),
       );
+      // Clear the form for the next question; the results keep what was asked.
+      setAskedFor(symptoms.trim());
+      setSymptoms('');
+      setAge('');
+      setGender('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -308,6 +314,11 @@ function SymptomsTab() {
 
       {result && (
         <div className="card">
+          {askedFor && (
+            <p className="page-sub" style={{ margin: '0 0 10px' }}>
+              For: “{askedFor}”
+            </p>
+          )}
           {result.urgent && result.urgentMessage && (
             <div className="urgent-banner">
               <IconAlertTriangle size={18} />
