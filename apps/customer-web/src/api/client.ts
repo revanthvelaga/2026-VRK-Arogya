@@ -8,7 +8,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 // Signed out after IDLE_LIMIT_MS with no taps/typing/scrolling — measured
 // across tabs and while the site is closed, via a shared timestamp. While
 // active, the short-lived access token is silently renewed (/auth/refresh);
-// the server caps every session at 7 days from the original sign-in.
+// the server ends every session 30 minutes after the original sign-in.
 export const IDLE_LIMIT_MS = 30 * 60_000;
 const ACTIVITY_KEY = 'arogya_last_activity';
 const SIGNOUT_REASON_KEY = 'arogya_signout_reason';
@@ -66,7 +66,7 @@ export function peekSignOutMessage(): string | null {
   try {
     const reason = sessionStorage.getItem(SIGNOUT_REASON_KEY);
     if (reason === 'idle') return `You were signed out after ${IDLE_LIMIT_MS / 60_000} minutes of inactivity. Please sign in again.`;
-    if (reason === 'expired') return 'Your session expired. Please sign in again.';
+    if (reason === 'expired') return 'For your security, you’re signed out 30 minutes after signing in. Please sign in again.';
   } catch {
     // ignore
   }

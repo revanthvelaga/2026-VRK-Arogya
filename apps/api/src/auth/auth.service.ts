@@ -11,8 +11,18 @@ import { Role } from '../common/enums/role.enum';
 import { WalletService } from '../rewards/wallet.service';
 import type { User } from '../users/user.entity';
 
-// Every sign-in must be repeated at least this often.
-const MAX_SESSION_SECONDS = 7 * 24 * 60 * 60;
+// Every session ends this long after signing in, however active — the
+// owner's rule for both the customer site and the staff console.
+const MAX_SESSION_SECONDS = 30 * 60;
+
+// "15m" / "1h" / "900s" / "900" → seconds.
+function durationSeconds(value: string | number | undefined, fallback: number): number {
+  if (value == null || value === '') return fallback;
+  const m = /^(\d+)\s*([smhd]?)$/.exec(String(value).trim());
+  if (!m) return fallback;
+  const unit = { '': 1, s: 1, m: 60, h: 3600, d: 86400 }[m[2] as '' | 's' | 'm' | 'h' | 'd'];
+  return Number(m[1]) * unit;
+}
 
 @Injectable()
 export class AuthService {
@@ -166,13 +176,13 @@ export class AuthService {
     const sst = sessionStart ?? Math.floor(Date.now() / 1000);
     const payload = { sub: userId, phone, role, sst };
 
+    // Neither token outlives the session cap, even right after a refresh.
+    const remaining = Math.max(60, MAX_SESSION_SECONDS - (Math.floor(Date.now() / 1000) - sst));
     const accessToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_ACCESS_SECRET'),
-      expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+      expiresIn: Math.min(durationSeconds(this.config.get('JWT_ACCESS_EXPIRES_IN'), 15 * 60), remaining),
     });
 
-    // Never outlives the session cap, even right after a refresh.
-    const remaining = Math.max(60, MAX_SESSION_SECONDS - (Math.floor(Date.now() / 1000) - sst));
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
       expiresIn: remaining,
