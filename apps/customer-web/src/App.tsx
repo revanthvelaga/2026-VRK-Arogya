@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { WelcomeSplash } from './components/WelcomeSplash';
 import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
@@ -26,6 +27,7 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
+          <WelcomeSplash />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />

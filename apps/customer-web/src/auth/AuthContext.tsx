@@ -31,6 +31,10 @@ interface AuthContextValue {
   // the customer owns that number, same trust as loginWithPhoneOtp.
   resetPasswordWithPhone: (idToken: string, newPassword: string) => Promise<void>;
   logout: () => void;
+  // Set right after a sign-in (not on page reloads) — shows the welcome
+  // screen once; 'new' for a just-created account.
+  welcome: 'back' | 'new' | null;
+  clearWelcome: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,45 +78,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  const login = async (phone: string, password: string) => {
-    const session = await api.post<AuthSession>('/auth/login', { phone, password });
+  const [welcome, setWelcome] = useState<'back' | 'new' | null>(null);
+  const startSession = (session: AuthSession, kind: 'back' | 'new' = 'back') => {
     setSession(session);
     setUser(sessionToUser(session));
+    setWelcome(kind);
+  };
+
+  const login = async (phone: string, password: string) => {
+    const session = await api.post<AuthSession>('/auth/login', { phone, password });
+    startSession(session);
   };
 
   const register = async (input: RegisterInput) => {
     // Public registration is always forced to CUSTOMER on the API side.
     const session = await api.post<AuthSession>('/auth/register', input);
-    setSession(session);
-    setUser(sessionToUser(session));
+    startSession(session, 'new');
   };
 
   const loginWithGoogle = async (idToken: string, referralCode?: string) => {
     const session = await api.post<AuthSession>('/auth/google', { idToken, referralCode });
-    setSession(session);
-    setUser(sessionToUser(session));
+    startSession(session);
   };
 
   const loginWithPhoneOtp = async (idToken: string, fullName?: string, referralCode?: string) => {
     const session = await api.post<AuthSession>('/auth/phone-otp', { idToken, fullName, referralCode });
-    setSession(session);
-    setUser(sessionToUser(session));
+    startSession(session);
   };
 
   const resetPasswordWithPhone = async (idToken: string, newPassword: string) => {
     const session = await api.post<AuthSession>('/auth/reset-password', { idToken, newPassword });
-    setSession(session);
-    setUser(sessionToUser(session));
+    startSession(session);
   };
 
   const logout = () => {
     endSession(null);
     setUser(null);
+    setWelcome(null);
   };
 
   const value = useMemo(
-    () => ({ user, login, register, loginWithGoogle, loginWithPhoneOtp, resetPasswordWithPhone, logout }),
-    [user],
+    () => ({
+      user,
+      login,
+      register,
+      loginWithGoogle,
+      loginWithPhoneOtp,
+      resetPasswordWithPhone,
+      logout,
+      welcome,
+      clearWelcome: () => setWelcome(null),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, welcome],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
