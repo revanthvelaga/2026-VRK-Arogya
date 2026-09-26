@@ -211,6 +211,13 @@ export const IconChevronDown = icon(<polyline points="5.5 8.5 12 15 18.5 8.5" />
 
 export const IconChevronRight = icon(<polyline points="9 5.5 15.5 12 9 18.5" />);
 
+export const IconBell = icon(
+  <>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </>,
+);
+
 export const IconFolder = icon(
   <path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z" />,
 );

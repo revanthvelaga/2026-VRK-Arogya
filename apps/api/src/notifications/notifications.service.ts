@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Notification } from './entities/notification.entity';
 import { EmailChannelService } from './email-channel.service';
 import { UsersService } from '../users/users.service';
@@ -97,11 +97,18 @@ export class NotificationsService {
     await this.notificationsRepo.save(notification);
   }
 
+  // The bell shows the latest 50; older ones aren't worth scrolling to.
   findMine(userId: string): Promise<Notification[]> {
     return this.notificationsRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      take: 50,
     });
+  }
+
+  async markAllRead(userId: string): Promise<{ updated: number }> {
+    const res = await this.notificationsRepo.update({ userId, readAt: IsNull() }, { readAt: new Date() });
+    return { updated: res.affected ?? 0 };
   }
 
   async markRead(id: string, userId: string): Promise<Notification> {

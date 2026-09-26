@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
+import { NotificationBell } from './NotificationBell';
 import { IconActivity, IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus, IconUser } from './Icons';
 
 const NAV_ITEMS = [
@@ -56,6 +57,7 @@ export function TopNav() {
         </nav>
 
         <div className="site-header-actions">
+          {user && <NotificationBell />}
           <Link to="/book" className="cart-icon-btn" aria-label="Cart">
             <IconBag size={19} />
             {items.length > 0 && <span className="cart-icon-badge">{items.length}</span>}

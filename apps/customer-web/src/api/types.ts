@@ -391,6 +391,7 @@ export interface Coupon {
   maxDiscount?: string | number | null;
   minOrder: string | number;
   validUntil?: string | null;
+  createdAt?: string;
 }
 
 export interface CouponQuote {
@@ -519,5 +520,24 @@ export interface CustomerDocument {
   mimeType: string;
   sizeBytes: number;
   sortPending?: boolean;
+  createdAt: string;
+}
+
+export type AppNotificationType =
+  | 'BOOKING_CREATED'
+  | 'SAMPLE_COLLECTED'
+  | 'RESULT_READY'
+  | 'REPORT_READY'
+  | 'ISSUE_UPDATED'
+  | 'AGENT_ON_THE_WAY'
+  | 'PREP_REMINDER'
+  | 'RETEST_DUE'
+  | 'CARE_INVITE';
+
+export interface AppNotification {
+  id: string;
+  type: AppNotificationType;
+  message: string;
+  readAt: string | null;
   createdAt: string;
 }
