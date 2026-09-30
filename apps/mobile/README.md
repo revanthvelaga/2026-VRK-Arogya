@@ -8,7 +8,8 @@
 > the share sheet (the page posts `{type:'download', url, fileName, token}`
 > — see `customer-web/src/lib/inApp.ts`). Google sign-in and Drive sync are
 > hidden inside the app because Google blocks them in embedded web views.
-> The native screens under `src/` are no longer used by `App.tsx`.
+> The old native screens (`src/`) and their packages were removed in
+> v1.1.1 to keep the APK small; they're in git history if ever needed.
 >
 > **To make a new APK:** GitHub builds it automatically
 > (`.github/workflows/android-apk.yml`) whenever anything in `apps/mobile`
