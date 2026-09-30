@@ -10,10 +10,13 @@
 > hidden inside the app because Google blocks them in embedded web views.
 > The native screens under `src/` are no longer used by `App.tsx`.
 >
-> **To make a new APK:** from this folder run
-> `npx eas-cli build -p android --profile preview`, sign in with the Expo
-> account that owns the `arogya` project, wait for the build (about 10–15
-> minutes), then open the link it prints on the phone and install.
+> **To make a new APK:** GitHub builds it automatically
+> (`.github/workflows/android-apk.yml`) whenever anything in `apps/mobile`
+> changes, or by hand from GitHub → Actions → "Build Android APK" → Run
+> workflow. After about 15 minutes the newest APK is at
+> https://github.com/revanthvelaga/2026-VRK-Arogya/releases/latest/download/Arogya.apk
+> — open that on the phone and install. (The older EAS route,
+> `npx eas-cli build -p android --profile preview`, still works too.)
 > Only needed again if `App.tsx` / app settings change — website changes
 > reach the app without a new build.
 

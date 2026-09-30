@@ -1,0 +1,90 @@
+# Builds the Arogya Android app (apps/mobile) into an installable APK on
+# GitHub's own machines — no Expo account or EAS needed.
+#
+# Runs by itself whenever the app code changes, or by hand:
+# GitHub → Actions → "Build Android APK" → Run workflow.
+#
+# The finished APK is attached to a GitHub Release, so it can be opened
+# straight from a phone. The newest one is always at:
+# https://github.com/revanthvelaga/2026-VRK-Arogya/releases/latest/download/Arogya.apk
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # The app is the website in a full-screen web view.
+      EXPO_PUBLIC_WEB_URL: https://arogya-customer-web.onrender.com
+      EXPO_PUBLIC_API_URL: https://arogya-api-im0i.onrender.com
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install --clean
+
+      # Release build, signed with the standard React Native key so each new
+      # APK installs over the previous one from this workflow.
+      - name: Build APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Name the APK
+        id: apk
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          cp android/app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Arogya.apk"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -lh "$GITHUB_WORKSPACE/Arogya.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arogya-v${{ steps.apk.outputs.version }}-build${{ github.run_number }}
+          path: Arogya.apk
+          retention-days: 30
+
+      - name: Publish as a release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ steps.apk.outputs.version }}-build${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Arogya app v${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
+          body: |
+            Android app built from `${{ github.ref_name }}` at ${{ github.sha }}.
+
+            **Install:** open this page on your Android phone, tap **Arogya.apk**, then open the download and allow "Install unknown apps" if asked.
+          files: Arogya.apk
+          make_latest: true
