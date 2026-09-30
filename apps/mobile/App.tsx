@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
@@ -135,11 +135,14 @@ function ArogyaWebApp() {
         domStorageEnabled
         geolocationEnabled
         allowFileAccess
-        allowsBackForwardNavigationGestures
-        pullToRefreshEnabled
+        bounces={false}
+        overScrollMode="never"
+        scrollEnabled
+        setBuiltInZoomControls={false}
+        setDisplayZoomControls={false}
+        textZoom={100}
         mediaPlaybackRequiresUserAction
         originWhitelist={['*']}
-        {...(Platform.OS === 'android' ? { overScrollMode: 'never' as const } : {})}
       />
       {loading && !failed ? (
         <View style={[StyleSheet.absoluteFill, styles.center, styles.splash]}>

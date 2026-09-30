@@ -10,3 +10,13 @@ export const nativeBridge: NativeBridge | undefined = (window as Window & { Reac
   .ReactNativeWebView;
 
 export const inArogyaApp = Boolean(nativeBridge) && /ArogyaApp/.test(navigator.userAgent);
+
+// Make the site behave like an app rather than a web page inside the app:
+// no pinch-zoom (a zoomed page can be dragged sideways, which showed up
+// as the whole screen sliding left and right) and no elastic overscroll.
+if (inArogyaApp) {
+  document.documentElement.classList.add('in-app');
+  document
+    .querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+}

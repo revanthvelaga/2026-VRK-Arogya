@@ -46,6 +46,50 @@ body,
   height: 100%;
 }
 
+/* The page itself never moves sideways. Set on <html> as well as <body>:
+   phone browsers only honour a body-only rule some of the time, which let
+   the whole screen be dragged left and right. */
+html {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+/* Inside the Arogya app: vertical scrolling only, no elastic bounce, no
+   grey flash on tap, no long-press text selection on buttons and tiles.
+   Rows that scroll sideways on their own (tabs, carousels) still do, and
+   text fields stay selectable. */
+html.in-app {
+  overscroll-behavior: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The website's footer line is clutter in an app, and adds length that
+   makes short screens (like sign-in) scroll for no reason. */
+html.in-app .site-footer {
+  display: none;
+}
+
+html.in-app button,
+html.in-app a,
+html.in-app .card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html.in-app .chip-row,
+html.in-app .carousel,
+html.in-app .tabs,
+html.in-app .segment-row,
+html.in-app .jump-bar,
+html.in-app .compare-wrap,
+html.in-app .pill-row,
+html.in-app .site-nav,
+html.in-app .table-wrap {
+  touch-action: pan-x pan-y;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -61,8 +105,10 @@ body {
      quietly grows its ancestors past the viewport instead of scrolling
      in place. This is the backstop: the page itself never scrolls
      horizontally, so only elements that opt into their own overflow-x
-     (like .chip-row) can scroll, exactly as intended. */
-  overflow-x: hidden;
+     (like .chip-row) can scroll, exactly as intended. `clip` (not
+     `hidden`): with html also set, `hidden` would turn <body> into its own
+     scroll box instead of letting the page scroll normally. */
+  overflow-x: clip;
 }
 
 h1,
@@ -1625,6 +1671,16 @@ tbody tr:hover {
   justify-content: center;
   padding: clamp(4px, 2vh, 24px) 0 40px;
   position: relative;
+}
+
+/* On phones the card is never centred in a tall box, so don't force the
+   area to nearly the screen's height: with the header, footer and tab bar
+   added on top it made the login page longer than the screen, so it
+   scrolled and bounced with nothing on it. */
+@media (max-width: 720px) {
+  .login-screen {
+    min-height: 0;
+  }
 }
 
 .login-card {
