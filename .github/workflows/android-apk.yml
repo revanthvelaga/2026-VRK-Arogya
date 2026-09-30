@@ -82,6 +82,20 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The runner's preinstalled sdkmanager is too old to unpack current
+      # emulator images ("SDK XML version 4"), so use the current one.
+      - name: Update Android command-line tools
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -sSLo clt.zip https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip
+          unzip -q clt.zip
+          sudo rm -rf "$ANDROID_HOME/cmdline-tools/latest"
+          sudo mkdir -p "$ANDROID_HOME/cmdline-tools"
+          sudo mv cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          sudo chown -R "$(id -u):$(id -g)" "$ANDROID_HOME/cmdline-tools"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
+
       - name: Test-run the app on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
