@@ -78,6 +78,10 @@ const EXTRACT_SCHEMA = {
 // boot-time catch-up (old test uploads, re-uploads, etc.).
 const BACKFILL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+// Automatic reads that fail (busy model, timeout, cut-off answer) are
+// retried this many times in total, 2, 4, 6… minutes apart.
+const MAX_AUTO_ATTEMPTS = 5;
+
 export interface ReportValueWithTrend extends ReportValue {
   previousValue?: number;
   previousUnit?: string;
@@ -158,16 +162,16 @@ export class ReportsService implements OnApplicationBootstrap {
     try {
       const pending: Array<{ id: string }> = await this.reportsRepo.query(
         `SELECT r.id::text AS id FROM reports r
-          WHERE r.values_status IS NULL
+          WHERE (r.values_status IS NULL OR (r.values_status = 'FAILED' AND r.values_attempts < $2))
             AND r.file_data IS NOT NULL
             AND r.generated_at > $1
             AND NOT EXISTS (SELECT 1 FROM report_values v WHERE v.report_id::text = r.id::text)
           ORDER BY r.generated_at DESC`,
-        [new Date(Date.now() - BACKFILL_WINDOW_MS)],
+        [new Date(Date.now() - BACKFILL_WINDOW_MS), MAX_AUTO_ATTEMPTS],
       );
       this.logger.log(`Report value catch-up: ${pending.length} report(s) to read`);
       for (const { id } of pending) {
-        await this.extractValues(id, { replace: false }).catch(() => undefined);
+        await this.extractValues(id, { replace: false, auto: true }).catch(() => undefined);
       }
     } catch (err) {
       this.logger.warn(`Report value catch-up skipped: ${(err as Error).message}`);
@@ -176,7 +180,7 @@ export class ReportsService implements OnApplicationBootstrap {
 
   extractInBackground(reportId: string): void {
     if (!this.ai.enabled) return;
-    void this.extractValues(reportId, { replace: false }).catch(() => undefined);
+    void this.extractValues(reportId, { replace: false, auto: true }).catch(() => undefined);
   }
 
   // Sends the PDF to the AI, which returns each numeric result with its
@@ -184,7 +188,7 @@ export class ReportsService implements OnApplicationBootstrap {
   // report values. `replace` (the admin's "Read from PDF" button) clears
   // existing values first; otherwise a report that already has values is
   // left alone.
-  async extractValues(reportId: string, opts: { replace: boolean }): Promise<ReportValue[]> {
+  async extractValues(reportId: string, opts: { replace: boolean; auto?: boolean }): Promise<ReportValue[]> {
     if (!this.ai.enabled) {
       throw new BadRequestException('Reading reports needs GEMINI_API_KEY to be set on the server');
     }
@@ -241,7 +245,9 @@ export class ReportsService implements OnApplicationBootstrap {
           },
         ],
         schema: EXTRACT_SCHEMA,
-        maxTokens: 8000,
+        // A full-body report runs to 60+ parameters; 8k tokens cut the
+        // answer off mid-JSON.
+        maxTokens: 32_000,
       });
 
       const catalogById = new Map(tests.map((t) => [t.id, t]));
@@ -283,6 +289,7 @@ export class ReportsService implements OnApplicationBootstrap {
         return rows.length ? manager.save(ReportValue, rows) : [];
       });
       await this.reportsRepo.update(reportId, {
+        valuesAttempts: 0,
         valuesStatus: saved.length ? 'DONE' : 'EMPTY',
         valuesNote: saved.length
           ? `Read ${saved.length} value${saved.length === 1 ? '' : 's'} from the PDF`
@@ -294,10 +301,25 @@ export class ReportsService implements OnApplicationBootstrap {
       return saved;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Report ${reportId.slice(0, 8)}: could not read values — ${message}`);
+      const attempts = (report.valuesAttempts ?? 0) + 1;
+      const willRetry = opts.auto && attempts < MAX_AUTO_ATTEMPTS;
+      this.logger.warn(
+        `Report ${reportId.slice(0, 8)}: could not read values (attempt ${attempts}) — ${message}` +
+          (willRetry ? ` — retrying in ${attempts * 2} min` : ''),
+      );
       await this.reportsRepo
-        .update(reportId, { valuesStatus: 'FAILED', valuesNote: message.slice(0, 300) })
+        .update(reportId, {
+          valuesStatus: 'FAILED',
+          valuesAttempts: attempts,
+          valuesNote: (willRetry ? `${message} Retrying automatically.` : message).slice(0, 300),
+        })
         .catch(() => undefined);
+      if (willRetry) {
+        setTimeout(
+          () => void this.extractValues(reportId, { replace: false, auto: true }).catch(() => undefined),
+          attempts * 2 * 60_000,
+        ).unref();
+      }
       throw err;
     } finally {
       this.extracting.delete(reportId);

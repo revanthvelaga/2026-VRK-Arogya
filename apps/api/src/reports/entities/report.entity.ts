@@ -72,4 +72,9 @@ export class Report {
   // it failed).
   @Column({ name: 'values_note', type: 'text', nullable: true })
   valuesNote?: string;
+
+  // How many automatic reads have failed (Gemini's free tier is often
+  // busy) — retried with a growing delay until this reaches the limit.
+  @Column({ name: 'values_attempts', type: 'integer', default: 0 })
+  valuesAttempts: number;
 }
