@@ -60,4 +60,16 @@ export class Report {
 
   @Column({ name: 'reviewed_by', nullable: true })
   reviewedBy?: string;
+
+  // Outcome of reading the result values out of the PDF automatically
+  // (ReportsService.extractValues): DONE, EMPTY (nothing numeric found)
+  // or FAILED. Null means it hasn't been tried yet — the boot-time
+  // catch-up only picks up reports in that state, so each is tried once.
+  @Column({ name: 'values_status', length: 20, nullable: true })
+  valuesStatus?: string;
+
+  // Short human-readable detail for the admin ("Read 24 values", or why
+  // it failed).
+  @Column({ name: 'values_note', type: 'text', nullable: true })
+  valuesNote?: string;
 }

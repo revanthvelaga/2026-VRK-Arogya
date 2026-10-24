@@ -90,6 +90,15 @@ export class ReportsController {
     return this.reportsService.addValues(id, user, dto);
   }
 
+  // Reads the values out of the uploaded PDF again (replacing any that are
+  // there) — the admin's "Read from PDF" button.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Post('reports/:id/extract-values')
+  extractValues(@Param('id') id: string) {
+    return this.reportsService.extractValues(id, { replace: true });
+  }
+
   @Get('reports/:id/values')
   findValues(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.reportsService.findValues(id, user);

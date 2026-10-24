@@ -138,6 +138,48 @@ function ReportCard({ report }: { report: Report }) {
   const [viewing, setViewing] = useState(false);
   const [showValuesForm, setShowValuesForm] = useState(false);
   const abnormalCount = values.filter((v) => v.isAbnormal).length;
+  const [reading, setReading] = useState(false);
+  const [readNote, setReadNote] = useState<string | null>(null);
+
+  // Values are read from the PDF automatically right after upload — keep
+  // checking for a couple of minutes until they show up.
+  const waitingForAutoRead = valuesApi.data != null && values.length === 0 && !report.valuesStatus;
+  useEffect(() => {
+    if (!waitingForAutoRead) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      valuesApi.reload();
+      if (tries >= 12) clearInterval(timer);
+    }, 10_000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitingForAutoRead, report.id]);
+
+  const readFromPdf = async () => {
+    if (values.length > 0 && !window.confirm('Replace the current values with a fresh read of the PDF?')) return;
+    setReading(true);
+    setReadNote(null);
+    try {
+      const read = await api.post<ReportValue[]>(`/reports/${report.id}/extract-values`, {});
+      setReadNote(read.length ? `Read ${read.length} values from the PDF` : 'No numeric results found in this file');
+      valuesApi.reload();
+    } catch (err) {
+      setReadNote(err instanceof Error ? err.message : 'Could not read the PDF');
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const statusNote =
+    readNote ??
+    (values.length > 0
+      ? null
+      : report.valuesStatus === 'FAILED' || report.valuesStatus === 'EMPTY'
+        ? report.valuesNote ?? null
+        : !report.valuesStatus
+          ? 'Reading values from the PDF…'
+          : null);
 
   const download = async () => {
     setDownloading(true);
@@ -176,11 +218,20 @@ function ReportCard({ report }: { report: Report }) {
           <button className="btn btn-small" onClick={download} disabled={downloading}>
             {downloading ? 'Downloading…' : 'Download'}
           </button>
+          <button className="btn btn-small" onClick={readFromPdf} disabled={reading}>
+            {reading ? 'Reading…' : 'Read from PDF'}
+          </button>
           <button className="btn btn-small" onClick={() => setShowValuesForm((v) => !v)}>
-            {showValuesForm ? 'Close' : values.length > 0 ? 'Edit values' : 'Add values'}
+            {showValuesForm ? 'Close' : values.length > 0 ? 'Add more' : 'Add manually'}
           </button>
         </div>
       </div>
+
+      {statusNote && (
+        <div className="page-sub" style={{ margin: '10px 0 0', fontSize: 12.5 }}>
+          {statusNote}
+        </div>
+      )}
 
       {values.length > 0 && !showValuesForm && (
         <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>

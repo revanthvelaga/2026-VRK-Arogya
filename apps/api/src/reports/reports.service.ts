@@ -1,4 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Report } from './entities/report.entity';
@@ -29,7 +36,47 @@ const METADATA_COLUMNS: (keyof Report)[] = [
   'uploadedBy',
   'generatedAt',
   'reviewedBy',
+  'valuesStatus',
+  'valuesNote',
 ];
+
+// What the model returns for each result row it finds in the PDF.
+interface ExtractedParameter {
+  name: string;
+  value: number | null;
+  unit?: string | null;
+  refLow?: number | null;
+  refHigh?: number | null;
+  category?: string | null;
+  catalogTestId?: string | null;
+}
+
+const EXTRACT_SCHEMA = {
+  type: 'object',
+  properties: {
+    parameters: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          value: { type: 'number', nullable: true },
+          unit: { type: 'string', nullable: true },
+          refLow: { type: 'number', nullable: true },
+          refHigh: { type: 'number', nullable: true },
+          category: { type: 'string', nullable: true },
+          catalogTestId: { type: 'string', nullable: true },
+        },
+        required: ['name', 'value'],
+      },
+    },
+  },
+  required: ['parameters'],
+};
+
+// Reports uploaded more than this long ago aren't picked up by the
+// boot-time catch-up (old test uploads, re-uploads, etc.).
+const BACKFILL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface ReportValueWithTrend extends ReportValue {
   previousValue?: number;
@@ -38,8 +85,11 @@ export interface ReportValueWithTrend extends ReportValue {
 }
 
 @Injectable()
-export class ReportsService {
+export class ReportsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ReportsService.name);
+  // Report ids being read right now, so an upload's background read and
+  // the boot catch-up never both work on the same report.
+  private readonly extracting = new Set<string>();
 
   constructor(
     @InjectRepository(Report)
@@ -82,7 +132,166 @@ export class ReportsService {
       booking.patientId,
     );
 
+    // Read the result values out of the PDF in the background so the
+    // upload itself returns straight away; Insights fill in once it's done.
+    this.extractInBackground(report.id);
+
     return this.toPublic(report);
+  }
+
+  // ------------------------------------------------------------------
+  // Reading result values out of the uploaded PDF (powers Insights).
+  // ------------------------------------------------------------------
+
+  onApplicationBootstrap() {
+    if (process.env.NODE_ENV === 'test') return;
+    // Catch up on recent reports that were uploaded before this existed
+    // (or while the AI was unreachable). Delayed so it never slows boot.
+    setTimeout(() => void this.backfillValues(), 20_000).unref();
+  }
+
+  private async backfillValues(): Promise<void> {
+    if (!this.ai.enabled) return;
+    try {
+      const pending: Array<{ id: string }> = await this.reportsRepo.query(
+        `SELECT r.id::text AS id FROM reports r
+          WHERE r.values_status IS NULL
+            AND r.file_data IS NOT NULL
+            AND r.generated_at > $1
+            AND NOT EXISTS (SELECT 1 FROM report_values v WHERE v.report_id::text = r.id::text)
+          ORDER BY r.generated_at DESC`,
+        [new Date(Date.now() - BACKFILL_WINDOW_MS)],
+      );
+      for (const { id } of pending) {
+        await this.extractValues(id, { replace: false }).catch(() => undefined);
+      }
+    } catch (err) {
+      this.logger.warn(`Report value catch-up skipped: ${(err as Error).message}`);
+    }
+  }
+
+  extractInBackground(reportId: string): void {
+    if (!this.ai.enabled) return;
+    void this.extractValues(reportId, { replace: false }).catch(() => undefined);
+  }
+
+  // Sends the PDF to the AI, which returns each numeric result with its
+  // unit and the reference range printed on the report, and saves them as
+  // report values. `replace` (the admin's "Read from PDF" button) clears
+  // existing values first; otherwise a report that already has values is
+  // left alone.
+  async extractValues(reportId: string, opts: { replace: boolean }): Promise<ReportValue[]> {
+    if (!this.ai.enabled) {
+      throw new BadRequestException('Reading reports needs GEMINI_API_KEY to be set on the server');
+    }
+    if (this.extracting.has(reportId)) {
+      throw new BadRequestException('This report is already being read — check back in a minute');
+    }
+    const report = await this.reportsRepo.findOne({ where: { id: reportId } });
+    if (!report) throw new NotFoundException('Report not found');
+    if (!report.fileData) throw new BadRequestException('This report has no file — re-upload it first');
+    if (!/pdf|image\//i.test(report.mimeType)) {
+      throw new BadRequestException('Only PDF or image reports can be read automatically');
+    }
+
+    const existing = await this.reportValuesRepo.count({ where: { reportId } });
+    if (existing > 0 && !opts.replace) return this.reportValuesRepo.find({ where: { reportId } });
+
+    this.extracting.add(reportId);
+    try {
+      const tests = await this.testsService.findAllForAdmin();
+      const catalog = tests
+        .filter((t) => t.normalRangeUnit)
+        .map((t) => `${t.id} | ${t.name} | headline: ${t.normalRangeUnit} | category: ${t.category ?? ''}`)
+        .join('\n');
+      const categories = [...new Set(tests.map((t) => t.category).filter(Boolean))].join(', ');
+
+      const { parameters } = await this.ai.json<{ parameters: ExtractedParameter[] }>({
+        system:
+          'You read Indian diagnostic lab reports and extract every numeric test result exactly as printed. ' +
+          'Never invent, estimate or convert values. Skip qualitative results (Negative, Nil, Absent, Reactive…), ' +
+          'headings, patient details and remarks.',
+        content: [
+          {
+            type: report.mimeType.includes('pdf') ? 'document' : 'image',
+            mimeType: report.mimeType,
+            data: report.fileData.toString('base64'),
+          },
+          {
+            type: 'text',
+            text:
+              'Extract every numeric result from this lab report. For each one give:\n' +
+              '- name: the parameter name as printed (e.g. "Hemoglobin", "TSH", "Serum Creatinine")\n' +
+              '- value: the number only\n' +
+              '- unit: as printed, or null\n' +
+              '- refLow / refHigh: the printed reference (biological) range bounds; use null for a missing side ' +
+              '(e.g. "< 200" → refLow null, refHigh 200)\n' +
+              `- category: the closest of these: ${categories}; or a short sensible one (e.g. "Blood Health")\n` +
+              '- catalogTestId: ONLY if this parameter is exactly the headline measure of one of these catalog tests, ' +
+              'that test\'s id; otherwise null:\n' +
+              catalog,
+          },
+        ],
+        schema: EXTRACT_SCHEMA,
+        maxTokens: 8000,
+      });
+
+      const catalogById = new Map(tests.map((t) => [t.id, t]));
+      const seen = new Set<string>();
+      const rows: ReportValue[] = [];
+      for (const p of parameters ?? []) {
+        const name = (p.name ?? '').trim().slice(0, 150);
+        const value = typeof p.value === 'number' ? p.value : Number(p.value);
+        if (!name || !Number.isFinite(value) || seen.has(name.toLowerCase())) continue;
+        seen.add(name.toLowerCase());
+
+        const test = p.catalogTestId ? catalogById.get(p.catalogTestId) : undefined;
+        const num = (n: unknown) => (n == null || n === '' || !Number.isFinite(Number(n)) ? undefined : Number(n));
+        // The lab's own printed range wins; the catalog's is the fallback.
+        const printedLow = num(p.refLow);
+        const printedHigh = num(p.refHigh);
+        const hasPrinted = printedLow != null || printedHigh != null;
+        const normalLow = hasPrinted ? printedLow : num(test?.normalRangeLow);
+        const normalHigh = hasPrinted ? printedHigh : num(test?.normalRangeHigh);
+        const isAbnormal = (normalLow != null && value < normalLow) || (normalHigh != null && value > normalHigh);
+
+        rows.push(
+          this.reportValuesRepo.create({
+            reportId,
+            testId: test?.id,
+            testName: name,
+            category: (test?.category ?? p.category ?? undefined)?.slice(0, 50),
+            value,
+            unit: (p.unit ?? undefined)?.slice(0, 30) || undefined,
+            normalLow,
+            normalHigh,
+            isAbnormal,
+          }),
+        );
+      }
+
+      const saved = await this.reportValuesRepo.manager.transaction(async (manager) => {
+        if (opts.replace) await manager.delete(ReportValue, { reportId });
+        return rows.length ? manager.save(ReportValue, rows) : [];
+      });
+      await this.reportsRepo.update(reportId, {
+        valuesStatus: saved.length ? 'DONE' : 'EMPTY',
+        valuesNote: saved.length
+          ? `Read ${saved.length} value${saved.length === 1 ? '' : 's'} from the PDF`
+          : 'No numeric results found in this file',
+      });
+      this.logger.log(`Report ${reportId.slice(0, 8)}: read ${saved.length} values from the PDF`);
+      return saved;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Report ${reportId.slice(0, 8)}: could not read values — ${message}`);
+      await this.reportsRepo
+        .update(reportId, { valuesStatus: 'FAILED', valuesNote: message.slice(0, 300) })
+        .catch(() => undefined);
+      throw err;
+    } finally {
+      this.extracting.delete(reportId);
+    }
   }
 
   // Reports carry clinical results — unlike sample-collection duties, a

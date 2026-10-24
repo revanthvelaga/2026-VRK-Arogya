@@ -383,6 +383,10 @@ export interface Report {
   uploadedBy: string;
   generatedAt: string;
   reviewedBy?: string;
+  // Automatic reading of values from the PDF: DONE / EMPTY / FAILED,
+  // or absent while it hasn't run yet.
+  valuesStatus?: 'DONE' | 'EMPTY' | 'FAILED' | null;
+  valuesNote?: string | null;
 }
 
 export interface ReportValue {
