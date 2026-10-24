@@ -19,6 +19,8 @@ import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { TestsService } from '../catalog/tests.service';
 import { AiService } from '../ai/ai.service';
+import type { AiContentBlock } from '../ai/ai.service';
+import { extractPdfText, looksLikeReportText } from './pdf-text';
 import { PatientsService } from '../patients/patients.service';
 
 export type PublicReport = Omit<Report, 'fileData' | 'booking'>;
@@ -218,17 +220,26 @@ export class ReportsService implements OnApplicationBootstrap {
         .join('\n');
       const categories = [...new Set(tests.map((t) => t.category).filter(Boolean))].join(', ');
 
+      // Digital PDFs: read the text here (about a second) and send only
+      // that — tiny next to the file, so any fast text model can answer in
+      // seconds. Scans (no text layer) and photos go to the AI as files.
+      const isPdf = report.mimeType.includes('pdf');
+      const pdfText = isPdf ? await extractPdfText(report.fileData) : '';
+      const useText = looksLikeReportText(pdfText);
+      this.logger.log(
+        `Report ${reportId.slice(0, 8)}: ${useText ? `using the PDF's text (${pdfText.length} chars)` : 'no text layer — sending the file to the AI'}`,
+      );
+      const source: AiContentBlock[] = useText
+        ? [{ type: 'text', text: `LAB REPORT TEXT (extracted from the PDF):\n"""\n${pdfText.slice(0, 60_000)}\n"""` }]
+        : [{ type: isPdf ? 'document' : 'image', mimeType: report.mimeType, data: report.fileData.toString('base64') }];
+
       const { parameters } = await this.ai.json<{ parameters: ExtractedParameter[] }>({
         system:
           'You read Indian diagnostic lab reports and extract every numeric test result exactly as printed. ' +
           'Never invent, estimate or convert values. Skip qualitative results (Negative, Nil, Absent, Reactive…), ' +
           'headings, patient details and remarks.',
         content: [
-          {
-            type: report.mimeType.includes('pdf') ? 'document' : 'image',
-            mimeType: report.mimeType,
-            data: report.fileData.toString('base64'),
-          },
+          ...source,
           {
             type: 'text',
             text:
@@ -246,8 +257,9 @@ export class ReportsService implements OnApplicationBootstrap {
         ],
         schema: EXTRACT_SCHEMA,
         // A full-body report runs to 60+ parameters; 8k tokens cut the
-        // answer off mid-JSON.
-        maxTokens: 32_000,
+        // answer off mid-JSON. (16k keeps text-only backups like Groq, whose
+        // output caps are lower, able to answer.)
+        maxTokens: useText ? 16_000 : 32_000,
       });
 
       const catalogById = new Map(tests.map((t) => [t.id, t]));
