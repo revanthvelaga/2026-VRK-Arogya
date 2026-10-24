@@ -6,6 +6,7 @@ import { SampleStatusHistory } from './entities/sample-status-history.entity';
 import { SampleImage, SampleImageKind } from './entities/sample-image.entity';
 import { UpdateSampleStatusDto } from './dto/update-sample-status.dto';
 import { SampleStatus } from '../common/enums/sample-status.enum';
+import { Role } from '../common/enums/role.enum';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
 import { BookingsService } from '../bookings/bookings.service';
 import { PartnerLabsService } from '../partner-labs/partner-labs.service';
@@ -107,10 +108,18 @@ export class SamplesService {
     id: string,
     staffUserId: string,
     dto: UpdateSampleStatusDto,
+    actorRole?: string,
   ): Promise<Sample> {
     const sample = await this.findOne(id);
+    const previousStatus = sample.status;
     const allowedNext = ALLOWED_TRANSITIONS[sample.status];
-    if (!allowedNext.includes(dto.status)) {
+    // Admins can close a sample out in one step (straight to Delivered)
+    // from any stage; agents still follow the step-by-step lifecycle.
+    const adminShortcut =
+      actorRole === Role.ADMIN &&
+      dto.status === SampleStatus.DELIVERED &&
+      sample.status !== SampleStatus.DELIVERED;
+    if (!adminShortcut && !allowedNext.includes(dto.status)) {
       throw new BadRequestException(
         `Cannot move a sample from ${sample.status} to ${dto.status}`,
       );
@@ -174,8 +183,11 @@ export class SamplesService {
     });
 
     // Only the two milestones a customer actually cares about — not every
-    // intermediate transit/at-center step.
-    if (dto.status === SampleStatus.COLLECTED || dto.status === SampleStatus.RESULT_READY) {
+    // intermediate transit/at-center step. An admin jumping straight to
+    // Delivered skips Result ready, so the customer still gets that message.
+    const skippedResultReady =
+      dto.status === SampleStatus.DELIVERED && previousStatus !== SampleStatus.RESULT_READY;
+    if (dto.status === SampleStatus.COLLECTED || dto.status === SampleStatus.RESULT_READY || skippedResultReady) {
       booking ??= await this.bookingsService.findOne(saved.bookingId);
       const type =
         dto.status === SampleStatus.COLLECTED

@@ -35,7 +35,14 @@ export function SampleCollectionCard({
   // (i.e. the agent-allowed set ran out at AT_CENTER).
   endOfJobMessage?: string;
 }) {
-  const nextOptions = allowedNextStatuses ?? SAMPLE_TRANSITIONS[sample.status];
+  // Admin view: besides the next step, an admin can close the sample out
+  // straight to Delivered from any stage.
+  const adminOptions = SAMPLE_TRANSITIONS[sample.status];
+  const nextOptions =
+    allowedNextStatuses ??
+    (sample.status === 'DELIVERED' || adminOptions.includes('DELIVERED')
+      ? adminOptions
+      : [...adminOptions, 'DELIVERED' as SampleStatus]);
   const [nextStatus, setNextStatus] = useState<SampleStatus | ''>('');
   const [partnerLabId, setPartnerLabId] = useState('');
   const [turnaround, setTurnaround] = useState('');

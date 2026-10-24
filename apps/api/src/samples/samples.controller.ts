@@ -62,7 +62,7 @@ export class SamplesController {
     @Param('id') id: string,
     @Body() dto: UpdateSampleStatusDto,
   ) {
-    const sample = await this.samplesService.updateStatus(id, user.userId, dto);
+    const sample = await this.samplesService.updateStatus(id, user.userId, dto, user.role);
     this.staffAlerts.sampleUpdate(user, sample.bookingId, dto.status);
     return sample;
   }
