@@ -244,7 +244,9 @@ export class ReportsService implements OnApplicationBootstrap {
             type: 'text',
             text:
               'Extract every numeric result from this lab report. For each one give:\n' +
-              '- name: the parameter name as printed (e.g. "Hemoglobin", "TSH", "Serum Creatinine")\n' +
+              '- name: the test/parameter name as printed (e.g. "Hemoglobin", "TSH", "Total Cholesterol", ' +
+              '"Glucose Fasting") — never the method/technique printed beside it (CHOD-POD, Hexokinase, GOD-POD, ' +
+              'CLIA, ECLIA, Photometry, Calculated…)\n' +
               '- value: the number only\n' +
               '- unit: as printed, or null\n' +
               '- refLow / refHigh: the printed reference (biological) range bounds; use null for a missing side ' +
