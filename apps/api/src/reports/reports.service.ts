@@ -151,7 +151,10 @@ export class ReportsService implements OnApplicationBootstrap {
   }
 
   private async backfillValues(): Promise<void> {
-    if (!this.ai.enabled) return;
+    if (!this.ai.enabled) {
+      this.logger.warn('Report value catch-up skipped: no AI key configured');
+      return;
+    }
     try {
       const pending: Array<{ id: string }> = await this.reportsRepo.query(
         `SELECT r.id::text AS id FROM reports r
@@ -162,6 +165,7 @@ export class ReportsService implements OnApplicationBootstrap {
           ORDER BY r.generated_at DESC`,
         [new Date(Date.now() - BACKFILL_WINDOW_MS)],
       );
+      this.logger.log(`Report value catch-up: ${pending.length} report(s) to read`);
       for (const { id } of pending) {
         await this.extractValues(id, { replace: false }).catch(() => undefined);
       }
@@ -198,6 +202,10 @@ export class ReportsService implements OnApplicationBootstrap {
     if (existing > 0 && !opts.replace) return this.reportValuesRepo.find({ where: { reportId } });
 
     this.extracting.add(reportId);
+    const startedAt = Date.now();
+    this.logger.log(
+      `Report ${reportId.slice(0, 8)}: reading values from ${report.fileName} (${Math.round(report.fileData.length / 1024)} KB)…`,
+    );
     try {
       const tests = await this.testsService.findAllForAdmin();
       const catalog = tests
@@ -280,7 +288,9 @@ export class ReportsService implements OnApplicationBootstrap {
           ? `Read ${saved.length} value${saved.length === 1 ? '' : 's'} from the PDF`
           : 'No numeric results found in this file',
       });
-      this.logger.log(`Report ${reportId.slice(0, 8)}: read ${saved.length} values from the PDF`);
+      this.logger.log(
+        `Report ${reportId.slice(0, 8)}: read ${saved.length} values from the PDF in ${Math.round((Date.now() - startedAt) / 1000)}s`,
+      );
       return saved;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

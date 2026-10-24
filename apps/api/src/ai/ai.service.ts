@@ -331,7 +331,13 @@ export class AiService {
     maxTokens: number,
     responseSchema?: ResponseSchema,
   ): Promise<string> {
-    const model = this.requireClient().getGenerativeModel({ model: modelName, systemInstruction: system });
+    // Without a timeout the SDK waits forever on a stalled request; a PDF
+    // gets longer than plain text since big scans take Gemini a while.
+    const hasFile = blocks.some((b) => b.type !== 'text');
+    const model = this.requireClient().getGenerativeModel(
+      { model: modelName, systemInstruction: system },
+      { timeout: hasFile ? 150_000 : 60_000 },
+    );
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: toParts(blocks) }],
       generationConfig: {
