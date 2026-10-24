@@ -42,20 +42,45 @@ export class EmailChannelService implements OnModuleInit {
       return;
     }
 
-    const testAccount = await nodemailer.createTestAccount();
-    this.transporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-      ...timeouts,
-    });
-    this.logger.log(
-      `Email channel ready — no SMTP_HOST set, using a throwaway Ethereal test inbox (${testAccount.user}). Set SMTP_HOST/SMTP_USER/SMTP_PASS to use a real provider.`,
-    );
+    // No SMTP configured: fall back to an Ethereal test inbox. Creating one
+    // is an HTTP call to Ethereal with no timeout of its own, so it must
+    // never be awaited here — when Ethereal was slow, the whole API hung on
+    // boot and nobody could sign in. Start it in the background with a hard
+    // timeout; until it's ready (or if it fails) mail goes to a log-only
+    // transport so sends never throw.
+    this.transporter = nodemailer.createTransport({ jsonTransport: true });
+    this.ready = this.setUpEtherealInBackground(timeouts);
+  }
+
+  private ready: Promise<void> = Promise.resolve();
+
+  private async setUpEtherealInBackground(timeouts: Record<string, number>): Promise<void> {
+    try {
+      const testAccount = await Promise.race([
+        nodemailer.createTestAccount(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Ethereal did not answer within 10s')), 10_000).unref(),
+        ),
+      ]);
+      this.transporter = nodemailer.createTransport({
+        host: testAccount.smtp.host,
+        port: testAccount.smtp.port,
+        secure: testAccount.smtp.secure,
+        auth: { user: testAccount.user, pass: testAccount.pass },
+        ...timeouts,
+      });
+      this.logger.log(
+        `Email channel ready — no SMTP_HOST set, using a throwaway Ethereal test inbox (${testAccount.user}). Set SMTP_HOST/SMTP_USER/SMTP_PASS to use a real provider.`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Ethereal test inbox unavailable (${(err as Error).message}) — emails will only be logged. Set SMTP_HOST/SMTP_USER/SMTP_PASS to use a real provider.`,
+      );
+    }
   }
 
   async send(to: string, subject: string, text: string): Promise<SendResult> {
+    await this.ready;
     const info = await this.transporter.sendMail({ from: this.fromAddress, to, subject, text });
     const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
     if (previewUrl) {
