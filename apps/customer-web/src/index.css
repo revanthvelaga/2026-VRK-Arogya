@@ -4360,6 +4360,20 @@ a.suggest-name:hover {
     padding: 12px 16px;
   }
 
+  /* Inside the Arogya app, the app itself already keeps the web view
+     clear of the phone's navigation bar. Newer Android web views still
+     report that bar's height as a safe-area inset, so adding it here
+     left an empty strip under the tab bar. */
+  html.in-app .bottom-tabbar {
+    padding-bottom: 6px;
+  }
+  html.in-app .site-shell {
+    padding-bottom: 64px;
+  }
+  html.in-app .cart-bar {
+    bottom: 64px;
+  }
+
   .mobile-only {
     display: block;
   }
