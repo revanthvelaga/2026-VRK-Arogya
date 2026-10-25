@@ -15,9 +15,9 @@ Two-sided platform:
 | Admin panel | **React (Vite) web app** | Admin work is desk-based; a web dashboard is easier to use than mobile for catalog/ops management |
 | Backend API | **Node.js + NestJS** | TypeScript, structured like Spring Boot (modules/controllers/services/DI) — easy transition from your Java background |
 | Database | **PostgreSQL + PostGIS** | PostGIS gives native `ST_DWithin` radius queries for the 20km pickup-point logic |
-| Auth | **JWT + refresh tokens**, role-based (ADMIN, STAFF, CUSTOMER). Sign in by password, **mobile OTP via Firebase Phone Authentication**, or Google | Simple, standard, works across mobile + web. Firebase only checks the phone number; our API then issues its own JWT (sessions end 30 min after sign-in) |
+| Auth | **JWT + refresh tokens**, role-based (ADMIN, STAFF, CUSTOMER) | Simple, standard, works across mobile + web |
 | File storage (PDF reports, images) | **AWS S3** (or local disk for MVP) | You already have AWS background |
-| Notifications | **Built:** in-app bell (stored in Postgres; admins also get agent updates) + email. **Not built yet:** push (Firebase Cloud Messaging) and SMS alerts via a gateway (e.g. MSG91) for villagers without smartphones | Rural users may rely on SMS more than push. The OTP sign-in SMS is separate: Firebase Phone Auth sends it |
+| Notifications | **Firebase Cloud Messaging** (push) + SMS via a gateway (e.g. MSG91) for villagers without smartphones | Rural users may rely on SMS more than push |
 | Realtime status updates | **WebSockets (Socket.IO)** or simple polling for MVP | Sample status tracking |
 | CI / repo | **GitHub + GitHub Actions** | Daily commits, auto-lint/test on push |
 | Hosting | **Backend: Render/Railway/EC2. DB: managed Postgres (RDS/Supabase). Mobile: EAS Build → Play Store** | Cheap to start, scalable later |
@@ -58,8 +58,8 @@ BOOKED → COLLECTED → IN_TRANSIT_TO_CENTER → AT_CENTER
         ┌─────────────┼───────────────┐
         ▼             ▼               ▼
   ┌───────────┐ ┌────────────┐ ┌─────────────┐
-  │ PostgreSQL │ │   S3        │ │ Firebase OTP │
-  │ + PostGIS  │ │ (reports)   │ │  (SMS code)  │
+  │ PostgreSQL │ │   S3        │ │  FCM / SMS   │
+  │ + PostGIS  │ │ (reports)   │ │  gateway     │
   └───────────┘ └────────────┘ └─────────────┘
 ```
 
