@@ -21,10 +21,12 @@ where the customer has an email on file, a real email is also sent —
 not a fake one. There's a genuine, working SMTP integration behind this;
 in development it uses a free, zero-signup test inbox automatically, so
 it works out of the box without anyone having to sign up for anything.
-SMS and push notifications aren't built — both need a paid (Twilio) or
-platform-specific (Firebase) account this project doesn't have set up,
+SMS and push *notifications* aren't built — both need a paid (Twilio) or
+platform-specific (Firebase Cloud Messaging) account this project doesn't have set up,
 so rather than fake them, the code is written so plugging either in
-later is a small, contained change (see "In technical terms").
+later is a small, contained change (see "In technical terms"). (The OTP
+SMS used for sign-in is a different thing: it comes from Firebase Phone
+Authentication, and that is built.)
 
 **Report upload/download** — staff/admin can now attach a PDF report to
 a booking. Only the customer who owns that booking (or staff/admin) can
