@@ -53,6 +53,33 @@ jobs:
       - name: Install packages
         run: npm ci
 
+      # Push notifications need Firebase's google-services.json (Firebase
+      # console > Project settings > Your apps > Android, package
+      # com.arogya.customer). Keep it in a repository secret named
+      # GOOGLE_SERVICES_JSON (raw JSON, or base64 of it). Without the secret
+      # the app still builds and works, just without push.
+      - name: Add the Firebase file for push notifications
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::notice::No GOOGLE_SERVICES_JSON secret — building without push notifications."
+            exit 0
+          fi
+          case "$GOOGLE_SERVICES_JSON" in
+            "{"*) printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json ;;
+            *)    printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > google-services.json ;;
+          esac
+          node -e "
+            const j = require('./google-services.json');
+            const pkgs = (j.client || []).map(c => c.client_info.android_client_info.package_name);
+            if (!pkgs.includes('com.arogya.customer')) {
+              console.error('google-services.json is for', pkgs.join(', ') || 'no Android app', '- it must be for com.arogya.customer');
+              process.exit(1);
+            }
+            console.log('Firebase project', j.project_info.project_id, 'is set up for', 'com.arogya.customer');
+          "
+
       - name: Generate the Android project
         run: npx expo prebuild --platform android --no-install --clean
 

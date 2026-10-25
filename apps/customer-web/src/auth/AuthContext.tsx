@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api, decodeJwt, endSession, getSession, recordActivity, setSession, setUnauthorizedHandler } from '../api/client';
 import type { AuthSession, Role } from '../api/types';
+import { unregisterPushToken } from '../lib/push';
 
 export interface CurrentUser {
   userId: string;
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    unregisterPushToken();
     endSession(null);
     setUser(null);
     setWelcome(null);

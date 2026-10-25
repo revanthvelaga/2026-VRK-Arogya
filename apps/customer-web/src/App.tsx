@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WelcomeSplash } from './components/WelcomeSplash';
+import { PushBridge } from './components/PushBridge';
 import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
@@ -28,6 +29,7 @@ export function App() {
       <AuthProvider>
         <CartProvider>
           <WelcomeSplash />
+          <PushBridge />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />

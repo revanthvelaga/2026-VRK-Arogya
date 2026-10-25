@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import type { NotificationResponse } from 'expo-notifications';
 import * as Location from 'expo-location';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as Notifications from 'expo-notifications';
 
 // The app is the Arogya website in a full-screen web view, so every
 // feature on the site is in the app the moment it's deployed — no
 // separate native screens to keep in step. The native side only adds
 // what a web page can't do on its own inside an app: the back button,
 // phone/WhatsApp/UPI links, and saving downloaded files.
-const SITE_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://arogya-customer-web.onrender.com';
+const SITE_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://arogya-customer-web.onrender.com').replace(/\/$/, '');
 const SITE_HOST = new URL(SITE_URL).host;
 
 // Pages allowed to open inside the app; anything else (maps, WhatsApp web,
@@ -28,6 +30,32 @@ function opensInside(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+// ---- Push notifications (Firebase Cloud Messaging) ----
+// The server sends the pushes; this app only gets permission, fetches the
+// phone's FCM token and hands it to the website, which (being the part
+// that is signed in) registers it with the API. No keys live in the app.
+// Delivery is best-effort — a phone that is offline or has notifications
+// blocked just doesn't get it; everything is also in the in-app bell.
+const CHANNEL_ID = 'arogya_updates'; // must match the server's FCM message
+
+// Shown while the app is open too, not only in the background.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    // Android shows the heads-up banner only when sound is allowed.
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+// The server puts the page to open in `data.route` (e.g. /bookings/<id>).
+// Only paths on our own site are ever opened.
+function routeOf(response: NotificationResponse | null | undefined): string | null {
+  const raw = response?.notification.request.content.data?.route;
+  return typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : null;
 }
 
 const EXT_BY_TYPE: Record<string, string> = {
@@ -58,6 +86,75 @@ function ArogyaWebApp() {
   const canGoBack = useRef(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  // Opened from a tap on a notification while the app was closed: start
+  // straight on that booking / report instead of Home.
+  const [startUrl] = useState(() => {
+    let route: string | null = null;
+    try {
+      route = routeOf(Notifications.getLastNotificationResponse());
+      if (route) Notifications.clearLastNotificationResponse();
+    } catch {
+      // Notifications unavailable — just open Home.
+    }
+    return SITE_URL + (route ?? '');
+  });
+  const pageReady = useRef(false);
+  const pendingRoute = useRef<string | null>(null);
+  const settingUpPush = useRef(false);
+
+  const tellWeb = useCallback((eventName: string, detail: string) => {
+    webRef.current?.injectJavaScript(
+      `window.dispatchEvent(new CustomEvent(${JSON.stringify(eventName)},{detail:${JSON.stringify(detail)}}));true;`,
+    );
+  }, []);
+
+  // Asked for once the person is signed in (the website says so), so the
+  // permission prompt has a reason. Token refresh is handled below.
+  const setUpPush = useCallback(async () => {
+    if (settingUpPush.current) return;
+    settingUpPush.current = true;
+    try {
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+          name: 'Booking and report updates',
+          importance: Notifications.AndroidImportance.HIGH,
+          lightColor: '#0ea5a0',
+        });
+      }
+      let permission = await Notifications.getPermissionsAsync();
+      if (!permission.granted && permission.canAskAgain) permission = await Notifications.requestPermissionsAsync();
+      if (!permission.granted) return;
+      const token = await Notifications.getDevicePushTokenAsync();
+      tellWeb('arogya-push-token', String(token.data));
+    } catch {
+      // No Google Play services, or this build has no Firebase file: no push.
+    } finally {
+      settingUpPush.current = false;
+    }
+  }, [tellWeb]);
+
+  const openRoute = useCallback(
+    (route: string) => {
+      if (pageReady.current) tellWeb('arogya-open', route);
+      else pendingRoute.current = route; // delivered once the page has loaded
+    },
+    [tellWeb],
+  );
+
+  // Google rotates the token now and then: pass the new one along. A tap on
+  // a notification while the app is running opens its page.
+  useEffect(() => {
+    const tokenSub = Notifications.addPushTokenListener((token) => tellWeb('arogya-push-token', String(token.data)));
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const route = routeOf(response);
+      if (route) openRoute(route);
+      Notifications.clearLastNotificationResponse();
+    });
+    return () => {
+      tokenSub.remove();
+      responseSub.remove();
+    };
+  }, [tellWeb, openRoute]);
 
   // Finding nearby centers uses the phone's location.
   useEffect(() => {
@@ -94,12 +191,16 @@ function ArogyaWebApp() {
     } catch {
       return;
     }
+    if (msg.type === 'push-token-request') {
+      void setUpPush();
+      return;
+    }
     if (msg.type === 'download' && msg.url) {
       saveAndShare(msg.url, msg.fileName ?? '', msg.token).catch((err: Error) =>
         webRef.current?.injectJavaScript(`alert(${JSON.stringify(`Couldn't open the file: ${err.message}`)}); true;`),
       );
     }
-  }, []);
+  }, [setUpPush]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -123,12 +224,19 @@ function ArogyaWebApp() {
       <WebView
         ref={webRef}
         style={failed ? styles.hidden : styles.web}
-        source={{ uri: SITE_URL }}
-        applicationNameForUserAgent="ArogyaApp/1.1"
+        source={{ uri: startUrl }}
+        applicationNameForUserAgent="ArogyaApp/1.2"
         onShouldStartLoadWithRequest={onShouldStart}
         setSupportMultipleWindows={false}
         onNavigationStateChange={(s) => (canGoBack.current = s.canGoBack)}
-        onLoadEnd={() => setLoading(false)}
+        onLoadEnd={() => {
+          setLoading(false);
+          pageReady.current = true;
+          if (pendingRoute.current) {
+            tellWeb('arogya-open', pendingRoute.current);
+            pendingRoute.current = null;
+          }
+        }}
         onError={() => setFailed(true)}
         onMessage={onMessage}
         javaScriptEnabled

@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Firebase config for push (written by the build from a secret)
+google-services.json

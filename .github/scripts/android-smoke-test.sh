@@ -18,6 +18,12 @@ for i in $(seq 1 30); do
   if ! adb shell pidof "$PKG" >/dev/null; then alive=0; break; fi
 done
 
+adb shell dumpsys package "$PKG" | grep -E "android.permission.(POST_NOTIFICATIONS|ACCESS_FINE_LOCATION)" | sort -u > smoke/permissions.txt || true
+cat smoke/permissions.txt
+if ! grep -q POST_NOTIFICATIONS smoke/permissions.txt; then
+  echo "::error::The app does not declare the notification permission (Android 13+ would never show the allow-notifications question)."
+  alive=0
+fi
 adb exec-out screencap -p > smoke/screen.png || true
 adb logcat -d -b crash > smoke/crash.log || true
 adb logcat -d | grep -E "AndroidRuntime|ReactNativeJS|FATAL|$PKG" | tail -300 > smoke/app.log || true
