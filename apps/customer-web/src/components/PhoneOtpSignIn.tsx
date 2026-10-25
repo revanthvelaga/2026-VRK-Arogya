@@ -165,7 +165,7 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
       {stage === 'code' && (
         <form onSubmit={onVerifyCode}>
           <p className="otp-sent-to">
-            Code sent to <b>+91 {phone}</b>
+            Code sent to <b>+91 {phone}</b>{provider === 'whatsapp' ? ' on WhatsApp' : ''}
           </p>
           <input
             ref={codeInputRef}
@@ -218,7 +218,7 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
 
       {error && <p className="otp-error">{error}</p>}
 
-      {provider !== 'msg91' && (
+      {provider !== 'whatsapp' && (
         <>
           {/* Google's terms allow hiding the floating reCAPTCHA badge (it sat
               on top of the card on phones) as long as this notice is shown. */}

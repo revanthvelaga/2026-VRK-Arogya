@@ -88,7 +88,7 @@ export function LoginPage() {
           <p>
             {mode === 'password'
               ? 'Sign in with your mobile number and password.'
-              : "We'll text a verification code to your mobile."}
+              : otp.provider === 'whatsapp' ? "We'll send a verification code to your WhatsApp." : "We'll text a verification code to your mobile."}
           </p>
         </div>
 

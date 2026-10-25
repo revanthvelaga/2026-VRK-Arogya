@@ -13,7 +13,7 @@ import { PatientsService } from '../patients/patients.service';
 import { GoogleAuthService } from './google-auth.service';
 import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { PhoneProofService } from './phone-proof.service';
-import { Msg91Service } from '../otp-settings/msg91.service';
+import { WhatsAppService } from '../otp-settings/whatsapp.service';
 import { OtpSettingsService } from '../otp-settings/otp-settings.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -44,7 +44,7 @@ export class AuthService {
     private readonly googleAuthService: GoogleAuthService,
     private readonly firebasePhoneAuthService: FirebasePhoneAuthService,
     private readonly phoneProof: PhoneProofService,
-    private readonly msg91: Msg91Service,
+    private readonly whatsapp: WhatsAppService,
     private readonly otpSettings: OtpSettingsService,
     private readonly walletService: WalletService,
   ) {}
@@ -149,15 +149,15 @@ export class AuthService {
 
   // The proof that a phone number is really the person's: either a
   // Firebase ID token (Firebase sent and checked the code) or one of our
-  // own short-lived notes issued by verifyMsg91Otp below.
+  // own short-lived notes issued by verifyWhatsAppOtp below.
   private verifyPhoneToken(token: string): Promise<{ phone: string }> | { phone: string } {
     return PhoneProofService.isProof(token) ? this.phoneProof.verify(token) : this.firebasePhoneAuthService.verify(token);
   }
 
-  // ---- MSG91: our server sends the SMS and checks the code ----
+  // ---- WhatsApp: our server sends the code and checks it ----
 
-  async sendMsg91Otp(phone: string, purpose: 'login' | 'register' | 'reset', portal: 'ADMIN' | 'STAFF' | undefined, ip: string) {
-    if (!this.msg91.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
+  async sendWhatsAppOtp(phone: string, purpose: 'login' | 'register' | 'reset', portal: 'ADMIN' | 'STAFF' | undefined, ip: string) {
+    if (!this.whatsapp.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
     if (!(await this.otpSettings.isEnabled())) {
       throw new ServiceUnavailableException('Mobile OTP sign-in is temporarily unavailable. Please use your password or Google sign-in.');
     }
@@ -166,18 +166,18 @@ export class AuthService {
       if (portal) {
         this.assertStaffPortal(user, portal, 'This mobile number isn’t linked to a staff account.');
       } else if (!user) {
-        // Password reset for a number with no account: don't pay for an SMS.
+        // Password reset for a number with no account: don't pay for a message.
         throw new NotFoundException('No account found for this phone number.');
       }
     }
-    await this.msg91.send(phone, ip);
+    await this.whatsapp.send(phone, ip);
     await this.otpSettings.logSend(`+91${phone}`, purpose).catch(() => undefined);
     return { sent: true };
   }
 
-  async verifyMsg91Otp(phone: string, otp: string) {
-    if (!this.msg91.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
-    await this.msg91.verify(phone, otp);
+  async verifyWhatsAppOtp(phone: string, otp: string) {
+    if (!this.whatsapp.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
+    await this.whatsapp.verify(phone, otp);
     return { proof: this.phoneProof.issue(phone) };
   }
 

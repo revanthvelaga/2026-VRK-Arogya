@@ -150,7 +150,7 @@ export function ForgotPasswordPage() {
           <p>
             {stage === 'password'
               ? 'Number verified — choose a new password.'
-              : "We'll text a verification code to confirm it's you."}
+              : otp.provider === 'whatsapp' ? "We'll send a verification code on WhatsApp to confirm it's you." : "We'll text a verification code to confirm it's you."}
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export function ForgotPasswordPage() {
           {stage === 'code' && (
             <form onSubmit={onVerifyCode}>
               <p className="otp-sent-to">
-                Code sent to <b>+91 {phone}</b>
+                Code sent to <b>+91 {phone}</b>{otp.provider === 'whatsapp' ? ' on WhatsApp' : ''}
               </p>
               <input
                 ref={codeInputRef}

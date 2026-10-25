@@ -11,12 +11,12 @@ export const firebasePhoneAuthConfigured = Boolean(apiKey && authDomain && proje
 
 // What both ways of sending the code hand back to the sign-in forms:
 // confirm(code) → something that can produce the token the API accepts.
-// Firebase's own ConfirmationResult already has this shape; the MSG91 flow
+// Firebase's own ConfirmationResult already has this shape; the WhatsApp flow
 // builds one below.
 export interface OtpConfirmation {
   confirm(code: string): Promise<{ user: { getIdToken(): Promise<string> } }>;
 }
-export type OtpProvider = 'firebase' | 'msg91';
+export type OtpProvider = 'firebase' | 'whatsapp';
 
 function getFirebaseAuth() {
   if (!firebasePhoneAuthConfigured) {
@@ -75,7 +75,7 @@ function getOtpStatus(): Promise<OtpStatus> {
   if (!otpStatus || Date.now() - otpStatus.at > STATUS_TTL_MS) {
     const value = api
       .get<{ enabled: boolean; provider?: OtpProvider }>('/otp/status')
-      .then((r) => ({ enabled: r.enabled, provider: r.provider === 'msg91' ? ('msg91' as const) : ('firebase' as const) }))
+      .then((r) => ({ enabled: r.enabled, provider: r.provider === 'whatsapp' ? ('whatsapp' as const) : ('firebase' as const) }))
       // Can't reach the switch — assume on, the Firebase way, rather than block sign-in.
       .catch(() => ({ enabled: true, provider: 'firebase' as const }));
     otpStatus = { at: Date.now(), value };
@@ -89,7 +89,7 @@ function otpEnabled(): Promise<boolean> {
 }
 
 // Whether mobile OTP can be offered at all, and which way it's sent. With
-// MSG91 nothing is needed in the browser (the server does everything), so
+// WhatsApp nothing is needed in the browser (the server does everything), so
 // it counts as available even when no Firebase settings are present.
 export function useOtpProvider(): { available: boolean; provider: OtpProvider | null } {
   const [provider, setProvider] = useState<OtpProvider | null>(lastKnownStatus?.provider ?? null);
@@ -100,14 +100,14 @@ export function useOtpProvider(): { available: boolean; provider: OtpProvider | 
       live = false;
     };
   }, []);
-  return { available: provider === 'msg91' || firebasePhoneAuthConfigured, provider };
+  return { available: provider === 'whatsapp' || firebasePhoneAuthConfigured, provider };
 }
 
 // Call when an OTP form mounts: starts the status check / API wake-up
 // and loads the invisible reCAPTCHA while the customer is still typing.
 export function prepareOtp(recaptchaContainerId: string): void {
   void getOtpStatus().then((status) => {
-    // reCAPTCHA is only a Firebase thing; the MSG91 flow has none.
+    // reCAPTCHA is only a Firebase thing; the WhatsApp flow has none.
     if (status.provider !== 'firebase' || !firebasePhoneAuthConfigured) return;
     try {
       void getRecaptchaVerifier(recaptchaContainerId)
@@ -161,8 +161,8 @@ export async function sendOtp(
   }
 
   const status = await getOtpStatus();
-  if (status.provider === 'msg91') {
-    // Our server texts the code (MSG91) and later checks it — the browser
+  if (status.provider === 'whatsapp') {
+    // Our server sends the code on WhatsApp and later checks it — the browser
     // only passes the number and the typed code along.
     const bare = phone.replace(/\D/g, '').slice(-10);
     await api.post('/auth/otp/send', { phone: bare, purpose, portal });

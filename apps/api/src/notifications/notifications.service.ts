@@ -7,15 +7,16 @@ import { EmailChannelService } from './email-channel.service';
 import { UsersService } from '../users/users.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { PushService } from '../push/push.service';
-import { SmsChannelService } from './sms-channel.service';
+import { WhatsAppChannelService } from './whatsapp-channel.service';
 
 // Extras a caller can attach so the same event also reaches the phone
 // properly: where a tap should open, a safer lock-screen wording, and the
-// short values that fill the SMS template.
+// short values that fill the WhatsApp template.
 export interface NotifyOptions {
   bookingId?: string;
   route?: string;
   pushBody?: string;
+  // Values for the WhatsApp booking-message template ({{2}}, {{3}}).
   sms?: Record<string, string>;
 }
 
@@ -71,7 +72,7 @@ export class NotificationsService {
     private readonly usersService: UsersService,
     private readonly emailChannel: EmailChannelService,
     private readonly push: PushService,
-    private readonly sms: SmsChannelService,
+    private readonly whatsappChannel: WhatsAppChannelService,
   ) {}
 
   // Always writes the in-app notification first, and returns as soon as
@@ -104,11 +105,11 @@ export class NotificationsService {
       );
     });
 
-    // Phone push (FCM) and SMS (MSG91) ride along, best-effort and in the
+    // Phone push (FCM) and WhatsApp ride along, best-effort and in the
     // background — the saved notification above is what counts.
     this.pushTo(userId, type, message, opts);
-    this.sms.send(userId, type, opts?.sms).catch((err) =>
-      this.logger.warn(`SMS for notification ${notification.id} failed: ${(err as Error).message}`),
+    this.whatsappChannel.send(userId, type, opts?.sms).catch((err) =>
+      this.logger.warn(`WhatsApp message for notification ${notification.id} failed: ${(err as Error).message}`),
     );
 
     // Family access: caregivers get a copy of everything the account they

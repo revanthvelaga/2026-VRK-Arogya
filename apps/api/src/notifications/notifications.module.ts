@@ -7,12 +7,12 @@ import { EmailChannelService } from './email-channel.service';
 import { UsersModule } from '../users/users.module';
 import { PushModule } from '../push/push.module';
 import { OtpSettingsModule } from '../otp-settings/otp-settings.module';
-import { SmsChannelService } from './sms-channel.service';
+import { WhatsAppChannelService } from './whatsapp-channel.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Notification]), UsersModule, PushModule, OtpSettingsModule],
   controllers: [NotificationsController],
-  providers: [NotificationsService, EmailChannelService, SmsChannelService],
+  providers: [NotificationsService, EmailChannelService, WhatsAppChannelService],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

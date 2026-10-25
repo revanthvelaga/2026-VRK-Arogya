@@ -34,17 +34,17 @@ export class AuthController {
     return this.authService.phoneOtpLogin(dto.idToken, dto.fullName, dto.referralCode, dto.portal);
   }
 
-  // MSG91 OTP: send the SMS, then check the code and get a short-lived
+  // WhatsApp OTP: send the code, then check it and get a short-lived
   // proof of the number to use with phone-otp / reset-password below.
   @Post('otp/send')
   sendOtp(@Body() dto: OtpSendDto, @Req() req: Request, @Headers('x-forwarded-for') forwarded?: string) {
     const ip = (forwarded?.split(',')[0] ?? req.ip ?? 'unknown').trim();
-    return this.authService.sendMsg91Otp(dto.phone, dto.purpose, dto.portal, ip);
+    return this.authService.sendWhatsAppOtp(dto.phone, dto.purpose, dto.portal, ip);
   }
 
   @Post('otp/verify')
   verifyOtp(@Body() dto: OtpVerifyDto) {
-    return this.authService.verifyMsg91Otp(dto.phone, dto.otp);
+    return this.authService.verifyWhatsAppOtp(dto.phone, dto.otp);
   }
 
   @Post('refresh')

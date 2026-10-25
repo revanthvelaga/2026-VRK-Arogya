@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { OtpSettingsService } from './otp-settings.service';
-import { Msg91Service } from './msg91.service';
+import { WhatsAppService } from './whatsapp.service';
 import { LogOtpSendDto } from './dto/log-otp-send.dto';
 import { SetOtpEnabledDto } from './dto/set-otp-enabled.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -12,7 +12,7 @@ import { Role } from '../common/enums/role.enum';
 export class OtpSettingsController {
   constructor(
     private readonly otpSettings: OtpSettingsService,
-    private readonly msg91: Msg91Service,
+    private readonly whatsapp: WhatsAppService,
   ) {}
 
   // Public — the sign-in page checks this before ever calling Firebase,
@@ -20,9 +20,9 @@ export class OtpSettingsController {
   // sent, not just hides a button.
   @Get('status')
   async status() {
-    // `provider` tells the pages which way the code is sent: 'msg91' means
-    // our server sends and checks it; anything else is the Firebase flow.
-    return { enabled: await this.otpSettings.isEnabled(), provider: this.msg91.isActive() ? 'msg91' : 'firebase' };
+    // `provider` tells the pages which way the code is sent: 'whatsapp' means
+    // our server sends the code over WhatsApp and checks it; anything else is the Firebase flow.
+    return { enabled: await this.otpSettings.isEnabled(), provider: this.whatsapp.isActive() ? 'whatsapp' : 'firebase' };
   }
 
   // Public, best-effort — called by the frontend right after Firebase

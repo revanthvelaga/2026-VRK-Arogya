@@ -7,7 +7,7 @@ import { IconArrowLeft, IconPhone } from './Icons';
 
 const RESEND_SECONDS = 30;
 
-// Mobile number in, SMS code in, signed in. Unlike the customer site
+// Mobile number in, code in, signed in. Unlike the customer site
 // there's no sign-up step: the server only lets in a number that already
 // belongs to an admin or agent account of the chosen tab.
 export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
@@ -113,7 +113,7 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
       ) : (
         <form onSubmit={onVerify}>
           <p className="otp-sent-to">
-            Code sent to <b>+91 {phone}</b>
+            Code sent to <b>+91 {phone}</b>{provider === 'whatsapp' ? ' on WhatsApp' : ''}
           </p>
           <input
             ref={codeInputRef}
@@ -151,7 +151,7 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
 
       {error && <p className="otp-error">{error}</p>}
 
-      {provider !== 'msg91' && (
+      {provider !== 'whatsapp' && (
         <p className="recaptcha-note">
           Protected by reCAPTCHA. Google{' '}
           <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">

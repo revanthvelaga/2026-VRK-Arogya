@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 
-// After MSG91 confirms a code, the server hands back this short-lived
+// After the server has checked a WhatsApp code, the server hands back this short-lived
 // signed note ("this browser proved it owns phone X"). It plays the part
 // Firebase's ID token plays: the sign-in, "finish sign-up with a name" and
 // "reset password" steps can each use it, without the one-time code being
