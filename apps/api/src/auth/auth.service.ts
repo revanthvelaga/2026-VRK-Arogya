@@ -1,10 +1,20 @@
-import { ForbiddenException, Injectable, NotFoundException, PreconditionFailedException, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  PreconditionFailedException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PatientsService } from '../patients/patients.service';
 import { GoogleAuthService } from './google-auth.service';
 import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
+import { PhoneProofService } from './phone-proof.service';
+import { Msg91Service } from '../otp-settings/msg91.service';
+import { OtpSettingsService } from '../otp-settings/otp-settings.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '../common/enums/role.enum';
@@ -33,6 +43,9 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly googleAuthService: GoogleAuthService,
     private readonly firebasePhoneAuthService: FirebasePhoneAuthService,
+    private readonly phoneProof: PhoneProofService,
+    private readonly msg91: Msg91Service,
+    private readonly otpSettings: OtpSettingsService,
     private readonly walletService: WalletService,
   ) {}
 
@@ -98,7 +111,7 @@ export class AuthService {
   // and only reaches us with the resulting (already-verified) token, so
   // there's no OTP to check here, only whose phone it belongs to.
   async phoneOtpLogin(idToken: string, fullName?: string, referralCode?: string, portal?: 'ADMIN' | 'STAFF') {
-    const { phone } = await this.firebasePhoneAuthService.verify(idToken);
+    const { phone } = await this.verifyPhoneToken(idToken);
 
     let user = await this.usersService.findByPhone(phone);
     if (portal) {
@@ -134,12 +147,46 @@ export class AuthService {
     }
   }
 
+  // The proof that a phone number is really the person's: either a
+  // Firebase ID token (Firebase sent and checked the code) or one of our
+  // own short-lived notes issued by verifyMsg91Otp below.
+  private verifyPhoneToken(token: string): Promise<{ phone: string }> | { phone: string } {
+    return PhoneProofService.isProof(token) ? this.phoneProof.verify(token) : this.firebasePhoneAuthService.verify(token);
+  }
+
+  // ---- MSG91: our server sends the SMS and checks the code ----
+
+  async sendMsg91Otp(phone: string, purpose: 'login' | 'register' | 'reset', portal: 'ADMIN' | 'STAFF' | undefined, ip: string) {
+    if (!this.msg91.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
+    if (!(await this.otpSettings.isEnabled())) {
+      throw new ServiceUnavailableException('Mobile OTP sign-in is temporarily unavailable. Please use your password or Google sign-in.');
+    }
+    if (portal || purpose === 'reset') {
+      const user = await this.usersService.findByPhone(phone);
+      if (portal) {
+        this.assertStaffPortal(user, portal, 'This mobile number isn’t linked to a staff account.');
+      } else if (!user) {
+        // Password reset for a number with no account: don't pay for an SMS.
+        throw new NotFoundException('No account found for this phone number.');
+      }
+    }
+    await this.msg91.send(phone, ip);
+    await this.otpSettings.logSend(`+91${phone}`, purpose).catch(() => undefined);
+    return { sent: true };
+  }
+
+  async verifyMsg91Otp(phone: string, otp: string) {
+    if (!this.msg91.isActive()) throw new ServiceUnavailableException('Mobile OTP sign-in is not set up yet.');
+    await this.msg91.verify(phone, otp);
+    return { proof: this.phoneProof.issue(phone) };
+  }
+
   // "Forgot password" — Firebase has already verified the phone (the same
   // proof the OTP sign-in endpoint trusts), so no separate reset-code
   // system is needed; this just confirms an account exists for that
   // number and overwrites its password, then logs the customer straight in.
   async resetPasswordWithPhone(idToken: string, newPassword: string) {
-    const { phone } = await this.firebasePhoneAuthService.verify(idToken);
+    const { phone } = await this.verifyPhoneToken(idToken);
 
     const user = await this.usersService.findByPhone(phone);
     if (!user) {

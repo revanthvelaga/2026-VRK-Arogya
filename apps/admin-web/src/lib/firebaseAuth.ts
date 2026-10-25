@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
-import type { ConfirmationResult } from 'firebase/auth';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { api } from '../api/client';
 
@@ -8,6 +8,15 @@ const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefin
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined;
 
 export const firebasePhoneAuthConfigured = Boolean(apiKey && authDomain && projectId);
+
+// What both ways of sending the code hand back to the sign-in forms:
+// confirm(code) → something that can produce the token the API accepts.
+// Firebase's own ConfirmationResult already has this shape; the MSG91 flow
+// builds one below.
+export interface OtpConfirmation {
+  confirm(code: string): Promise<{ user: { getIdToken(): Promise<string> } }>;
+}
+export type OtpProvider = 'firebase' | 'msg91';
 
 function getFirebaseAuth() {
   if (!firebasePhoneAuthConfigured) {
@@ -55,32 +64,59 @@ function resetRecaptchaVerifier() {
 // also hits the API) doesn't wait on it.
 const STATUS_TTL_MS = 5 * 60_000;
 const STATUS_WAIT_MS = 3_000;
-let otpStatus: { at: number; enabled: Promise<boolean> } | null = null;
+interface OtpStatus {
+  enabled: boolean;
+  provider: OtpProvider;
+}
+let otpStatus: { at: number; value: Promise<OtpStatus> } | null = null;
+let lastKnownStatus: OtpStatus | null = null;
+
+function getOtpStatus(): Promise<OtpStatus> {
+  if (!otpStatus || Date.now() - otpStatus.at > STATUS_TTL_MS) {
+    const value = api
+      .get<{ enabled: boolean; provider?: OtpProvider }>('/otp/status')
+      .then((r) => ({ enabled: r.enabled, provider: r.provider === 'msg91' ? ('msg91' as const) : ('firebase' as const) }))
+      // Can't reach the switch — assume on, the Firebase way, rather than block sign-in.
+      .catch(() => ({ enabled: true, provider: 'firebase' as const }));
+    otpStatus = { at: Date.now(), value };
+    void value.then((v) => (lastKnownStatus = v));
+  }
+  return otpStatus.value;
+}
 
 function otpEnabled(): Promise<boolean> {
-  if (!otpStatus || Date.now() - otpStatus.at > STATUS_TTL_MS) {
-    const enabled = api
-      .get<{ enabled: boolean }>('/otp/status')
-      .then((r) => r.enabled)
-      // Can't reach the switch — assume on rather than block sign-in.
-      .catch(() => true);
-    otpStatus = { at: Date.now(), enabled };
-  }
-  return otpStatus.enabled;
+  return getOtpStatus().then((s) => s.enabled);
+}
+
+// Whether mobile OTP can be offered at all, and which way it's sent. With
+// MSG91 nothing is needed in the browser (the server does everything), so
+// it counts as available even when no Firebase settings are present.
+export function useOtpProvider(): { available: boolean; provider: OtpProvider | null } {
+  const [provider, setProvider] = useState<OtpProvider | null>(lastKnownStatus?.provider ?? null);
+  useEffect(() => {
+    let live = true;
+    void getOtpStatus().then((s) => live && setProvider(s.provider));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return { available: provider === 'msg91' || firebasePhoneAuthConfigured, provider };
 }
 
 // Call when an OTP form mounts: starts the status check / API wake-up
 // and loads the invisible reCAPTCHA while the customer is still typing.
 export function prepareOtp(recaptchaContainerId: string): void {
-  if (!firebasePhoneAuthConfigured) return;
-  void otpEnabled();
-  try {
-    void getRecaptchaVerifier(recaptchaContainerId)
-      .render()
-      .catch(() => resetRecaptchaVerifier());
-  } catch {
-    // Firebase not ready — sendOtp will build it on demand.
-  }
+  void getOtpStatus().then((status) => {
+    // reCAPTCHA is only a Firebase thing; the MSG91 flow has none.
+    if (status.provider !== 'firebase' || !firebasePhoneAuthConfigured) return;
+    try {
+      void getRecaptchaVerifier(recaptchaContainerId)
+        .render()
+        .catch(() => resetRecaptchaVerifier());
+    } catch {
+      // Firebase not ready — sendOtp will build it on demand.
+    }
+  });
 }
 
 const FRIENDLY_ERRORS: Record<string, string> = {
@@ -110,7 +146,9 @@ export async function sendOtp(
   phone: string,
   recaptchaContainerId: string,
   purpose: OtpPurpose = 'login',
-): Promise<ConfirmationResult> {
+  // Staff console: only an existing account of this role gets a code.
+  portal?: 'ADMIN' | 'STAFF',
+): Promise<OtpConfirmation> {
   // Server-side kill switch (see the admin "SMS Usage" page) — checked
   // before Firebase is ever touched. Usually already answered by
   // prepareOtp(); never wait more than a few seconds on it.
@@ -120,6 +158,20 @@ export async function sendOtp(
   ]);
   if (!enabled) {
     throw new Error("Mobile OTP sign-in is temporarily unavailable. Please use your password or Google sign-in.");
+  }
+
+  const status = await getOtpStatus();
+  if (status.provider === 'msg91') {
+    // Our server texts the code (MSG91) and later checks it — the browser
+    // only passes the number and the typed code along.
+    const bare = phone.replace(/\D/g, '').slice(-10);
+    await api.post('/auth/otp/send', { phone: bare, purpose, portal });
+    return {
+      async confirm(code: string) {
+        const { proof } = await api.post<{ proof: string }>('/auth/otp/verify', { phone: bare, otp: code });
+        return { user: { getIdToken: async () => proof } };
+      },
+    };
   }
 
   const auth = getFirebaseAuth();

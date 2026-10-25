@@ -10,12 +10,15 @@ import { FirebasePhoneAuthService } from './firebase-phone-auth.service';
 import { UsersModule } from '../users/users.module';
 import { PatientsModule } from '../patients/patients.module';
 import { RewardsModule } from '../rewards/rewards.module';
+import { OtpSettingsModule } from '../otp-settings/otp-settings.module';
+import { PhoneProofService } from './phone-proof.service';
 
 @Module({
   imports: [
     UsersModule,
     PatientsModule,
     RewardsModule,
+    OtpSettingsModule,
     PassportModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -27,6 +30,6 @@ import { RewardsModule } from '../rewards/rewards.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService],
+  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService, PhoneProofService],
 })
 export class AuthModule {}

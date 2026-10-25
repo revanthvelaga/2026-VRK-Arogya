@@ -7,7 +7,7 @@ import { IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
 import { googleClientId } from '../lib/googleAuth';
-import { firebasePhoneAuthConfigured } from '../lib/firebaseAuth';
+import { useOtpProvider } from '../lib/firebaseAuth';
 
 interface LocationState {
   from?: { pathname: string; search?: string; hash?: string };
@@ -17,6 +17,7 @@ type Mode = 'password' | 'otp';
 
 export function LoginPage() {
   const { login, loginWithGoogle, user } = useAuth();
+  const otp = useOtpProvider();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<Mode>('password');
@@ -73,7 +74,7 @@ export function LoginPage() {
   };
 
   const hasGoogle = Boolean(googleClientId);
-  const hasOtp = firebasePhoneAuthConfigured;
+  const hasOtp = otp.available;
 
   return (
     <div className="login-screen">

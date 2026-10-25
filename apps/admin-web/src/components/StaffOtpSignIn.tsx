@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../auth/AuthContext';
-import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
+import { friendlyOtpError, prepareOtp, sendOtp, useOtpProvider } from '../lib/firebaseAuth';
+import type { OtpConfirmation } from '../lib/firebaseAuth';
 import { IconArrowLeft, IconPhone } from './Icons';
 
 const RESEND_SECONDS = 30;
@@ -15,11 +15,12 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
   const [stage, setStage] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const [confirmation, setConfirmation] = useState<OtpConfirmation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const { available, provider } = useOtpProvider();
 
   useEffect(() => {
     prepareOtp('recaptcha-container');
@@ -35,13 +36,13 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
     if (stage === 'code') codeInputRef.current?.focus();
   }, [stage]);
 
-  if (!firebasePhoneAuthConfigured) return null;
+  if (!available) return null;
 
   const sendCode = async (): Promise<boolean> => {
     setError(null);
     setBusy(true);
     try {
-      setConfirmation(await sendOtp(phone, 'recaptcha-container', 'login'));
+      setConfirmation(await sendOtp(phone, 'recaptcha-container', 'login', portal));
       setCooldown(RESEND_SECONDS);
       return true;
     } catch (err) {
@@ -150,17 +151,19 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
 
       {error && <p className="otp-error">{error}</p>}
 
-      <p className="recaptcha-note">
-        Protected by reCAPTCHA. Google{' '}
-        <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
-          Privacy
-        </a>{' '}
-        &amp;{' '}
-        <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">
-          Terms
-        </a>{' '}
-        apply.
-      </p>
+      {provider !== 'msg91' && (
+        <p className="recaptcha-note">
+          Protected by reCAPTCHA. Google{' '}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+            Privacy
+          </a>{' '}
+          &amp;{' '}
+          <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">
+            Terms
+          </a>{' '}
+          apply.
+        </p>
+      )}
     </div>
   );
 }

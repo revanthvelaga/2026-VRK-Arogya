@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { ConfirmationResult } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { IconArrowLeft, IconPhone, IconPlus } from '../components/Icons';
-import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
+import { friendlyOtpError, prepareOtp, sendOtp, useOtpProvider } from '../lib/firebaseAuth';
+import type { OtpConfirmation } from '../lib/firebaseAuth';
 
 type Stage = 'phone' | 'code' | 'password';
 
@@ -21,7 +21,8 @@ export function ForgotPasswordPage() {
   const [code, setCode] = useState('');
   const [idToken, setIdToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const [confirmation, setConfirmation] = useState<OtpConfirmation | null>(null);
+  const otp = useOtpProvider();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -117,7 +118,7 @@ export function ForgotPasswordPage() {
     setCooldown(0);
   };
 
-  if (!firebasePhoneAuthConfigured) {
+  if (!otp.available) {
     return (
       <div className="login-screen">
         <div className="login-card">

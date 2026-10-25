@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { ConfirmationResult } from 'firebase/auth';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { IconArrowLeft, IconPlus } from '../components/Icons';
-import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
+import { friendlyOtpError, prepareOtp, sendOtp, useOtpProvider } from '../lib/firebaseAuth';
+import type { OtpConfirmation } from '../lib/firebaseAuth';
 
 type Stage = 'phone' | 'code' | 'password' | 'done';
 
@@ -19,7 +19,8 @@ export function ForgotPasswordPage() {
   const [code, setCode] = useState('');
   const [idToken, setIdToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const [confirmation, setConfirmation] = useState<OtpConfirmation | null>(null);
+  const otp = useOtpProvider();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -112,14 +113,14 @@ export function ForgotPasswordPage() {
         </div>
         <h1>Reset password</h1>
         <p>
-          {firebasePhoneAuthConfigured
+          {otp.available
             ? subtitle[stage]
             : 'Agents: ask your admin to set a new password from your Staff profile. Admins: contact your system administrator.'}
         </p>
 
         {error && <div className="error-banner">{error}</div>}
 
-        {firebasePhoneAuthConfigured && (
+        {otp.available && (
           <>
             <div id="recaptcha-container" />
 

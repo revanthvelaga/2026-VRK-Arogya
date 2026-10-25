@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
-import { firebasePhoneAuthConfigured, friendlyOtpError, prepareOtp, sendOtp } from '../lib/firebaseAuth';
+import { friendlyOtpError, prepareOtp, sendOtp, useOtpProvider } from '../lib/firebaseAuth';
+import type { OtpConfirmation } from '../lib/firebaseAuth';
 import { IconArrowLeft, IconPhone } from './Icons';
 
 type Stage = 'phone' | 'code' | 'name';
@@ -23,11 +23,12 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
   const [code, setCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [idToken, setIdToken] = useState('');
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const [confirmation, setConfirmation] = useState<OtpConfirmation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const { available, provider } = useOtpProvider();
 
   // Wake the API and load reCAPTCHA while the customer types their number,
   // so "Send OTP" doesn't sit waiting on either.
@@ -45,7 +46,7 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
     if (stage === 'code') codeInputRef.current?.focus();
   }, [stage]);
 
-  if (!firebasePhoneAuthConfigured) return null;
+  if (!available) return null;
 
   const sendCode = async (): Promise<boolean> => {
     setError(null);
@@ -217,19 +218,23 @@ export function PhoneOtpSignIn({ referralCode }: { referralCode?: string } = {})
 
       {error && <p className="otp-error">{error}</p>}
 
-      {/* Google's terms allow hiding the floating reCAPTCHA badge (it sat
-          on top of the card on phones) as long as this notice is shown. */}
-      <p className="recaptcha-note">
-        Protected by reCAPTCHA. Google{' '}
-        <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
-          Privacy
-        </a>{' '}
-        &amp;{' '}
-        <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">
-          Terms
-        </a>{' '}
-        apply.
-      </p>
+      {provider !== 'msg91' && (
+        <>
+          {/* Google's terms allow hiding the floating reCAPTCHA badge (it sat
+              on top of the card on phones) as long as this notice is shown. */}
+          <p className="recaptcha-note">
+            Protected by reCAPTCHA. Google{' '}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+              Privacy
+            </a>{' '}
+            &amp;{' '}
+            <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">
+              Terms
+            </a>{' '}
+            apply.
+          </p>
+        </>
+      )}
     </div>
   );
 }

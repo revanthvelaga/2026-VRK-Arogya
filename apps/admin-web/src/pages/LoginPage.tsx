@@ -7,7 +7,7 @@ import { IconPlus, IconTruck, IconUser } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { StaffOtpSignIn } from '../components/StaffOtpSignIn';
 import { googleClientId } from '../lib/googleAuth';
-import { firebasePhoneAuthConfigured } from '../lib/firebaseAuth';
+import { useOtpProvider } from '../lib/firebaseAuth';
 
 interface LocationState {
   from?: { pathname: string };
@@ -17,6 +17,7 @@ type LoginMode = 'ADMIN' | 'STAFF';
 
 export function LoginPage() {
   const { login, loginWithGoogle, user } = useAuth();
+  const otp = useOtpProvider();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<LoginMode>('ADMIN');
@@ -158,7 +159,7 @@ export function LoginPage() {
           <StaffOtpSignIn key={mode} portal={mode} />
         )}
 
-        {firebasePhoneAuthConfigured && (
+        {otp.available && (
           <button
             type="button"
             className="auth-switch"
