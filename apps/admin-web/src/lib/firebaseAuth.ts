@@ -15,6 +15,9 @@ export const firebasePhoneAuthConfigured = Boolean(apiKey && authDomain && proje
 // builds one below.
 export interface OtpConfirmation {
   confirm(code: string): Promise<{ user: { getIdToken(): Promise<string> } }>;
+  // How this code was sent, when we know ('sms' = Firebase, used when a
+  // number isn't on WhatsApp).
+  channel?: 'whatsapp' | 'sms';
 }
 export type OtpProvider = 'firebase' | 'whatsapp';
 
@@ -165,15 +168,27 @@ export async function sendOtp(
     // Our server sends the code on WhatsApp and later checks it — the browser
     // only passes the number and the typed code along.
     const bare = phone.replace(/\D/g, '').slice(-10);
-    await api.post('/auth/otp/send', { phone: bare, purpose, portal });
-    return {
-      async confirm(code: string) {
-        const { proof } = await api.post<{ proof: string }>('/auth/otp/verify', { phone: bare, otp: code });
-        return { user: { getIdToken: async () => proof } };
-      },
-    };
+    const res = await api.post<{ sent: boolean; reason?: string }>('/auth/otp/send', { phone: bare, purpose, portal });
+    if (res.sent) {
+      return {
+        channel: 'whatsapp',
+        async confirm(code: string) {
+          const { proof } = await api.post<{ proof: string }>('/auth/otp/verify', { phone: bare, otp: code });
+          return { user: { getIdToken: async () => proof } };
+        },
+      };
+    }
+    // Not on WhatsApp: send the code by SMS (Firebase) if that is set up.
+    if (!firebasePhoneAuthConfigured) {
+      throw new Error("This number doesn't seem to be on WhatsApp. Please sign in with your password or Google instead.");
+    }
+    const sms = await sendFirebaseOtp(phone, recaptchaContainerId, purpose);
+    return { channel: 'sms', confirm: (code: string) => sms.confirm(code) };
   }
+  return sendFirebaseOtp(phone, recaptchaContainerId, purpose);
+}
 
+async function sendFirebaseOtp(phone: string, recaptchaContainerId: string, purpose: OtpPurpose): Promise<OtpConfirmation> {
   const auth = getFirebaseAuth();
   const verifier = getRecaptchaVerifier(recaptchaContainerId);
   const e164 = phone.startsWith('+') ? phone : `+91${phone}`;

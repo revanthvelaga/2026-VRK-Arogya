@@ -113,7 +113,7 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
       ) : (
         <form onSubmit={onVerify}>
           <p className="otp-sent-to">
-            Code sent to <b>+91 {phone}</b>{provider === 'whatsapp' ? ' on WhatsApp' : ''}
+            Code sent to <b>+91 {phone}</b>{confirmation?.channel === 'whatsapp' ? ' on WhatsApp' : confirmation?.channel === 'sms' ? ' by SMS, as this number isn’t on WhatsApp' : ''}
           </p>
           <input
             ref={codeInputRef}
@@ -151,7 +151,7 @@ export function StaffOtpSignIn({ portal }: { portal: 'ADMIN' | 'STAFF' }) {
 
       {error && <p className="otp-error">{error}</p>}
 
-      {provider !== 'whatsapp' && (
+      {(provider !== 'whatsapp' || confirmation?.channel === 'sms') && (
         <p className="recaptcha-note">
           Protected by reCAPTCHA. Google{' '}
           <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">

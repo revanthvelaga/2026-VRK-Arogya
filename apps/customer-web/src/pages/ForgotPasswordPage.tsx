@@ -190,7 +190,7 @@ export function ForgotPasswordPage() {
           {stage === 'code' && (
             <form onSubmit={onVerifyCode}>
               <p className="otp-sent-to">
-                Code sent to <b>+91 {phone}</b>{otp.provider === 'whatsapp' ? ' on WhatsApp' : ''}
+                Code sent to <b>+91 {phone}</b>{confirmation?.channel === 'whatsapp' ? ' on WhatsApp' : confirmation?.channel === 'sms' ? ' by SMS, as this number isn’t on WhatsApp' : ''}
               </p>
               <input
                 ref={codeInputRef}

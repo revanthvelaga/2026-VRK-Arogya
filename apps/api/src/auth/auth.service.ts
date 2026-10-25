@@ -170,9 +170,11 @@ export class AuthService {
         throw new NotFoundException('No account found for this phone number.');
       }
     }
-    await this.whatsapp.send(phone, ip);
+    const delivered = await this.whatsapp.send(phone, ip);
+    // Not on WhatsApp: tell the site, which falls back to an SMS code.
+    if (!delivered) return { sent: false, reason: 'not-on-whatsapp' as const };
     await this.otpSettings.logSend(`+91${phone}`, purpose).catch(() => undefined);
-    return { sent: true };
+    return { sent: true as const };
   }
 
   async verifyWhatsAppOtp(phone: string, otp: string) {

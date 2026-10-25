@@ -107,7 +107,9 @@ export class WhatsAppService {
 
   // ---- Sign-in codes ----
 
-  async send(phone: string, ip: string): Promise<void> {
+  // Returns false when the number isn't on WhatsApp, so the site can send
+  // the code by SMS instead (Firebase) rather than turn the person away.
+  async send(phone: string, ip: string): Promise<boolean> {
     const { phoneList, ipList } = this.checkLimits(phone, ip);
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     await this.challenges.upsert(
@@ -132,7 +134,12 @@ export class WhatsAppService {
     if (!sent.ok) {
       await this.challenges.delete({ phone }); // nothing was delivered, so no live code
       if (sent.errorCode === 131026) {
-        throw new BadRequestException("This number doesn't seem to be on WhatsApp. Please sign in with your password or Google instead.");
+        // Counted against the network and the server (so the page can't be
+        // used to probe who has WhatsApp) but not against the number.
+        const at = Date.now();
+        this.byIp.set(ip, [...ipList, at]);
+        this.globalSends.push(at);
+        return false;
       }
       throw new ServiceUnavailableException("We couldn't send the code right now. Please try again, or sign in with your password.");
     }
@@ -141,6 +148,7 @@ export class WhatsAppService {
     this.byPhone.set(phone, [...phoneList, now]);
     this.byIp.set(ip, [...ipList, now]);
     this.globalSends.push(now);
+    return true;
   }
 
   async verify(phone: string, otp: string): Promise<void> {
