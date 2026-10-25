@@ -37,8 +37,8 @@ export class OtpSettingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Get('admin/stats')
-  getStats() {
-    return this.otpSettings.getStats();
+  async getStats() {
+    return { ...(await this.otpSettings.getStats()), delivery: this.whatsapp.diagnostics() };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

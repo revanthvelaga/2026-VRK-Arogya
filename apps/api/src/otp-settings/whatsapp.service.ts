@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHmac, randomInt, timingSafeEqual } from 'crypto';
@@ -21,7 +21,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const MAX_WRONG = 5;
 
 @Injectable()
-export class WhatsAppService {
+export class WhatsAppService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppService.name);
   // In-memory is enough for send limits: they only need to hold within one
   // running server, and a restart merely resets the counters. The codes
@@ -54,6 +54,27 @@ export class WhatsAppService {
     const base = (this.config.get<string>('WHATSAPP_BASE_URL') ?? 'https://graph.facebook.com').replace(/\/$/, '');
     const version = this.config.get<string>('WHATSAPP_API_VERSION') ?? 'v23.0';
     return `${base}/${version}/${this.phoneNumberId}/messages`;
+  }
+
+  // What is set up, for the admin page and the log: which way sign-in codes
+  // go, and (only the NAMES of) any settings still missing.
+  diagnostics(): { requested: boolean; active: boolean; missing: string[] } {
+    const requested = this.config.get<string>('OTP_PROVIDER') === 'whatsapp';
+    const missing = [
+      ['WHATSAPP_ACCESS_TOKEN', this.token],
+      ['WHATSAPP_PHONE_NUMBER_ID', this.phoneNumberId],
+      ['WHATSAPP_OTP_TEMPLATE', this.otpTemplate],
+    ]
+      .filter(([, value]) => !value)
+      .map(([name]) => name as string);
+    return { requested, active: requested && missing.length === 0, missing };
+  }
+
+  onModuleInit() {
+    const d = this.diagnostics();
+    if (d.active) this.logger.log('Sign-in codes are sent on WhatsApp');
+    else if (d.requested) this.logger.warn(`OTP_PROVIDER=whatsapp but ${d.missing.join(', ')} not set — sign-in codes still go by Firebase SMS`);
+    else this.logger.log('Sign-in codes are sent by Firebase SMS (set OTP_PROVIDER=whatsapp to use WhatsApp)');
   }
 
   // The WhatsApp account can send at all (booking messages need only this).

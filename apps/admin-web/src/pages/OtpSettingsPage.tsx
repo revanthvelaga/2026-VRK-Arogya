@@ -12,6 +12,8 @@ interface OtpStats {
   totalSends: number;
   sendsThisMonth: number;
   recent: Array<{ phone: string; purpose: string; createdAt: string }>;
+  // Which way codes go, and the server settings still missing for WhatsApp.
+  delivery?: { requested: boolean; active: boolean; missing: string[] };
 }
 
 const PURPOSE_LABEL: Record<string, string> = {
@@ -46,14 +48,42 @@ export function OtpSettingsPage() {
 
   return (
     <div>
-      <div className="section-title">Mobile OTP (SMS)</div>
+      <div className="section-title">Mobile OTP</div>
+
+      {stats.delivery && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>How codes are sent</div>
+          <div style={{ marginTop: 10 }}>
+            <StatusBadge
+              status={stats.delivery.active ? 'WhatsApp' : 'Firebase SMS'}
+              variant={stats.delivery.active ? 'accent' : 'amber'}
+            />
+          </div>
+          {stats.delivery.active ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: '10px 0 0', maxWidth: 520 }}>
+              Sign-in codes go to customers’ WhatsApp. A number that isn’t on WhatsApp gets an SMS from Firebase instead.
+            </p>
+          ) : stats.delivery.requested ? (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: '10px 0 0', maxWidth: 520 }}>
+              WhatsApp is switched on, but these settings are still missing on the server (Render → arogya-api →
+              Environment), so codes still go by Firebase SMS: <b>{stats.delivery.missing.join(', ')}</b>
+            </p>
+          ) : (
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: '10px 0 0', maxWidth: 520 }}>
+              WhatsApp isn’t switched on, so codes go by Firebase SMS. To use WhatsApp, set <b>OTP_PROVIDER</b> to{' '}
+              <b>whatsapp</b>, plus <b>WHATSAPP_ACCESS_TOKEN</b>, <b>WHATSAPP_PHONE_NUMBER_ID</b> and{' '}
+              <b>WHATSAPP_OTP_TEMPLATE</b> on the server.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>Mobile OTP sign-in</div>
             <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: '4px 0 0', maxWidth: 480 }}>
-              Every OTP sends a real, billed SMS through Firebase. Turn this off to stop new SMS sends
+              Every OTP sends a real, billed message (WhatsApp or Firebase SMS). Turn this off to stop new sends
               immediately — customers fall back to password or Google sign-in, nothing else changes.
             </p>
           </div>
