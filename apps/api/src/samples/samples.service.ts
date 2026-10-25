@@ -197,7 +197,7 @@ export class SamplesService {
         dto.status === SampleStatus.COLLECTED
           ? 'Your sample has been collected and is on its way to the lab.'
           : 'Your results are ready — open your booking to view or download the report.';
-      await this.notificationsService.notify(booking.customerId, type, message, booking.patientId);
+      await this.notificationsService.notify(booking.customerId, type, message, booking.patientId, { bookingId: booking.id });
     }
 
     return saved;

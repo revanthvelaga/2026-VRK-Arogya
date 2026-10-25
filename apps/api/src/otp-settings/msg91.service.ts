@@ -38,6 +38,30 @@ export class Msg91Service {
     return (this.config.get<string>('MSG91_BASE_URL') ?? 'https://control.msg91.com').replace(/\/$/, '');
   }
 
+  hasAuthKey(): boolean {
+    return Boolean(this.authKey);
+  }
+
+  // A transactional SMS (booking confirmed, reminder…) through MSG91's Flow
+  // API. The wording is the DLT-approved template stored at MSG91; `vars`
+  // fill its ##var1## ##var2## … placeholders. Returns false (never throws)
+  // so an SMS problem can't affect the booking behind it.
+  async sendTemplate(templateId: string, phone: string, vars: Record<string, string>): Promise<boolean> {
+    if (!this.authKey) return false;
+    try {
+      const url = new URL(`${this.baseUrl}/api/v5/flow`);
+      const body = await this.call(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authkey: this.authKey },
+        body: JSON.stringify({ template_id: templateId, short_url: '0', recipients: [{ mobiles: `91${phone}`, ...vars }] }),
+      });
+      if (body.type !== 'success') this.logger.warn(`MSG91 SMS failed: ${body.message}`);
+      return body.type === 'success';
+    } catch {
+      return false;
+    }
+  }
+
   // Used only when switched on (OTP_PROVIDER=msg91) *and* fully set up, so
   // a half-finished setup can never lock people out of OTP: it falls back
   // to Firebase exactly as before.

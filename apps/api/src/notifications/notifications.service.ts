@@ -6,6 +6,48 @@ import { Notification } from './entities/notification.entity';
 import { EmailChannelService } from './email-channel.service';
 import { UsersService } from '../users/users.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
+import { PushService } from '../push/push.service';
+import { SmsChannelService } from './sms-channel.service';
+
+// Extras a caller can attach so the same event also reaches the phone
+// properly: where a tap should open, a safer lock-screen wording, and the
+// short values that fill the SMS template.
+export interface NotifyOptions {
+  bookingId?: string;
+  route?: string;
+  pushBody?: string;
+  sms?: Record<string, string>;
+}
+
+const PUSH_TITLES: Record<NotificationType, string> = {
+  [NotificationType.BOOKING_CREATED]: 'Booking confirmed',
+  [NotificationType.SAMPLE_COLLECTED]: 'Sample collected',
+  [NotificationType.RESULT_READY]: 'Results ready',
+  [NotificationType.REPORT_READY]: 'Your report is ready',
+  [NotificationType.ISSUE_UPDATED]: 'Update on your issue',
+  [NotificationType.AGENT_ON_THE_WAY]: 'Your collector is on the way',
+  [NotificationType.PREP_REMINDER]: 'Test tomorrow: how to prepare',
+  [NotificationType.RETEST_DUE]: 'A recheck is due',
+  [NotificationType.CARE_INVITE]: 'Family access invitation',
+};
+
+// Where tapping the notification opens, as a path on the customer site
+// (the Android app shows that site).
+function routeFor(type: NotificationType, opts?: NotifyOptions): string {
+  if (opts?.route) return opts.route;
+  switch (type) {
+    case NotificationType.REPORT_READY:
+      return '/insights?view=reports';
+    case NotificationType.ISSUE_UPDATED:
+      return '/profile/tickets';
+    case NotificationType.RETEST_DUE:
+      return '/insights';
+    case NotificationType.CARE_INVITE:
+      return '/profile/family';
+    default:
+      return opts?.bookingId ? `/bookings/${opts.bookingId}` : '/bookings';
+  }
+}
 
 const SUBJECTS: Record<NotificationType, string> = {
   [NotificationType.BOOKING_CREATED]: 'Your Arogya booking is confirmed',
@@ -28,6 +70,8 @@ export class NotificationsService {
     private readonly notificationsRepo: Repository<Notification>,
     private readonly usersService: UsersService,
     private readonly emailChannel: EmailChannelService,
+    private readonly push: PushService,
+    private readonly sms: SmsChannelService,
   ) {}
 
   // Always writes the in-app notification first, and returns as soon as
@@ -43,7 +87,13 @@ export class NotificationsService {
   // the background and only ever updates the row once it's done.
   // `patientId` says who the update is about, so family-access
   // caregivers only get copies about the people shared with them.
-  async notify(userId: string, type: NotificationType, message: string, patientId?: string | null): Promise<Notification> {
+  async notify(
+    userId: string,
+    type: NotificationType,
+    message: string,
+    patientId?: string | null,
+    opts?: NotifyOptions,
+  ): Promise<Notification> {
     const notification = await this.notificationsRepo.save(
       this.notificationsRepo.create({ userId, type, message }),
     );
@@ -54,10 +104,17 @@ export class NotificationsService {
       );
     });
 
+    // Phone push (FCM) and SMS (MSG91) ride along, best-effort and in the
+    // background — the saved notification above is what counts.
+    this.pushTo(userId, type, message, opts);
+    this.sms.send(userId, type, opts?.sms).catch((err) =>
+      this.logger.warn(`SMS for notification ${notification.id} failed: ${(err as Error).message}`),
+    );
+
     // Family access: caregivers get a copy of everything the account they
     // look after is told (bookings, agent on the way, reports, reminders).
     if (type !== NotificationType.CARE_INVITE) {
-      this.mirrorToCaregivers(userId, type, message, patientId ?? null).catch((err) =>
+      this.mirrorToCaregivers(userId, type, message, patientId ?? null, opts).catch((err) =>
         this.logger.warn(`Caregiver copy failed for ${userId}: ${(err as Error).message}`),
       );
     }
@@ -65,11 +122,23 @@ export class NotificationsService {
     return notification;
   }
 
+  private pushTo(userId: string, type: NotificationType, message: string, opts?: NotifyOptions): void {
+    const body = (opts?.pushBody ?? message).replace(/\s+/g, ' ').trim();
+    const data: Record<string, string> = { type, route: routeFor(type, opts) };
+    if (opts?.bookingId) data.bookingId = opts.bookingId;
+    void this.push.sendToUser(userId, {
+      title: PUSH_TITLES[type],
+      body: body.length > 300 ? `${body.slice(0, 297)}…` : body,
+      data,
+    });
+  }
+
   private async mirrorToCaregivers(
     ownerId: string,
     type: NotificationType,
     message: string,
     patientId: string | null,
+    opts?: NotifyOptions,
   ): Promise<void> {
     // A caregiver sharing everyone gets every update; one sharing only
     // some people gets updates about those people only.
@@ -85,6 +154,7 @@ export class NotificationsService {
         this.notificationsRepo.create({ userId: r.caregiver_id, type, message: `For ${r.full_name}: ${message}` }),
       );
       this.deliverEmail(copy, type).catch(() => undefined);
+      this.pushTo(r.caregiver_id, type, copy.message, opts);
     }
   }
 

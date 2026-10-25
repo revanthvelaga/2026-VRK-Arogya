@@ -119,6 +119,8 @@ export class IssuesService {
         issue.raisedBy,
         NotificationType.ISSUE_UPDATED,
         `Arogya support replied to "${issue.subject}": ${preview}${dto.message.trim().length > 120 ? '…' : ''}`,
+        null,
+        { route: `/tickets/${issue.id}` },
       );
     } else if (issue.status === IssueStatus.RESOLVED) {
       // The customer writing back on a closed ticket reopens it.
@@ -146,6 +148,8 @@ export class IssuesService {
       issue.raisedBy,
       NotificationType.ISSUE_UPDATED,
       `Your issue "${issue.subject}" is now ${dto.status.replace('_', ' ').toLowerCase()}.`,
+      null,
+      { route: `/tickets/${issue.id}` },
     );
 
     return saved;

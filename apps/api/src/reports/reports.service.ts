@@ -136,6 +136,7 @@ export class ReportsService implements OnApplicationBootstrap {
       NotificationType.REPORT_READY,
       `Your report for booking ${bookingId.slice(0, 8)} is ready to download.`,
       booking.patientId,
+      { bookingId, sms: { var2: bookingId.slice(0, 8).toUpperCase() } },
     );
 
     // Read the result values out of the PDF in the background so the

@@ -204,6 +204,11 @@ export class BookingsService {
       NotificationType.BOOKING_CREATED,
       `Your booking for ${formatIstDateTime(savedBooking.scheduledAt)} is confirmed. Total: ${formatInr(totalAmount)}.`,
       savedBooking.patientId,
+      {
+        bookingId: savedBooking.id,
+        // Fills the SMS template: ##var2## date/time, ##var3## booking no.
+        sms: { var2: formatIstDateTime(savedBooking.scheduledAt), var3: savedBooking.id.slice(0, 8).toUpperCase() },
+      },
     );
     if (fullyCovered) await this.walletService.rewardReferralIfDue(customerId, savedBooking.id);
 

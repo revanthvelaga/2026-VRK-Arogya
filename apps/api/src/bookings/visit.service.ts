@@ -89,6 +89,11 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
       `${agent?.full_name ?? 'Your sample collector'} is on the way and should reach you in about ${etaMinutes} minutes. ` +
         `Share door code ${otp} with them when they arrive.`,
       booking.patientId,
+      {
+        bookingId,
+        // The door code stays out of the lock screen; it's in the app.
+        pushBody: `${agent?.full_name ?? 'Your sample collector'} is on the way (about ${etaMinutes} min). Open the app to see your door code.`,
+      },
     );
     return { agentEnRouteAt: now, agentEtaAt: new Date(now.getTime() + etaMinutes * 60_000) };
   }
@@ -252,7 +257,10 @@ export class VisitService implements OnModuleInit, OnModuleDestroy {
           { prepReminderSentAt: new Date() },
         );
         if (!claimed.affected) continue;
-        await this.notificationsService.notify(booking.customerId, NotificationType.PREP_REMINDER, message, booking.patientId);
+        await this.notificationsService.notify(booking.customerId, NotificationType.PREP_REMINDER, message, booking.patientId, {
+          bookingId: booking.id,
+          sms: { var2: when },
+        });
       }
       if (due.length) this.logger.log(`Sent ${due.length} preparation reminder(s)`);
       return due.length;

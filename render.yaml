@@ -80,6 +80,27 @@ services:
       # Must match VITE_FIREBASE_PROJECT_ID on arogya-customer-web.
       - key: FIREBASE_PROJECT_ID
         sync: false
+      # Optional — MSG91 for OTP codes and transactional SMS (India; needs
+      # DLT registration + approved templates). Server-only secrets. Set
+      # OTP_PROVIDER=msg91 with MSG91_AUTH_KEY and MSG91_TEMPLATE_ID to send
+      # sign-in codes through MSG91 instead of Firebase; set a MSG91_TPL_*
+      # id to send that booking SMS. See apps/api/.env.example.
+      - key: OTP_PROVIDER
+        sync: false
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_TEMPLATE_ID
+        sync: false
+      - key: MSG91_TPL_BOOKING_CREATED
+        sync: false
+      - key: MSG91_TPL_PREP_REMINDER
+        sync: false
+      - key: MSG91_TPL_REPORT_READY
+        sync: false
+      # Optional — push notifications to the Android app through Firebase
+      # Cloud Messaging: the whole Firebase service-account JSON (secret).
+      - key: FCM_SERVICE_ACCOUNT_JSON
+        sync: false
 
   - type: web
     name: arogya-admin-web
