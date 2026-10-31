@@ -78,6 +78,11 @@ export function LoginPage() {
     } catch (err) {
       const msg = passkeyErrorMessage(err, 'Fingerprint sign-in failed. Please try again.');
       if (msg) setError(msg);
+      // Closed the prompt (or the phone had no passkey for Arogya) before
+      // ever setting one up here: say how to get started.
+      else if (!passkeyOnDevice()) {
+        setError('Fingerprint sign-in isn’t set up on this phone yet. Sign in once with OTP or Google, then tap “Turn on fingerprint sign-in”.');
+      }
     } finally {
       setPasskeyBusy(false);
     }
