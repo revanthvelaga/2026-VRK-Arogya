@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
-import { googleClientId } from '../lib/googleAuth';
+import { googleSignInAvailable } from '../lib/googleAuth';
 
 interface LocationState {
   from?: { pathname: string; search?: string; hash?: string };
@@ -154,7 +154,7 @@ export function RegisterPage() {
             </button>
           </form>
 
-          {googleClientId && (
+          {googleSignInAvailable && (
             <>
               <div className="auth-divider auth-divider--tight">
                 <span>or</span>

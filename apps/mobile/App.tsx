@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Notifications from 'expo-notifications';
+import * as WebBrowser from 'expo-web-browser';
 
 // The app is the Arogya website in a full-screen web view, so every
 // feature on the site is in the app the moment it's deployed — no
@@ -56,6 +57,28 @@ Notifications.setNotificationHandler({
 function routeOf(response: NotificationResponse | null | undefined): string | null {
   const raw = response?.notification.request.content.data?.route;
   return typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : null;
+}
+
+// ---- Google sign-in ----
+// Google refuses to sign in inside an embedded web view, so the app opens
+// the site's /app-google page in a Chrome tab (a real browser, where
+// Google allows it). That page sends the Google token back through the
+// arogya:// link, and the app hands it to the web view, which signs in.
+const GOOGLE_RETURN = 'arogya://google-auth';
+
+function randomState(): string {
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2)).join('');
+}
+
+async function googleSignInInBrowser(): Promise<string | null> {
+  const state = randomState();
+  const url = `${SITE_URL}/app-google?return=${encodeURIComponent(GOOGLE_RETURN)}&state=${state}`;
+  const result = await WebBrowser.openAuthSessionAsync(url, GOOGLE_RETURN, { showInRecents: false });
+  if (result.type !== 'success') return null;
+  const params = new URLSearchParams(result.url.split('#')[1] ?? result.url.split('?')[1] ?? '');
+  // Only accept the answer to the request this app just made.
+  if (params.get('state') !== state) return null;
+  return params.get('idToken');
 }
 
 const EXT_BY_TYPE: Record<string, string> = {
@@ -191,6 +214,12 @@ function ArogyaWebApp() {
     } catch {
       return;
     }
+    if (msg.type === 'google-sign-in') {
+      googleSignInInBrowser()
+        .then((idToken) => tellWeb('arogya-google-token', idToken ?? ''))
+        .catch(() => tellWeb('arogya-google-token', ''));
+      return;
+    }
     if (msg.type === 'push-token-request') {
       void setUpPush();
       return;
@@ -200,7 +229,7 @@ function ArogyaWebApp() {
         webRef.current?.injectJavaScript(`alert(${JSON.stringify(`Couldn't open the file: ${err.message}`)}); true;`),
       );
     }
-  }, [setUpPush]);
+  }, [setUpPush, tellWeb]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -225,7 +254,7 @@ function ArogyaWebApp() {
         ref={webRef}
         style={failed ? styles.hidden : styles.web}
         source={{ uri: startUrl }}
-        applicationNameForUserAgent="ArogyaApp/1.2"
+        applicationNameForUserAgent="ArogyaApp/1.3 ArogyaGoogle"
         onShouldStartLoadWithRequest={onShouldStart}
         setSupportMultipleWindows={false}
         onNavigationStateChange={(s) => (canGoBack.current = s.canGoBack)}

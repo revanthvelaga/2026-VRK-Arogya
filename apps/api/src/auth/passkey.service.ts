@@ -23,6 +23,12 @@ import { UsersService } from '../users/users.service';
 
 const CHALLENGE_TTL_SECONDS = 5 * 60;
 const DEFAULT_ORIGINS = 'https://arogya-customer-web.onrender.com,http://localhost:5173';
+// Inside the Arogya Android app, the phone reports the app (by the SHA-256
+// of the key the APK is signed with) as the origin instead of the website.
+// This is the standard React Native key the GitHub build signs with; if the
+// app is ever signed with a different key, add its hash in
+// WEBAUTHN_ANDROID_ORIGINS (and update customer-web/public/.well-known/assetlinks.json).
+const DEFAULT_ANDROID_ORIGINS = 'android:apk-key-hash:-sYXRdwJA3hvue3mKpYrOZ9zSPC7b4mbgzJmdZEDO5w';
 
 interface ChallengeToken {
   ch: string; // the challenge, base64url
@@ -52,6 +58,15 @@ export class PasskeyService {
       throw new BadRequestException('Fingerprint sign-in is not available on this site.');
     }
     return { origin: o, rpID: new URL(o).hostname };
+  }
+
+  // Origins a finished ceremony may report: the site it started on, or the app.
+  private expectedOrigins(siteOrigin: string): string[] {
+    const android = (this.config.get<string>('WEBAUTHN_ANDROID_ORIGINS') ?? DEFAULT_ANDROID_ORIGINS)
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+    return [siteOrigin, ...android];
   }
 
   private signChallenge(t: ChallengeToken): string {
@@ -115,7 +130,7 @@ export class PasskeyService {
       verification = await verifyRegistrationResponse({
         response,
         expectedChallenge: t.ch,
-        expectedOrigin: t.o,
+        expectedOrigin: this.expectedOrigins(t.o),
         expectedRPID: new URL(t.o).hostname,
         requireUserVerification: false,
       });
@@ -161,7 +176,7 @@ export class PasskeyService {
       verification = await verifyAuthenticationResponse({
         response,
         expectedChallenge: t.ch,
-        expectedOrigin: t.o,
+        expectedOrigin: this.expectedOrigins(t.o),
         expectedRPID: new URL(t.o).hostname,
         requireUserVerification: false,
         credential: {

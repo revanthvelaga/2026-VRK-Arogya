@@ -6869,3 +6869,12 @@ a.suggest-name:hover {
   display: block;
   color: var(--ink-faint);
 }
+
+/* Google button inside the Arogya app (Google's own button can't run there) */
+.app-google-btn {
+  width: 100%;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 11px 15px;
+  gap: 10px;
+}

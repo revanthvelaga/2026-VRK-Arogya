@@ -6,7 +6,7 @@ import { clearSignOutMessage, peekSignOutMessage } from '../api/client';
 import { IconFingerprint, IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
-import { googleClientId } from '../lib/googleAuth';
+import { googleSignInAvailable } from '../lib/googleAuth';
 import { useOtpProvider } from '../lib/firebaseAuth';
 import { passkeyErrorMessage, passkeyOnDevice, passkeysSupported } from '../lib/passkey';
 
@@ -102,7 +102,7 @@ export function LoginPage() {
     setError(null);
   };
 
-  const hasGoogle = Boolean(googleClientId);
+  const hasGoogle = googleSignInAvailable;
   const hasOtp = otp.available;
 
   return (

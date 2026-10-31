@@ -6,8 +6,15 @@
 > site deploys. The native layer adds the Android back button,
 > phone/WhatsApp/UPI links, location permission and saving downloads via
 > the share sheet (the page posts `{type:'download', url, fileName, token}`
-> — see `customer-web/src/lib/inApp.ts`). Google sign-in and Drive sync are
-> hidden inside the app because Google blocks them in embedded web views.
+> — see `customer-web/src/lib/inApp.ts`). Google blocks its sign-in inside
+> embedded web views, so since v1.3 the app opens the site's `/app-google`
+> page in a Chrome tab and gets the Google token back via `arogya://google-auth`
+> (Drive sync is still hidden in the app). Also since v1.3, passkeys
+> (fingerprint / face-lock sign-in) work in the app: `scripts/patch-webview-passkeys.js`
+> (run on `npm install`) switches WebAuthn on in react-native-webview's
+> WebView, and `customer-web/public/.well-known/assetlinks.json` links the
+> app to the site. Both rely on the APK being signed with the standard
+> React Native key, as the GitHub build does.
 > The old native screens (`src/`) and their packages were removed in
 > v1.1.1 to keep the APK small; they're in git history if ever needed.
 >

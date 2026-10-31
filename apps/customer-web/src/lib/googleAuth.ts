@@ -1,4 +1,4 @@
-import { inArogyaApp } from './inApp';
+import { appCanGoogle, inArogyaApp, nativeBridge } from './inApp';
 // Google Identity Services (the "Sign in with Google" button) is loaded
 // as a plain script tag on demand, the same way razorpay.ts loads
 // checkout.js — it's Google's own recommended integration path and
@@ -31,6 +31,25 @@ declare global {
 // Google blocks its sign-in inside embedded web views (the Arogya app),
 // so there it's treated as not set up: the button and Drive sync hide.
 export const googleClientId = inArogyaApp ? undefined : (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined);
+
+// Google sign-in can be offered: in a browser with GIS, or in the app
+// (v1.3+), which runs Google in a Chrome tab and hands back the token.
+const webClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+export const googleSignInAvailable = Boolean(webClientId) && (!inArogyaApp || appCanGoogle);
+
+// In the app: ask it to sign in with Google in Chrome; resolves with the
+// Google ID token, or null if the customer backed out.
+export function appGoogleSignIn(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const onToken = (e: Event) => {
+      window.removeEventListener('arogya-google-token', onToken);
+      const token = String((e as CustomEvent<string>).detail ?? '');
+      resolve(token || null);
+    };
+    window.addEventListener('arogya-google-token', onToken);
+    nativeBridge?.postMessage(JSON.stringify({ type: 'google-sign-in' }));
+  });
+}
 
 let loadPromise: Promise<void> | null = null;
 

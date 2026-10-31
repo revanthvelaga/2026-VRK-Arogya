@@ -7,7 +7,7 @@ import {
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { api } from '../api/client';
 import type { AuthSession } from '../api/types';
-import { inArogyaApp } from './inApp';
+import { appCanPasskeys, inArogyaApp } from './inApp';
 
 // Passkeys: fingerprint / face / screen-lock sign-in. The customer proves
 // their number once (OTP or Google), saves a passkey, and after that signs
@@ -20,9 +20,10 @@ export interface SavedPasskey {
   lastUsedAt: string | null;
 }
 
-// Inside the Arogya Android app's WebView passkeys aren't reliable yet, so
-// they're only offered in a real browser.
-export const passkeysSupported = !inArogyaApp && browserSupportsWebAuthn();
+// In a browser: whenever it supports WebAuthn. In the Arogya app: only
+// when the app turned passkeys on in its web view (v1.3+ on a phone whose
+// Android System WebView supports it).
+export const passkeysSupported = (!inArogyaApp || appCanPasskeys) && browserSupportsWebAuthn();
 
 // True when this device has a built-in fingerprint / face / screen lock.
 export async function deviceHasPasskeySupport(): Promise<boolean> {

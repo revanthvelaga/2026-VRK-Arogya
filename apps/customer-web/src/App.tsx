@@ -22,6 +22,7 @@ import { SmartBookPage } from './pages/SmartBookPage';
 import { ComparePage } from './pages/ComparePage';
 import { InvoicePage } from './pages/InvoicePage';
 import { SharedReportPage } from './pages/SharedReportPage';
+import { AppGooglePage } from './pages/AppGooglePage';
 
 export function App() {
   return (
@@ -31,6 +32,8 @@ export function App() {
           <WelcomeSplash />
           <PushBridge />
           <Routes>
+            {/* Opened by the app in a Chrome tab for Google sign-in — no site chrome. */}
+            <Route path="/app-google" element={<AppGooglePage />} />
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
