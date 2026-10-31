@@ -12,6 +12,10 @@ import { PatientsModule } from '../patients/patients.module';
 import { RewardsModule } from '../rewards/rewards.module';
 import { OtpSettingsModule } from '../otp-settings/otp-settings.module';
 import { PhoneProofService } from './phone-proof.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Passkey } from './entities/passkey.entity';
+import { PasskeyService } from './passkey.service';
+import { PasskeyController } from './passkey.controller';
 
 @Module({
   imports: [
@@ -20,6 +24,7 @@ import { PhoneProofService } from './phone-proof.service';
     RewardsModule,
     OtpSettingsModule,
     PassportModule,
+    TypeOrmModule.forFeature([Passkey]),
     ConfigModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -29,7 +34,7 @@ import { PhoneProofService } from './phone-proof.service';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService, PhoneProofService],
+  controllers: [AuthController, PasskeyController],
+  providers: [AuthService, JwtStrategy, GoogleAuthService, FirebasePhoneAuthService, PhoneProofService, PasskeyService],
 })
 export class AuthModule {}

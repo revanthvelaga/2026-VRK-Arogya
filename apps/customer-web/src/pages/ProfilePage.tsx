@@ -25,6 +25,7 @@ import {
 } from '../components/Icons';
 import { ReferEarnCard } from '../components/ReferEarnCard';
 import { FamilyAccessCard } from '../components/FamilyAccessCard';
+import { PasskeyManager } from '../components/PasskeySetup';
 import { MyDocuments } from '../components/MyDocuments';
 import { Tickets } from '../components/Tickets';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
@@ -188,7 +189,7 @@ function AccountMenu() {
 
       <div className="account-group-title">Account</div>
       <div className="card account-group">
-        <AccountRow to="/profile/edit" icon={<IconUser size={17} />} label="Edit profile" sub="Name, email, date of birth, address" />
+        <AccountRow to="/profile/edit" icon={<IconUser size={17} />} label="Edit profile" sub="Name, email, address, fingerprint sign-in" />
         <AccountRow
           danger
           icon={<IconLogout size={17} />}
@@ -323,6 +324,8 @@ function EditProfile() {
           {submitting ? 'Saving…' : 'Save profile'}
         </button>
       </form>
+
+      <PasskeyManager />
     </>
   );
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { api, decodeJwt, endSession, getSession, recordActivity, setSession, setUnauthorizedHandler } from '../api/client';
 import type { AuthSession, Role } from '../api/types';
 import { unregisterPushToken } from '../lib/push';
+import { passkeySignIn } from '../lib/passkey';
 
 export interface CurrentUser {
   userId: string;
@@ -31,6 +32,11 @@ interface AuthContextValue {
   // "Forgot password" — idToken is a Firebase phone-auth token proving
   // the customer owns that number, same trust as loginWithPhoneOtp.
   resetPasswordWithPhone: (idToken: string, newPassword: string) => Promise<void>;
+  // Fingerprint / face / screen-lock sign-in with a saved passkey.
+  loginWithPasskey: () => Promise<void>;
+  // How this sign-in happened — after an OTP / Google / password sign-in
+  // we offer to set up fingerprint sign-in; after a passkey one we don't.
+  signedInWith: 'passkey' | 'other' | null;
   logout: () => void;
   // Set right after a sign-in (not on page reloads) — shows the welcome
   // screen once; 'new' for a just-created account.
@@ -80,10 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const [welcome, setWelcome] = useState<'back' | 'new' | null>(null);
-  const startSession = (session: AuthSession, kind: 'back' | 'new' = 'back') => {
+  const [signedInWith, setSignedInWith] = useState<'passkey' | 'other' | null>(null);
+  const startSession = (session: AuthSession, kind: 'back' | 'new' = 'back', via: 'passkey' | 'other' = 'other') => {
     setSession(session);
     setUser(sessionToUser(session));
     setWelcome(kind);
+    setSignedInWith(via);
   };
 
   const login = async (phone: string, password: string) => {
@@ -112,11 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     startSession(session);
   };
 
+  const loginWithPasskey = async () => {
+    const session = await passkeySignIn();
+    startSession(session, 'back', 'passkey');
+  };
+
   const logout = () => {
     unregisterPushToken();
     endSession(null);
     setUser(null);
     setWelcome(null);
+    setSignedInWith(null);
   };
 
   const value = useMemo(
@@ -127,12 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginWithGoogle,
       loginWithPhoneOtp,
       resetPasswordWithPhone,
+      loginWithPasskey,
+      signedInWith,
       logout,
       welcome,
       clearWelcome: () => setWelcome(null),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, welcome],
+    [user, welcome, signedInWith],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

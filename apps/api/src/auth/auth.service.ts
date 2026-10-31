@@ -221,6 +221,15 @@ export class AuthService {
     return this.issueTokens(user.id, user.phone, user.role, sessionStart);
   }
 
+  // Passkey sign-in: the passkey already proved who this is.
+  async signInById(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user || user.isActive === false) {
+      throw new UnauthorizedException('This account is not active. Please contact Arogya.');
+    }
+    return this.issueTokens(user.id, user.phone, user.role);
+  }
+
   private issueTokens(userId: string, phone: string | undefined, role: Role, sessionStart?: number) {
     const sst = sessionStart ?? Math.floor(Date.now() / 1000);
     const payload = { sub: userId, phone, role, sst };

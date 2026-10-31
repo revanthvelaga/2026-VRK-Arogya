@@ -3,11 +3,12 @@ import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { clearSignOutMessage, peekSignOutMessage } from '../api/client';
-import { IconPlus } from '../components/Icons';
+import { IconFingerprint, IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
 import { googleClientId } from '../lib/googleAuth';
 import { useOtpProvider } from '../lib/firebaseAuth';
+import { passkeyErrorMessage, passkeyOnDevice, passkeysSupported } from '../lib/passkey';
 
 interface LocationState {
   from?: { pathname: string; search?: string; hash?: string };
@@ -16,7 +17,7 @@ interface LocationState {
 type Mode = 'password' | 'otp';
 
 export function LoginPage() {
-  const { login, loginWithGoogle, user } = useAuth();
+  const { login, loginWithGoogle, loginWithPasskey, user } = useAuth();
   const otp = useOtpProvider();
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +69,34 @@ export function LoginPage() {
     }
   };
 
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const onPasskey = async () => {
+    setError(null);
+    setPasskeyBusy(true);
+    try {
+      await loginWithPasskey();
+    } catch (err) {
+      const msg = passkeyErrorMessage(err, 'Fingerprint sign-in failed. Please try again.');
+      if (msg) setError(msg);
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
+  // Someone who saved a passkey on this device sees it first; everyone
+  // else gets it as one more option below the form.
+  const passkeyFirst = passkeysSupported && passkeyOnDevice();
+  const passkeyButton = passkeysSupported && (
+    <button
+      type="button"
+      className={`btn ${passkeyFirst ? 'btn-primary' : ''} passkey-btn`}
+      onClick={onPasskey}
+      disabled={passkeyBusy}
+    >
+      <IconFingerprint size={18} />
+      {passkeyBusy ? 'Waiting for your fingerprint…' : 'Sign in with fingerprint / face lock'}
+    </button>
+  );
+
   const switchMode = (next: Mode) => {
     setMode(next);
     setError(null);
@@ -99,6 +128,15 @@ export function LoginPage() {
             </div>
           )}
           {error && <div className="error-banner">{error}</div>}
+
+          {passkeyFirst && (
+            <>
+              {passkeyButton}
+              <div className="auth-divider auth-divider--tight">
+                <span>or</span>
+              </div>
+            </>
+          )}
 
           {mode === 'password' ? (
             <form onSubmit={onSubmit}>
@@ -153,14 +191,13 @@ export function LoginPage() {
             </button>
           )}
 
-          {hasGoogle && (
-            <>
-              <div className="auth-divider auth-divider--tight">
-                <span>or</span>
-              </div>
-              <GoogleSignInButton onCredential={onGoogleCredential} />
-            </>
+          {(hasGoogle || (passkeysSupported && !passkeyFirst)) && (
+            <div className="auth-divider auth-divider--tight">
+              <span>or</span>
+            </div>
           )}
+          {hasGoogle && <GoogleSignInButton onCredential={onGoogleCredential} />}
+          {!passkeyFirst && passkeyButton}
         </div>
 
         <p className="auth-footer">

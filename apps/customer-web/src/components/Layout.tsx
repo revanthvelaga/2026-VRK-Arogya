@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { PasskeyOffer } from './PasskeySetup';
 import { TopNav } from './TopNav';
 import { Footer } from './Footer';
 import { CartBar } from './CartBar';
@@ -14,6 +15,7 @@ export function Layout() {
       <TopNav />
       <main className="site-main">
         <div className="page-enter" key={pathname}>
+          {pathname !== '/login' && <PasskeyOffer />}
           <Outlet />
         </div>
       </main>
