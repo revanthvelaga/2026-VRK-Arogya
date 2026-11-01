@@ -9874,41 +9874,31 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 .wow-film:not(.go) .wow-mantra span { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .wow-mantra span { animation: none; opacity: 1; } }
 
-/* ---- Welcome v3: Arogya artwork in the centre, on its own warm pearl stage ---- */
-.wow-splash.wow-beat { background: radial-gradient(120% 90% at 50% 40%, #f3efec 0%, #ebe6e3 55%, #e2d9d4 100%); color: #3b2a26; }
-.wow-beat .wow-word span { background: linear-gradient(180deg, #e0302f 15%, #f97a26 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 2px 6px rgba(224, 60, 40, 0.25)); }
-.wow-beat .wow-greeting { color: #3b2a26; }
-.wow-beat .wow-tagline { color: #7d645c; }
-.wow-beat .wow-mantra span { background-image: linear-gradient(100deg, #8a5a10 0%, #c8921f 25%, #f3d27a 42%, #d9a63a 55%, #9b6714 75%, #c8921f 90%, #8a5a10 100%); filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(230, 160, 50, 0.25)); }
-.wow-beat .hp-stage { width: min(92vw, 400px); }
-.hp-art { position: absolute; inset: 4%; z-index: 5; opacity: 0;
-  -webkit-mask: radial-gradient(closest-side, #000 72%, transparent 100%); mask: radial-gradient(closest-side, #000 72%, transparent 100%); }
-.hp-art img { width: 100%; height: 100%; display: block; user-select: none; }
-.go .hp-art { animation: hpArtIn 0.8s cubic-bezier(0.2, 1.1, 0.35, 1) 0.05s forwards, hpArtBeat 0.8s ease-out 0.75s 3; }
-@keyframes hpArtIn { 0% { opacity: 0; transform: scale(0.8); filter: blur(8px) brightness(1.4); } 60% { opacity: 1; filter: blur(0) brightness(1.15); } 100% { opacity: 1; transform: scale(1); filter: none; } }
-@keyframes hpArtBeat { 0%, 45%, 100% { transform: scale(1); } 9% { transform: scale(1.025); } 18% { transform: scale(0.998); } 28% { transform: scale(1.015); } }
-/* glow that swells from the heart on each beat */
-.hp-heartbeat { position: absolute; left: 50%; top: 59%; width: 44%; height: 40%; translate: -50% -50%; border-radius: 50%; pointer-events: none; opacity: 0;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 210, 160, 0.6) 40%, rgba(255, 120, 60, 0) 75%); mix-blend-mode: screen; }
-.go .hp-heartbeat { animation: hpHeartPulse 0.8s ease-out 0.75s 3; }
-@keyframes hpHeartPulse { 0%, 50%, 100% { opacity: 0; transform: scale(0.8); } 9% { opacity: 0.85; transform: scale(1.08); } 28% { opacity: 0.6; transform: scale(1.03); } }
-/* light racing along the heartbeat line */
-.hp-trace { position: absolute; left: 12%; top: 60%; width: 9%; height: 16%; translate: -50% -50%; border-radius: 50%; pointer-events: none; opacity: 0;
-  background: radial-gradient(closest-side, #fff 0%, rgba(255, 236, 190, 0.9) 35%, rgba(255, 150, 60, 0) 100%); mix-blend-mode: screen; filter: blur(1px); }
-.go .hp-trace { animation: hpRace 0.8s cubic-bezier(0.45, 0, 0.55, 1) 0.72s 3; }
-@keyframes hpRace { 0% { left: 12%; opacity: 0; } 10% { opacity: 1; } 85% { opacity: 1; } 100% { left: 88%; opacity: 0; } }
-.hp-artglow { position: absolute; inset: 0; pointer-events: none; opacity: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 190, 120, 0.35), rgba(255, 190, 120, 0) 60%); mix-blend-mode: screen; }
-.go .hp-artglow { animation: hpGlowBreath 2.4s ease-in-out 0.6s infinite; }
-@keyframes hpGlowBreath { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.7; } }
-/* orbits and sparkles stay around the artwork, never over its middle */
-.wow-beat .hp-atom { z-index: 6; -webkit-mask: radial-gradient(ellipse 34% 38% at 50% 52%, transparent 70%, #000 100%); mask: radial-gradient(ellipse 34% 38% at 50% 52%, transparent 70%, #000 100%); }
-.wow-beat .hp-orbit-line { stroke-width: 1.5; }
-.wow-beat .hp-halo { inset: 6%; background: radial-gradient(closest-side, rgba(255, 140, 80, 0.45), rgba(255, 90, 50, 0.18) 55%, rgba(255, 90, 50, 0) 80%); z-index: 1; }
-.wow-beat .hp-ring { width: 80%; height: 80%; border-color: rgba(230, 110, 50, 0.75); box-shadow: 0 0 16px rgba(255, 120, 60, 0.5); z-index: 6; }
-.wow-beat .hp-star, .wow-beat .hp-mote { z-index: 7; }
-.wow-beat .hp-star { background: #fff7e6; box-shadow: 0 0 8px 3px rgba(240, 140, 50, 0.85); }
-.wow-beat .hp-star.cross { box-shadow: none; filter: drop-shadow(0 0 4px rgba(230, 130, 40, 1)); }
-.wow-beat .hp-mote { background: #ffd9a8; box-shadow: 0 0 6px 2px rgba(240, 120, 50, 0.8); }
-.wow-beat .hp-bang { z-index: 8; }
-.hp-stage.still .hp-art { opacity: 1; }
+/* ---- Welcome v4: red plus + white heart on the wine stage; only the heart beats ---- */
+.hp-stage.hv { width: min(86vw, 370px); }
+.hv > span { position: absolute; pointer-events: none; }
+.hv-mark { position: absolute; left: 50%; top: 50%; width: 56%; height: 56%; translate: -50% -50%; overflow: visible; z-index: 5; }
+.hv-plus { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.go .hv-plus { animation: hvPlusIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes hvPlusIn { 0% { opacity: 0; transform: scale(0.86); filter: blur(6px); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
+.hv-heart-wrap { opacity: 0; }
+.go .hv-heart-wrap { animation: hvFadeIn 0.45s ease-out 0.28s forwards; }
+@keyframes hvFadeIn { to { opacity: 1; } }
+.hv-heart { transform-box: fill-box; transform-origin: 50% 55%; }
+.hv-heart-glow { opacity: 0.25; }
+.hv-ecg-base { opacity: 0.4; }
+
+/* everything decorative sits behind the plus */
+.hv-halo { left: 50%; top: 50%; width: 78%; height: 78%; translate: -50% -50%; border-radius: 50%; z-index: 1; opacity: 0;
+  background: radial-gradient(closest-side, rgba(255, 120, 60, 0.55), rgba(220, 50, 40, 0.22) 55%, rgba(220, 50, 40, 0) 80%); }
+.go .hv-halo { opacity: 0.55; transition: opacity 0.6s ease; }
+.hv-ring { left: 50%; top: 50%; width: 62%; height: 62%; translate: -50% -50%; border-radius: 50%; z-index: 2; opacity: 0;
+  border: 1.5px solid rgba(255, 150, 90, 0.85); box-shadow: 0 0 18px rgba(255, 90, 50, 0.55), inset 0 0 14px rgba(255, 120, 60, 0.35); }
+.hv .hv-atom { z-index: 3;
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 27%, #000 36%); mask: radial-gradient(circle at 50% 50%, transparent 27%, #000 36%); }
+.hv .hv-atom .hp-orbit-g { animation: none; }
+.hv-sparks { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; overflow: visible; pointer-events: none; }
+.hv .hp-star { z-index: 4; }
+
+.hp-stage.hv.still .hv-plus, .hp-stage.hv.still .hv-heart-wrap { opacity: 1; }
+.hp-stage.hv.still .hv-halo { opacity: 0.55; }
