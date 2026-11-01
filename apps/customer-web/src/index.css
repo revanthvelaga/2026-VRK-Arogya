@@ -9874,44 +9874,25 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 .wow-film:not(.go) .wow-mantra span { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .wow-mantra span { animation: none; opacity: 1; } }
 
-/* ---- Welcome v5: glossy 3D cross + translucent heart on a warm cream stage; only the heart beats ---- */
-.wow-splash.wow-beat { background: radial-gradient(circle at 50% 38%, #fffaf2 0%, #f5f0eb 55%, #ebe3dc 100%); color: #3b2a26; }
-.wow-beat .wow-word span { background: linear-gradient(180deg, #c8321f 10%, #8c1a10 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 3px 6px rgba(130, 35, 20, 0.22)); }
+/* ---- Welcome v6: the user's own animation (in a frame) on its cream stage, Arogya + mantra below ---- */
+.wow-splash.wow-beat { background: radial-gradient(circle at 50% 36%, #fffaf2 0%, #f5f0eb 55%, #ebe3dc 100%); color: #3b2a26; }
+.wow-beat .wow-word span { background: linear-gradient(180deg, #9e2a22 0%, #681812 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 4px 6px rgba(130, 35, 20, 0.22)); }
 .wow-beat .wow-greeting { color: #3b2a26; }
 .wow-beat .wow-tagline { color: #7d645c; }
 .wow-beat .wow-mantra span { background-image: linear-gradient(100deg, #8a5a10 0%, #c8921f 25%, #f3d27a 42%, #d9a63a 55%, #9b6714 75%, #c8921f 90%, #8a5a10 100%); filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(230, 160, 50, 0.25)); }
-
-.hp-stage.ag { width: min(90vw, 390px); }
-.ag > span { position: absolute; pointer-events: none; }
-.ag-aura { left: 50%; top: 50%; width: 76%; height: 76%; translate: -50% -50%; border-radius: 50%; z-index: 1; opacity: 0; filter: blur(14px);
-  background: radial-gradient(circle, rgba(255, 136, 38, 0.55) 0%, rgba(255, 168, 68, 0.35) 35%, rgba(255, 195, 110, 0.15) 58%, rgba(245, 240, 235, 0) 76%); }
-.go .ag-aura { opacity: 0.8; transition: opacity 0.7s ease; }
-.ag-shock { left: 50%; top: 50%; width: 80%; height: 80%; translate: -50% -50%; border-radius: 50%; z-index: 2; opacity: 0;
-  border: 2px solid rgba(255, 170, 80, 0.8); box-shadow: 0 0 22px rgba(255, 140, 40, 0.55), inset 0 0 18px rgba(255, 170, 80, 0.4); }
-.ag-embers { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
-.ag-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; overflow: visible; }
-
-.ag-swirl { transform-origin: 400px 365px; }
-.ag-rings { opacity: 0; }
-.go .ag-rings { animation: agFade 0.9s ease 0.15s both; }
-.go .ag-swirl.cw { animation: agRot 26s linear infinite; }
-.go .ag-swirl.ccw { animation: agRot 34s linear infinite reverse; }
-.go .ag-swirl.fast { animation: agRot 14s linear infinite; }
-.ag-floor { opacity: 0; }
-.go .ag-floor { animation: agFade 0.8s ease 0.2s both; }
-.ag-cross { transform-origin: 400px 365px; opacity: 0; }
-.go .ag-cross { animation: agCrossIn 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.ag-heart-in { transform-origin: 400px 368px; opacity: 0; }
-.go .ag-heart-in { animation: agHeartIn 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) 0.12s both; }
-.ag-heart { transform-box: fill-box; transform-origin: 50% 50%; }
-.ag-heart-glow { opacity: 0.35; }
-.ag-ecg { opacity: 0; }
-.go .ag-ecg { animation: agFade 0.45s ease 0.35s both; }
-.ag-tip { transform-box: view-box; }
-@keyframes agFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes agRot { to { transform: rotate(360deg); } }
-@keyframes agCrossIn { 0% { opacity: 0; transform: scale(0.8) translateY(18px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes agHeartIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
-
-.hp-stage.ag.still .ag-cross, .hp-stage.ag.still .ag-heart-in, .hp-stage.ag.still .ag-ecg, .hp-stage.ag.still .ag-rings, .hp-stage.ag.still .ag-floor { opacity: 1; }
-.hp-stage.ag.still .ag-aura { opacity: 0.8; }
+.wow-splash.wow-beat { overflow: hidden; }
+.ag-frame { position: relative; width: min(90vw, 400px); aspect-ratio: 1; margin: max(-6vw, -26px) auto max(-17vw, -76px); pointer-events: none; flex: none; overflow: visible; }
+/* premium wordmark: engraved serif in ruby, a gold hairline ornament above the mantra */
+.wow-beat .wow-word { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.14em; padding-left: 0.14em; font-size: clamp(36px, 10.5vw, 52px); margin-top: 10px; }
+.wow-beat .wow-word span { background: linear-gradient(180deg, #c33a26 0%, #8c1a10 55%, #5e0f09 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8)) drop-shadow(0 6px 10px rgba(130, 35, 20, 0.22)); }
+.wow-beat .wow-greeting { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; margin-top: 10px; }
+.wow-beat .wow-tagline { font-size: 12.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #9a7d6f; }
+.wow-rule { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 18px auto 0; width: min(64vw, 240px); opacity: 0; animation: textRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.75s forwards; }
+.wow-rule::before, .wow-rule::after { content: ''; flex: 1; height: 1px; transform: scaleX(0); animation: ruleDraw 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.8s forwards; }
+.wow-rule::before { background: linear-gradient(90deg, rgba(200, 146, 31, 0), #c8921f); transform-origin: right; }
+.wow-rule::after { background: linear-gradient(90deg, #c8921f, rgba(200, 146, 31, 0)); transform-origin: left; }
+.wow-rule i { width: 7px; height: 7px; rotate: 45deg; background: linear-gradient(135deg, #f3d27a, #b9842a); box-shadow: 0 0 8px rgba(230, 160, 50, 0.6); }
+@keyframes ruleDraw { to { transform: scaleX(1); } }
+.wow-beat .wow-mantra { margin-top: 10px; }
+.ag-frame iframe { position: absolute; left: -15%; top: -15%; width: 130%; height: 130%; border: 0; background: transparent; color-scheme: light; }

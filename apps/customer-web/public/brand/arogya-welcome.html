@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arogya</title>
+  <style>
+    :root {
+      --bg-cream: #f5f0eb;
+      --cross-red-dark: #8c140b;
+      --cross-red-mid: #d92b14;
+      --cross-orange-Rim: #ff9a3c;
+      --gold-glow: #ffb84d;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Master Stage */
+    .stage-wrapper {
+      position: relative;
+      width: 100vw;
+      height: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Ambient Warm Glow Behind Cross */
+    .ambient-aura {
+      position: absolute;
+      width: 72%;
+      height: 72%;
+      top: 10%;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 136, 38, 0.55) 0%,
+        rgba(255, 168, 68, 0.35) 35%,
+        rgba(255, 195, 110, 0.15) 58%,
+        rgba(245, 240, 235, 0) 76%
+      );
+      filter: blur(18px);
+      animation: auraBreathe 3.2s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Swirling Light Rings */
+    .swirl-ring {
+      transform-origin: 400px 365px;
+    }
+    .swirl-cw {
+      animation: rotateCW 26s linear infinite;
+    }
+    .swirl-ccw {
+      animation: rotateCCW 34s linear infinite;
+    }
+    .swirl-fast {
+      animation: rotateCW 14s linear infinite;
+    }
+
+    /* 3D Cross Entrance & Floating */
+    .cross-group {
+      transform-origin: 400px 365px;
+      animation: floatCross 5s ease-in-out infinite;
+    }
+
+    /* Translucent 3D Heart Synced with ECG Beat */
+    .heart-group {
+      transform-origin: 400px 370px;
+      animation: heartBeatSync 2.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    }
+
+    /* ECG Glowing Wave Animation */
+    .ecg-base-glow {
+      opacity: 0.65;
+      animation: ecgBasePulse 2.4s ease-in-out infinite;
+    }
+
+    .ecg-laser-line {
+      stroke-dasharray: 520;
+      stroke-dashoffset: 520;
+      animation: ecgSweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .ecg-spark-tip {
+      animation: tipGlow 2.4s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    /* Doctor Idle Animations */
+    .doctor-female-group {
+      transform-origin: 295px 540px;
+      animation: femaleDocFloat 4.2s ease-in-out infinite;
+    }
+
+    .doctor-male-group {
+      transform-origin: 515px 540px;
+      animation: maleDocBreathe 4.6s ease-in-out infinite;
+    }
+
+    /* Title Styling & Glow */
+    .brand-title {
+      position: absolute;
+      bottom: 8.5%;
+      width: 100%;
+      text-align: center;
+      font-size: clamp(1.35rem, 3.8vw, 2.35rem);
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      padding-left: 0.22em; /* optical balance for letter-spacing */
+      background: linear-gradient(180deg, #9e2a22 0%, #681812 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0px 4px 6px rgba(130, 35, 20, 0.22));
+      z-index: 20;
+      animation: titleShimmer 4s ease-in-out infinite;
+    }
+
+    /* Entrance Transitions */
+    .stage-entering .cross-group {
+      animation: enterCross 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .stage-entering .heart-group {
+      animation: enterHeart 0.9s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+    .stage-entering .doctor-female-group {
+      animation: enterDocLeft 0.85s 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    .stage-entering .doctor-male-group {
+      animation: enterDocRight 0.85s 0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    .stage-entering .brand-title {
+      animation: enterTitle 0.9s 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    /* Keyframes */
+    @keyframes auraBreathe {
+      0%, 100% { transform: scale(0.96); opacity: 0.82; }
+      45% { transform: scale(1.06); opacity: 1; }
+    }
+
+    @keyframes rotateCW {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateCCW {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes floatCross {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+
+    @keyframes heartBeatSync {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 18px rgba(255, 160, 70, 0.45)); }
+      32% { transform: scale(1); }
+      42% { transform: scale(1.065); filter: drop-shadow(0 0 32px rgba(255, 195, 100, 0.95)); }
+      52% { transform: scale(0.985); }
+      62% { transform: scale(1.035); filter: drop-shadow(0 0 26px rgba(255, 175, 80, 0.8)); }
+      75% { transform: scale(1); }
+    }
+
+    @keyframes ecgSweep {
+      0% { stroke-dashoffset: 520; opacity: 0.2; }
+      15% { opacity: 1; }
+      75% { opacity: 1; }
+      100% { stroke-dashoffset: -520; opacity: 0.1; }
+    }
+
+    @keyframes ecgBasePulse {
+      0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 6px #ff7b00); }
+      45% { opacity: 0.95; filter: drop-shadow(0 0 16px #ffae00); }
+    }
+
+    @keyframes tipGlow {
+      0%, 100% { transform: scale(0.85); opacity: 0.7; }
+      45% { transform: scale(1.3); opacity: 1; }
+    }
+
+    @keyframes femaleDocFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(0.6deg); }
+    }
+
+    @keyframes legSwing {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-5deg); }
+    }
+
+    @keyframes maleDocBreathe {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-3px) rotate(-0.5deg); }
+    }
+
+    @keyframes titleShimmer {
+      0%, 100% { filter: drop-shadow(0px 4px 6px rgba(130, 35, 20, 0.22)); }
+      50% { filter: drop-shadow(0px 4px 12px rgba(235, 110, 40, 0.38)); }
+    }
+
+    @keyframes enterCross {
+      0% { opacity: 0; transform: scale(0.75) translateY(20px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes enterHeart {
+      0% { opacity: 0; transform: scale(0.4); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes enterDocLeft {
+      0% { opacity: 0; transform: translateX(-35px) translateY(15px); }
+      100% { opacity: 1; transform: translateX(0) translateY(0); }
+    }
+
+    @keyframes enterDocRight {
+      0% { opacity: 0; transform: translateX(35px) translateY(15px); }
+      100% { opacity: 1; transform: translateX(0) translateY(0); }
+    }
+
+    @keyframes enterTitle {
+      0% { opacity: 0; transform: translateY(18px); letter-spacing: 0.1em; }
+      100% { opacity: 1; transform: translateY(0); letter-spacing: 0.22em; }
+    }
+  
+    /* atom orbit lines draw in, then spin slowly (added) */
+    .atom-orbits { transform-origin: 400px 365px; animation: rotateCW 40s linear infinite; }
+    .orbit-line { stroke-dasharray: 1900; stroke-dashoffset: 1900; animation: orbitDraw 1.4s ease-out 0.2s forwards; }
+    @keyframes orbitDraw { to { stroke-dashoffset: 0; } }
+  </style>
+</head>
+<body>
+  <div id="animationStage" class="stage-wrapper stage-entering">
+    <!-- Pulsing Warm Radial Aura -->
+    <div class="ambient-aura"></div>
+
+    <!-- Particle Canvas (Rising Shimmering Embers & Twinkling Stars) -->
+    <canvas id="emberCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10"></canvas>
+
+    <!-- Main High-Precision Vector Scene -->
+    <svg id="healthcareSvg" style="width:100%;height:100%;position:relative;z-index:10;overflow:visible" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Glow & Shadow Filters -->
+        <filter id="goldGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="8" result="blur1"></feGaussianBlur>
+          <feGaussianBlur stdDeviation="18" result="blur2"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur2"></feMergeNode>
+            <feMergeNode in="blur1"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+
+        <filter id="intenseLaser" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.5" result="tight"></feGaussianBlur>
+          <feGaussianBlur stdDeviation="10" result="mid"></feGaussianBlur>
+          <feGaussianBlur stdDeviation="22" result="wide"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="wide"></feMergeNode>
+            <feMergeNode in="mid"></feMergeNode>
+            <feMergeNode in="tight"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+
+        <filter id="crossDropShadow" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#7c1808" flood-opacity="0.32"></feDropShadow>
+          <feDropShadow dx="0" dy="0" stdDeviation="28" flood-color="#ff8c24" flood-opacity="0.45"></feDropShadow>
+        </filter>
+
+        <filter id="softCharShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#471209" flood-opacity="0.28"></feDropShadow>
+        </filter>
+
+        <!-- 3D Cross Outer Rim Gradient (Warm Orange-Red Bevel) -->
+        <linearGradient id="crossOuterRim" x1="220" y1="145" x2="580" y2="585" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ffb85c"></stop>
+          <stop offset="25%" stop-color="#ea4c1f"></stop>
+          <stop offset="65%" stop-color="#b51c12"></stop>
+          <stop offset="100%" stop-color="#7a0e08"></stop>
+        </linearGradient>
+
+        <!-- 3D Cross Inner Recessed Chamber Gradient -->
+        <radialGradient id="crossInnerRecess" cx="50%" cy="38%" r="58%" fx="50%" fy="32%">
+          <stop offset="0%" stop-color="#ff6a24"></stop>
+          <stop offset="42%" stop-color="#d62312"></stop>
+          <stop offset="82%" stop-color="#8f0d07"></stop>
+          <stop offset="100%" stop-color="#610604"></stop>
+        </radialGradient>
+
+        <!-- Inner Rim Highlight Stroke -->
+        <linearGradient id="innerBevelStroke" x1="400" y1="145" x2="400" y2="585" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ffdca8" stop-opacity="0.9"></stop>
+          <stop offset="40%" stop-color="#ff8438" stop-opacity="0.5"></stop>
+          <stop offset="100%" stop-color="#ffa652" stop-opacity="0.8"></stop>
+        </linearGradient>
+
+        <!-- Translucent Glossy 3D White Heart Gradient -->
+        <radialGradient id="heart3DGrad" cx="46%" cy="38%" r="60%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"></stop>
+          <stop offset="55%" stop-color="#fff3eb" stop-opacity="0.92"></stop>
+          <stop offset="82%" stop-color="#ffd5bd" stop-opacity="0.85"></stop>
+          <stop offset="100%" stop-color="#ffb38a" stop-opacity="0.9"></stop>
+        </radialGradient>
+
+        <!-- Warm Core Glow Inside the Heart -->
+        <radialGradient id="heartCenterWarmth" cx="50%" cy="52%" r="48%">
+          <stop offset="0%" stop-color="#ffae42" stop-opacity="0.65"></stop>
+          <stop offset="55%" stop-color="#ff661a" stop-opacity="0.25"></stop>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+        </radialGradient>
+
+        <!-- Swirling Halo Gradients -->
+        <linearGradient id="haloGrad1" x1="150" y1="150" x2="650" y2="600" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#fff6d6" stop-opacity="0"></stop>
+          <stop offset="30%" stop-color="#ffcf70" stop-opacity="0.75"></stop>
+          <stop offset="55%" stop-color="#ffffff" stop-opacity="0.95"></stop>
+          <stop offset="80%" stop-color="#ff9330" stop-opacity="0.6"></stop>
+          <stop offset="100%" stop-color="#ff6a00" stop-opacity="0"></stop>
+        </linearGradient>
+
+        <linearGradient id="haloGrad2" x1="650" y1="180" x2="160" y2="550" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ffae38" stop-opacity="0"></stop>
+          <stop offset="45%" stop-color="#ffe5a3" stop-opacity="0.8"></stop>
+          <stop offset="75%" stop-color="#ff771c" stop-opacity="0.5"></stop>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+        </linearGradient>
+
+        <!-- Floor Shadow Gradient -->
+        <radialGradient id="floorShadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#8c2d19" stop-opacity="0.48"></stop>
+          <stop offset="55%" stop-color="#b85d38" stop-opacity="0.18"></stop>
+          <stop offset="100%" stop-color="#f5f0eb" stop-opacity="0"></stop>
+        </radialGradient>
+
+        <!-- Golden Base Fountain Glow -->
+        <radialGradient id="baseFountainGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff8de" stop-opacity="1"></stop>
+          <stop offset="35%" stop-color="#ffae38" stop-opacity="0.75"></stop>
+          <stop offset="70%" stop-color="#ea4315" stop-opacity="0.28"></stop>
+          <stop offset="100%" stop-color="#f5f0eb" stop-opacity="0"></stop>
+        </radialGradient>
+      </defs>
+
+      <!-- ===================================================== -->
+      <!-- 1. ROTATING GOLDEN SWIRL RINGS & HALO ARCS            -->
+      <!-- ===================================================== -->
+      <g class="swirl-ring swirl-cw">
+        <circle cx="400" cy="365" r="248" stroke="url(#haloGrad1)" stroke-width="3.5" stroke-dasharray="360 180 220 140" stroke-linecap="round" filter="url(#goldGlow)"></circle>
+        <circle cx="400" cy="365" r="222" stroke="url(#haloGrad2)" stroke-width="2" stroke-dasharray="280 240" stroke-linecap="round" opacity="0.85"></circle>
+        <!-- Orbiting Sparkle Stars on Outer Ring -->
+        <path d="M 605 215 L 610 227 L 622 232 L 610 237 L 605 249 L 600 237 L 588 232 L 600 227 Z" fill="#fff7d6" filter="url(#goldGlow)"></path>
+        <path d="M 272 175 L 275 183 L 283 186 L 275 189 L 272 197 L 269 189 L 261 186 L 269 183 Z" fill="#ffd27d"></path>
+      </g>
+
+      <g class="swirl-ring swirl-ccw">
+        <ellipse cx="400" cy="365" rx="268" ry="254" stroke="url(#haloGrad2)" stroke-width="4" stroke-dasharray="420 300" stroke-linecap="round" filter="url(#goldGlow)" opacity="0.9"></ellipse>
+        <circle cx="400" cy="365" r="200" stroke="url(#haloGrad1)" stroke-width="2.5" stroke-dasharray="190 220 140 180" stroke-linecap="round"></circle>
+        <!-- Bright 4-Point Flare on Right Arc -->
+        <g transform="translate(612, 268)">
+          <path d="M 0 -18 L 4 -4 L 18 0 L 4 4 L 0 18 L -4 4 L -18 0 L -4 -4 Z" fill="#ffffff" filter="url(#goldGlow)"></path>
+        </g>
+      </g>
+
+      <g class="swirl-ring swirl-fast">
+        <circle cx="400" cy="365" r="236" stroke="#fff9e6" stroke-width="1.5" stroke-dasharray="80 450" stroke-linecap="round" filter="url(#goldGlow)"></circle>
+      </g>
+
+
+      <!-- ATOM-STYLE ORBIT LINES AROUND THE CROSS (added) -->
+      <g class="atom-orbits">
+        <g transform="rotate(0 400 365)">
+          <ellipse cx="400" cy="365" rx="300" ry="96" stroke="url(#haloGrad1)" stroke-width="2.8" filter="url(#goldGlow)" class="orbit-line"></ellipse>
+          <circle r="6" fill="#fff8e6" filter="url(#goldGlow)"><animateMotion dur="2.6s" repeatCount="indefinite" path="M 100 365 A 300 96 0 1 1 700 365 A 300 96 0 1 1 100 365"></animateMotion></circle>
+        </g>
+        <g transform="rotate(60 400 365)">
+          <ellipse cx="400" cy="365" rx="300" ry="96" stroke="url(#haloGrad2)" stroke-width="2.8" filter="url(#goldGlow)" class="orbit-line"></ellipse>
+          <circle r="6" fill="#fff8e6" filter="url(#goldGlow)"><animateMotion dur="3.2s" begin="-1s" repeatCount="indefinite" path="M 100 365 A 300 96 0 1 1 700 365 A 300 96 0 1 1 100 365"></animateMotion></circle>
+        </g>
+        <g transform="rotate(120 400 365)">
+          <ellipse cx="400" cy="365" rx="300" ry="96" stroke="url(#haloGrad1)" stroke-width="2.8" filter="url(#goldGlow)" class="orbit-line"></ellipse>
+          <circle r="6" fill="#fff8e6" filter="url(#goldGlow)"><animateMotion dur="3.8s" begin="-2s" repeatCount="indefinite" path="M 100 365 A 300 96 0 1 1 700 365 A 300 96 0 1 1 100 365"></animateMotion></circle>
+        </g>
+      </g>
+      <!-- ===================================================== -->
+      <!-- 2. GROUND SHADOWS & SHIMMERING BASE LIGHT             -->
+      <!-- ===================================================== -->
+      <!-- Main Ground Shadow -->
+      <ellipse cx="400" cy="590" rx="220" ry="18" fill="url(#floorShadow)"></ellipse>
+      <!-- Left Doctor Ground Glow -->
+      <ellipse cx="290" cy="586" rx="55" ry="10" fill="url(#baseFountainGlow)" opacity="0.7"></ellipse>
+      <!-- Center Cross Base Intense Shimmer -->
+      <ellipse cx="400" cy="588" rx="68" ry="14" fill="url(#baseFountainGlow)" filter="url(#goldGlow)"></ellipse>
+      <!-- Right Doctor Ground Shadow -->
+      <ellipse cx="520" cy="587" rx="55" ry="9" fill="url(#floorShadow)"></ellipse>
+
+      <!-- ===================================================== -->
+      <!-- 3. 3D GLOSSY RED MEDICAL CROSS                        -->
+      <!-- ===================================================== -->
+      <g class="cross-group" filter="url(#crossDropShadow)">
+        <!-- Outer 3D Extruded Rim -->
+        <path d="M 332 213
+             A 68 68 0 0 1 468 213
+             L 468 297
+             L 552 297
+             A 68 68 0 0 1 552 433
+             L 468 433
+             L 468 517
+             A 68 68 0 0 1 332 517
+             L 332 433
+             L 248 433
+             A 68 68 0 0 1 248 297
+             L 332 297
+             Z" fill="url(#crossOuterRim)" stroke="url(#innerBevelStroke)" stroke-width="3"></path>
+
+        <!-- Inner Recessed Glossy Chamber -->
+        <path d="M 346 215
+             A 54 54 0 0 1 454 215
+             L 454 311
+             L 550 311
+             A 54 54 0 0 1 550 419
+             L 454 419
+             L 454 515
+             A 54 54 0 0 1 346 515
+             L 346 419
+             L 250 419
+             A 54 54 0 0 1 250 311
+             L 346 311
+             Z" fill="url(#crossInnerRecess)"></path>
+
+        <!-- Inner Chamber Rim Specular Highlight -->
+        <path d="M 348 215
+             A 52 52 0 0 1 452 215
+             L 452 313
+             L 550 313
+             A 52 52 0 0 1 550 417
+             L 452 417
+             L 452 515
+             A 52 52 0 0 1 348 515
+             L 348 417
+             L 250 417
+             A 52 52 0 0 1 250 313
+             L 348 313
+             Z" stroke="#ffae66" stroke-width="2" stroke-opacity="0.55" fill="none"></path>
+
+        <!-- Top Dome Gloss Highlight -->
+        <path d="M 356 205 A 44 42 0 0 1 444 205" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.35" filter="blur(2px)"></path>
+      </g>
+
+      <!-- ===================================================== -->
+      <!-- 4. TRANSLUCENT 3D WHITE HEART IN CENTER               -->
+      <!-- ===================================================== -->
+      <g class="heart-group">
+        <!-- Outer Heart Shape -->
+        <path d="M 400 476
+             C 400 476, 286 404, 286 332
+             C 286 286, 324 260, 360 260
+             C 382 260, 395 273, 400 288
+             C 405 273, 418 260, 440 260
+             C 476 260, 514 286, 514 332
+             C 514 404, 400 476, 400 476 Z" fill="url(#heart3DGrad)" stroke="#ffffff" stroke-width="2.5"></path>
+
+        <!-- Warm Inner Heart Glow (Pulse Core) -->
+        <path d="M 400 470
+             C 400 470, 292 400, 292 332
+             C 292 290, 326 266, 360 266
+             C 380 266, 394 278, 400 292
+             C 406 278, 420 266, 440 266
+             C 474 266, 508 290, 508 332
+             C 508 400, 400 470, 400 470 Z" fill="url(#heartCenterWarmth)"></path>
+
+        <!-- 3D Specular Glossy Reflections on Heart Lobes -->
+        <ellipse cx="338" cy="296" rx="26" ry="13" transform="rotate(-24 338 296)" fill="#ffffff" opacity="0.85"></ellipse>
+        <ellipse cx="464" cy="296" rx="24" ry="12" transform="rotate(24 464 296)" fill="#ffffff" opacity="0.75"></ellipse>
+      </g>
+
+      <!-- ===================================================== -->
+      <!-- 5. GLOWING ECG HEARTBEAT WAVE & LIGHT TIPS            -->
+      <!-- ===================================================== -->
+      <g class="ecg-wave-container">
+        <!-- Secondary Decorative Sparkle Tendrils -->
+        <path d="M 250 356 Q 285 335 305 352 T 345 362" stroke="#ffae42" stroke-width="1.8" stroke-linecap="round" fill="none" filter="url(#goldGlow)" opacity="0.75"></path>
+        <circle cx="250" cy="356" r="3.5" fill="#fff6d1" filter="url(#goldGlow)"></circle>
+
+        <path d="M 465 360 Q 505 338 545 304" stroke="#ffae42" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#goldGlow)" opacity="0.85"></path>
+        <circle cx="545" cy="304" r="5" fill="#fff6d1" filter="url(#goldGlow)"></circle>
+
+        <!-- Persistent Warm Orange 3D Extruded ECG Track -->
+        <path class="ecg-base-glow" d="M 198 370
+             L 335 370
+             L 348 340
+             L 361 384
+             L 377 312
+             L 398 424
+             L 418 326
+             L 434 385
+             L 447 360
+             L 458 370
+             L 602 370" stroke="#ff6a00" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+
+        <path d="M 198 370
+             L 335 370
+             L 348 340
+             L 361 384
+             L 377 312
+             L 398 424
+             L 418 326
+             L 434 385
+             L 447 360
+             L 458 370
+             L 602 370" stroke="#ffc46b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+
+        <!-- Sweeping High-Intensity Laser ECG Pulse -->
+        <path class="ecg-laser-line" d="M 198 370
+             L 335 370
+             L 348 340
+             L 361 384
+             L 377 312
+             L 398 424
+             L 418 326
+             L 434 385
+             L 447 360
+             L 458 370
+             L 602 370" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#intenseLaser)"></path>
+
+        <!-- Glowing Horizontal Endpoint Nodes -->
+        <g class="ecg-spark-tip" style="transform-origin: 222px 370px;">
+          <circle cx="222" cy="370" r="8" fill="#ff9d2e" filter="url(#goldGlow)"></circle>
+          <circle cx="222" cy="370" r="4" fill="#ffffff"></circle>
+        </g>
+        <g class="ecg-spark-tip" style="transform-origin: 582px 370px;">
+          <circle cx="582" cy="370" r="9" fill="#ff9d2e" filter="url(#goldGlow)"></circle>
+          <circle cx="582" cy="370" r="4.5" fill="#ffffff"></circle>
+        </g>
+      </g>
+
+      <!-- ===================================================== -->
+      <!-- 6. FEMALE DOCTOR (LEFT - TEAL SCRUBS & WHITE COAT)    -->
+      <!-- ===================================================== -->
+      <g class="doctor-female-group" filter="url(#softCharShadow)">
+        <!-- Standing Right Leg (Slightly Behind & Grounded) -->
+        <path d="M 272 475 L 266 564 L 283 564 L 292 475 Z" fill="#1f7a73"></path>
+        <!-- Right Ankle & Flat Teal Shoe -->
+        <rect x="268" y="562" width="12" height="10" fill="#dd8e70"></rect>
+        <path d="M 255 570 L 282 570 C 285 570 285 578 280 578 L 253 578 C 248 578 250 570 255 570 Z" fill="#185954"></path>
+
+        <!-- Standing Left Leg (Teal Scrubs) -->
+        <path d="M 288 475 L 284 564 L 302 564 L 310 475 Z" fill="#288f87"></path>
+        <!-- Left Ankle & Flat Teal Shoe -->
+        <rect x="286" y="562" width="13" height="10" fill="#e89b7e"></rect>
+        <path d="M 284 570 L 312 570 C 316 570 316 578 309 578 L 282 578 C 280 578 281 572 284 570 Z" fill="#1e6b65"></path>
+
+        <!-- Torso Teal Scrubs Top -->
+        <path d="M 276 392 L 316 392 L 314 480 L 274 480 Z" fill="#2ca39a"></path>
+
+        <!-- White Lab Coat (Left & Right Panels) -->
+        <path d="M 275 390
+             L 292 390
+             L 288 504
+             L 256 498
+             C 258 455 266 418 275 390 Z" fill="#fdfcfb" stroke="#e2dcd5" stroke-width="1"></path>
+        <path d="M 304 390
+             L 318 392
+             C 324 428 326 465 325 502
+             L 298 504
+             L 304 390 Z" fill="#f7f4f0" stroke="#e2dcd5" stroke-width="1"></path>
+
+        <!-- Lab Coat Lapels -->
+        <path d="M 288 388 L 278 415 L 290 425" stroke="#dcd6ce" stroke-width="1.5" fill="none"></path>
+        <path d="M 306 388 L 314 415 L 302 425" stroke="#dcd6ce" stroke-width="1.5" fill="none"></path>
+
+        <!-- Left Arm (Hand in Coat Pocket) -->
+        <path d="M 275 393
+             C 260 404 252 420 258 436
+             L 273 452
+             L 281 442
+             L 270 426
+             L 280 404 Z" fill="#ffffff"></path>
+        <!-- Pocket Line -->
+        <path d="M 264 452 L 282 456" stroke="#c7bfb5" stroke-width="2" stroke-linecap="round"></path>
+
+        <!-- Right Arm Relaxed -->
+        <path d="M 316 394 C 325 415 327 435 322 454 L 312 452 C 315 435 313 416 308 398 Z" fill="#f2ede7"></path>
+
+        <!-- Hair Back Flow -->
+        <path d="M 282 350
+             C 270 356 266 376 268 395
+             C 272 402 288 402 294 396
+             Z" fill="#1b2632"></path>
+
+        <!-- Neck & Head -->
+        <rect x="292" y="376" width="12" height="16" rx="5" fill="#eb9c7d"></rect>
+        <path d="M 285 352
+             C 285 340 314 340 314 354
+             C 314 370 309 380 299 380
+             C 289 380 285 368 285 352 Z" fill="#f2a687"></path>
+
+        <!-- Facial Features (Warm Friendly Smile Looking Right) -->
+        <circle cx="297" cy="358" r="1.7" fill="#1e242b"></circle>
+        <circle cx="307" cy="358" r="1.7" fill="#1e242b"></circle>
+        <path d="M 294 354 Q 297 352 300 354" stroke="#1e242b" stroke-width="1.3" stroke-linecap="round" fill="none"></path>
+        <path d="M 305 354 Q 308 352 310 354" stroke="#1e242b" stroke-width="1.3" stroke-linecap="round" fill="none"></path>
+        <!-- Rosy Cheeks & Smile -->
+        <circle cx="293" cy="364" r="3" fill="#e6735c" opacity="0.45"></circle>
+        <path d="M 299 366 Q 303 370 307 366" stroke="#8a3324" stroke-width="1.6" stroke-linecap="round" fill="none"></path>
+
+        <!-- Hair Front Sweep -->
+        <path d="M 284 356
+             C 283 342 296 336 308 341
+             C 315 344 318 354 316 365
+             C 314 354 307 348 298 348
+             C 291 348 287 354 284 356 Z" fill="#22303f"></path>
+
+        <!-- Stethoscope Around Neck -->
+        <path d="M 288 386 C 283 404 285 422 292 430" stroke="#2c3540" stroke-width="2.6" stroke-linecap="round" fill="none"></path>
+        <path d="M 307 386 C 313 402 314 416 310 426" stroke="#2c3540" stroke-width="2.6" stroke-linecap="round" fill="none"></path>
+        <circle cx="310" cy="427" r="4.5" fill="#e0e6ed" stroke="#2c3540" stroke-width="2"></circle>
+        <path d="M 287 424 L 296 424 M 291.5 424 L 291.5 433" stroke="#2c3540" stroke-width="2" stroke-linecap="round"></path>
+      </g>
+
+      <!-- ===================================================== -->
+      <!-- 7. MALE DOCTOR (RIGHT - NAVY SUIT/SCRUBS & WHITE COAT)-->
+      <!-- ===================================================== -->
+      <g class="doctor-male-group" filter="url(#softCharShadow)">
+        <!-- Back Straight Leg (Left Leg) -->
+        <path d="M 500 468 L 516 568 L 532 568 L 522 468 Z" fill="#183254"></path>
+        <!-- Crossed Front Leg (Right Leg Leaning Casually) -->
+        <path d="M 516 468 L 548 548 L 534 556 L 496 472 Z" fill="#224570"></path>
+
+        <!-- Shoes -->
+        <!-- Flat Left Shoe -->
+        <path d="M 505 568 L 534 568 C 536 568 536 576 531 576 L 500 576 C 497 576 499 570 505 568 Z" fill="#172436"></path>
+        <!-- Angled Crossed Right Shoe -->
+        <path d="M 546 544 L 558 552 C 561 555 557 572 551 572 L 543 560 Z" fill="#172436"></path>
+
+        <!-- Dark Blue Inner Top / Scrubs -->
+        <path d="M 486 382 L 532 382 L 528 472 L 490 472 Z" fill="#1c3b61"></path>
+        <!-- Subtle V-Neck Tee Highlight -->
+        <path d="M 498 382 L 507 398 L 516 382" stroke="#426fa3" stroke-width="2" fill="none"></path>
+
+        <!-- White Doctor Coat (Left & Right Sides) -->
+        <path d="M 480 382
+             L 496 382
+             L 495 496
+             L 474 494
+             L 480 382 Z" fill="#ffffff" stroke="#ded8d0" stroke-width="1"></path>
+        <path d="M 520 382
+             L 538 385
+             L 545 494
+             L 522 496
+             L 520 382 Z" fill="#f7f4f0" stroke="#ded8d0" stroke-width="1"></path>
+
+        <!-- Coat Collar Lapels -->
+        <path d="M 495 380 L 485 412 L 495 422" stroke="#d4cdc5" stroke-width="1.5" fill="none"></path>
+        <path d="M 521 380 L 531 412 L 521 422" stroke="#d4cdc5" stroke-width="1.5" fill="none"></path>
+
+        <!-- Right Arm Leaning on the Heart/Cross Edge -->
+        <path d="M 482 382
+             L 446 404
+             C 440 408 442 418 450 418
+             L 484 416 Z" fill="#ffffff" stroke="#e3ddd5" stroke-width="1"></path>
+        <!-- Relaxed Right Hand Hanging Down -->
+        <path d="M 452 415
+             C 452 426 456 436 462 436
+             C 467 436 469 426 466 415 Z" fill="#eb9c7d"></path>
+
+        <!-- Left Arm (Hand in Pants Pocket) -->
+        <path d="M 536 385
+             C 552 406 558 430 546 454
+             L 533 462
+             L 528 450
+             L 540 428
+             L 528 400 Z" fill="#f5f2ee"></path>
+
+        <!-- Neck & Head -->
+        <path d="M 501 366 L 515 366 L 515 384 L 501 384 Z" fill="#e59576"></path>
+        <path d="M 492 340
+             C 492 326 520 326 520 342
+             C 520 359 514 370 504 370
+             C 494 370 492 358 492 340 Z" fill="#f0a284"></path>
+        <!-- Ear -->
+        <circle cx="520" cy="350" r="4" fill="#e59576"></circle>
+
+        <!-- Male Doctor Facial Features (Warm Confident Smile Looking Left) -->
+        <circle cx="497" cy="347" r="1.7" fill="#1d242b"></circle>
+        <circle cx="507" cy="347" r="1.7" fill="#1d242b"></circle>
+        <path d="M 494 342 Q 497 340 500 342" stroke="#1d242b" stroke-width="1.5" stroke-linecap="round" fill="none"></path>
+        <path d="M 505 342 Q 508 340 511 342" stroke="#1d242b" stroke-width="1.5" stroke-linecap="round" fill="none"></path>
+        <!-- Nose & Smile -->
+        <path d="M 501 348 L 499 354 L 502 355" stroke="#c97457" stroke-width="1.4" stroke-linecap="round" fill="none"></path>
+        <path d="M 498 358 Q 503 362 508 358" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" fill="none"></path>
+        <path d="M 498 358 Q 503 363 508 358" stroke="#7d2c1e" stroke-width="1.2" stroke-linecap="round" fill="none"></path>
+
+        <!-- Styled Dark Navy Hair -->
+        <path d="M 492 338
+             C 488 326 498 318 511 320
+             C 523 322 527 334 522 346
+             C 520 338 516 333 508 333
+             C 499 333 495 335 492 338 Z" fill="#1a2636"></path>
+      </g>
+    </svg>
+  </div>
+  <script>
+    (function () {
+      const canvas = document.getElementById('emberCanvas');
+      const ctx = canvas.getContext('2d');
+      const stage = document.getElementById('animationStage');
+      
+      
+      
+      
+
+      let width = 0;
+      let height = 0;
+      let speedMultiplier = 1;
+
+      function resizeCanvas() {
+        const rect = stage.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+        canvas.width = width * window.devicePixelRatio;
+        canvas.height = height * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // 1. Rising Shimmering Dust Particles at the Base of the Cross
+      const baseParticles = [];
+      const BASE_PARTICLE_COUNT = 55;
+
+      function createBaseParticle(initialRandomY = false) {
+        // Focus around the base of the cross and under the heart (center X: 50%, Y: 60% to 74%)
+        const spreadX = (Math.random() - 0.5) * (width * 0.24);
+        return {
+          x: width * 0.5 + spreadX,
+          y: initialRandomY
+            ? height * (0.58 + Math.random() * 0.16)
+            : height * (0.71 + Math.random() * 0.03),
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: -(0.35 + Math.random() * 0.85),
+          radius: 0.8 + Math.random() * 2.2,
+          alpha: 0.2 + Math.random() * 0.8,
+          life: 0,
+          maxLife: 70 + Math.random() * 80,
+          hue: 25 + Math.random() * 25 // Golden-orange to warm white
+        };
+      }
+
+      for (let i = 0; i < BASE_PARTICLE_COUNT; i++) {
+        baseParticles.push(createBaseParticle(true));
+      }
+
+      // 2. Orbiting Halo Embers & Twinkling Stars
+      const haloParticles = [];
+      const HALO_PARTICLE_COUNT = 38;
+
+      for (let i = 0; i < HALO_PARTICLE_COUNT; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = width * (0.24 + Math.random() * 0.14);
+        haloParticles.push({
+          angle,
+          distRatio: 0.24 + Math.random() * 0.14,
+          angularSpeed: (0.0015 + Math.random() * 0.0025) * (Math.random() > 0.3 ? 1 : -1),
+          radius: 1.2 + Math.random() * 2.8,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleSpeed: 0.03 + Math.random() * 0.05,
+          isStar: i % 6 === 0
+        });
+      }
+
+      function drawFourPointStar(cx, cy, outerR, alpha) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.beginPath();
+        const innerR = outerR * 0.28;
+        for (let i = 0; i < 4; i++) {
+          const rot = (Math.PI / 2) * i;
+          ctx.lineTo(Math.cos(rot) * outerR, Math.sin(rot) * outerR);
+          ctx.lineTo(
+            Math.cos(rot + Math.PI / 4) * innerR,
+            Math.sin(rot + Math.PI / 4) * innerR
+          );
+        }
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255, 245, 210, ${alpha})`;
+        ctx.shadowColor = 'rgba(255, 165, 50, 0.9)';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        const centerX = width * 0.5;
+        const centerY = height * 0.456;
+
+        // Render Rising Shimmering Base Dust
+        for (let i = 0; i < baseParticles.length; i++) {
+          const p = baseParticles[i];
+          p.x += p.vx * speedMultiplier;
+          p.y += p.vy * speedMultiplier;
+          p.life += 1 * speedMultiplier;
+
+          const progress = p.life / p.maxLife;
+          const fade = progress < 0.2 ? progress / 0.2 : 1 - (progress - 0.2) / 0.8;
+          const currentAlpha = Math.max(0, p.alpha * fade);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${p.hue}, 100%, 78%, ${currentAlpha})`;
+          ctx.shadowColor = `hsla(${p.hue}, 100%, 60%, ${currentAlpha})`;
+          ctx.shadowBlur = 6;
+          ctx.fill();
+          ctx.restore();
+
+          if (p.life >= p.maxLife) {
+            baseParticles[i] = createBaseParticle(false);
+          }
+        }
+
+        // Render Swirling Halo Sparkles & Stars
+        for (let i = 0; i < haloParticles.length; i++) {
+          const hp = haloParticles[i];
+          hp.angle += hp.angularSpeed * speedMultiplier;
+          hp.twinklePhase += hp.twinkleSpeed * speedMultiplier;
+
+          const r = width * hp.distRatio;
+          const x = centerX + Math.cos(hp.angle) * r;
+          const y = centerY + Math.sin(hp.angle) * r;
+          const alpha = 0.25 + 0.75 * Math.abs(Math.sin(hp.twinklePhase));
+
+          if (hp.isStar) {
+            drawFourPointStar(x, y, hp.radius * 2.6, alpha);
+          } else {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, hp.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 220, 145, ${alpha})`;
+            ctx.shadowColor = 'rgba(255, 140, 30, 0.85)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        requestAnimationFrame(animateParticles);
+      }
+
+      window.onload = function () {
+        animateParticles();
+        // Remove entrance class after initial load so infinite loops run smoothly
+        setTimeout(() => {
+          stage.classList.remove('stage-entering');
+        }, 1450);
+      };
+
+      })();
+  </script>
+</body></html>
