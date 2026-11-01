@@ -418,8 +418,7 @@ function ArogyaWebApp() {
     if (msg.type === 'wellbeing-open') {
       const what = (msg as { what?: string }).what;
       try {
-        if (what === 'reels') wellbeing?.openAccessibilitySettings();
-        else wellbeing?.openUsageSettings();
+        if (what !== 'reels') wellbeing?.openUsageSettings();
       } catch {
         // settings screen unavailable
       }

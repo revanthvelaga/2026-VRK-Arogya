@@ -12,19 +12,5 @@
       android:exported="false"
       android:permission="android.permission.BIND_JOB_SERVICE" />
 
-    <!-- Counts reels / shorts swiped in a few social apps. Only runs once the
-         person turns it on in Android's accessibility settings. -->
-    <service
-      android:name=".ReelCounterService"
-      android:exported="true"
-      android:label="Arogya reel counter"
-      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-      <intent-filter>
-        <action android:name="android.accessibilityservice.AccessibilityService" />
-      </intent-filter>
-      <meta-data
-        android:name="android.accessibilityservice"
-        android:resource="@xml/arogya_reel_counter" />
-    </service>
   </application>
 </manifest>

@@ -6,7 +6,7 @@ import { appCanWellbeing, fmtMinutes, loadGoal, scoreTone, sumReels, useWellbein
 // measure it, otherwise just the way in.
 export function WellbeingTeaser() {
   const { state } = useWellbeing();
-  let line = 'Screen time, reels swiped and how it affects your health';
+  let line = 'Screen time, sleep, reels and how it affects your health';
   let tone = '';
   if (appCanWellbeing && state.kind === 'ready' && state.data.usageAccess) {
     const today = state.data.days[state.data.days.length - 1];
@@ -14,7 +14,7 @@ export function WellbeingTeaser() {
     const t = scoreTone(score);
     tone = t.tone;
     const reels = sumReels(today);
-    line = `${fmtMinutes(today.total)} today${state.data.reelsAccess ? ` · ${reels} reels` : ''} · ${t.label}`;
+    line = `${fmtMinutes(today.total)} today${reels ? ` · ≈${reels} reels` : ''} · ${t.label}`;
   } else if (appCanWellbeing && state.kind === 'ready') {
     line = 'Turn on screen-time access to see your day';
   }

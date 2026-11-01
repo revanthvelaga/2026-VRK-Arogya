@@ -23,13 +23,9 @@ class ArogyaWellbeingModule : Module() {
     Name("ArogyaWellbeing")
 
     Function("hasUsageAccess") { usageAccess() }
-    Function("hasReelsAccess") { reelsAccess() }
 
     Function("openUsageSettings") {
       launch(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-    }
-    Function("openAccessibilitySettings") {
-      launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     AsyncFunction("getSnapshot") { days: Int -> snapshot(days.coerceIn(1, 14)) }
@@ -45,15 +41,6 @@ class ArogyaWellbeingModule : Module() {
     @Suppress("DEPRECATION")
     val mode = ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
     return mode == AppOpsManager.MODE_ALLOWED
-  }
-
-  private fun reelsAccess(): Boolean {
-    val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-      ?: return false
-    val mine = ComponentName(context.packageName, ReelCounterService::class.java.name)
-    return enabled.split(':').any {
-      ComponentName.unflattenFromString(it)?.let { c -> c == mine } ?: false
-    }
   }
 
   private fun dayKey(cal: Calendar): String =
@@ -90,7 +77,6 @@ class ArogyaWellbeingModule : Module() {
 
   private fun snapshot(days: Int): Map<String, Any> {
     val hasUsage = usageAccess()
-    val reels = ReelCounterService.readAll(context)
     try {
       ChargeTracker.update(context)
       ChargeTracker.schedule(context)
@@ -159,9 +145,7 @@ class ArogyaWellbeingModule : Module() {
         cats[c] = (cats[c] ?: 0L) + ms
         if (ms >= 60000 && TRACKED.contains(pkg)) apps[pkg] = (ms / 60000).toInt()
       }
-      val reelMap = HashMap<String, Int>()
-      val r = reels.optJSONObject(key)
-      if (r != null) for (k in r.keys()) reelMap[k] = r.optInt(k)
+      val reelMap = HashMap<String, Int>() // estimated on the website from minutes
       val day = hashMapOf<String, Any>(
         "date" to key,
         "total" to (total / 60000).toInt(),
@@ -188,7 +172,7 @@ class ArogyaWellbeingModule : Module() {
       if (sleep != null) day["sleep"] = sleep
       out.add(day)
     }
-    return mapOf("usageAccess" to hasUsage, "reelsAccess" to reelsAccess(), "days" to out)
+    return mapOf("usageAccess" to hasUsage, "reelsAccess" to false, "days" to out)
   }
 
   // Joins app use into sittings: a gap of under 2 minutes (switching apps,

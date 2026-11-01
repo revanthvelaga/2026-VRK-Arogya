@@ -15,9 +15,7 @@ export interface WellbeingSnapshot {
 
 interface Native {
   hasUsageAccess(): boolean;
-  hasReelsAccess(): boolean;
   openUsageSettings(): void;
-  openAccessibilitySettings(): void;
   getSnapshot(days: number): Promise<WellbeingSnapshot>;
 }
 

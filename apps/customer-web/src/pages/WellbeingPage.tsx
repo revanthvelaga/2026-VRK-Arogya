@@ -11,20 +11,12 @@ import {
   loadGoal,
   saveGoal,
   scoreTone,
+  reelsOf,
   sumReels,
   useWellbeing,
   wellbeingScore,
 } from '../lib/wellbeing';
 import type { WellbeingData } from '../lib/wellbeing';
-
-const REELS_NOTICE_KEY = 'arogya_reels_notice_ok';
-const noticeOk = () => {
-  try {
-    return localStorage.getItem(REELS_NOTICE_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
 
 function weekday(date: string) {
   const [y, m, d] = date.split('-').map(Number);
@@ -48,17 +40,16 @@ function ScoreRing({ score, tone }: { score: number; tone: 'good' | 'ok' | 'high
   );
 }
 
-function tip(minutes: number, goal: number, reels: number): string {
+function tip(minutes: number, goal: number, reels: number, tone: 'good' | 'ok' | 'high'): string {
   if (reels >= 150) return `${reels} reels in a day is a lot — short, fast videos keep the brain on “one more”. Try a 30-minute cap, or keep the phone out of the bedroom tonight.`;
   if (minutes > goal) return 'You’re over your goal today. A walk or a glass of water is a good reset — and screens in the last hour before bed hurt sleep the most.';
-  if (minutes > goal * 0.75) return 'You’re close to your daily goal. Try the 20-20-20 rule: every 20 minutes, look 20 feet away for 20 seconds to rest your eyes.';
+  if (minutes > goal * 0.75 || tone !== 'good') return 'A little room to improve — watch late nights and long stretches. Try the 20-20-20 rule: every 20 minutes, look 20 feet away for 20 seconds to rest your eyes.';
   return 'Nice and balanced. Keep it up — good sleep and light screen time go hand in hand with better health results.';
 }
 
 function Dashboard({ data, preview, openSettings }: { data: WellbeingData; preview: boolean; openSettings: (w: 'usage' | 'reels') => void }) {
   const [goal, setGoal] = useState(loadGoal);
   const [selected, setSelected] = useState<string | null>(null);
-  const [notice, setNotice] = useState(false);
   const days = data.days;
   const today = days[days.length - 1];
   const day = days.find((d) => d.date === selected) ?? today;
@@ -73,7 +64,7 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
     () => Object.entries(day.apps).sort((a, b) => b[1] - a[1]),
     [day],
   );
-  const reelRows = useMemo(() => Object.entries(day.reels).sort((a, b) => b[1] - a[1]), [day]);
+  const reelMap = useMemo(() => reelsOf(day), [day]);
   const topApp = apps[0];
 
   return (
@@ -81,6 +72,25 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
       {preview && (
         <div className="wb-banner">
           Sample data. Open Arogya in the Android app to see your own screen time.
+        </div>
+      )}
+
+      {!preview && !data.usageAccess && (
+        <div className="card wb-setup">
+          <div className="wb-card-title">
+            <b>Set up</b>
+          </div>
+          {!data.usageAccess && (
+            <div className="wb-step">
+              <div>
+                <b>Show my screen time</b>
+                <small>Opens Android’s “Usage access”. Find Arogya in the list and switch it on.</small>
+              </div>
+              <button type="button" className="btn btn-primary btn-small" onClick={() => openSettings('usage')}>
+                Allow
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -97,8 +107,8 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
       <div className="wb-two">
         <div className="card wb-stat">
           <div className="wb-eyebrow">Reels & shorts</div>
-          <div className="wb-stat-num">{data.reelsAccess ? reels.toLocaleString() : '–'}</div>
-          <small>{data.reelsAccess ? `${weekReels.toLocaleString()} this week` : 'Turn on counting below'}</small>
+          <div className="wb-stat-num">≈ {reels.toLocaleString()}</div>
+          <small>about {weekReels.toLocaleString()} this week</small>
         </div>
         <div className="card wb-stat">
           <div className="wb-eyebrow">Daily average</div>
@@ -300,7 +310,7 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
         ) : (
           <ul className="wb-apps">
             {apps.map(([pkg, min]) => {
-              const r = day.reels[pkg] ?? 0;
+              const r = reelMap[pkg] ?? 0;
               const kind = APPS[pkg]?.reels;
               return (
                 <li key={pkg}>
@@ -315,9 +325,9 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
                     <span className="wb-app-track">
                       <span style={{ width: `${(min / apps[0][1]) * 100}%`, background: appColor(pkg) }} />
                     </span>
-                    {data.reelsAccess && r > 0 && kind && (
+                    {r > 0 && kind && (
                       <small>
-                        {r.toLocaleString()} {kind.toLowerCase()} swiped
+                        ≈ {r.toLocaleString()} {kind.toLowerCase()}
                       </small>
                     )}
                   </span>
@@ -326,75 +336,15 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
             })}
           </ul>
         )}
-        {data.reelsAccess && reelRows.length > 0 && <div className="wb-note">Reel counts are an estimate — they depend on how each app lays out its screens.</div>}
+        {Object.keys(reelMap).length > 0 && (
+          <div className="wb-note">Reels are estimated from your time in each app (about 3 a minute while scrolling), not counted one by one.</div>
+        )}
       </div>
 
       <div className={`card wb-tip ${tone}`}>
         <b>For your health</b>
-        <p>{tip(day.total, goal, reels)}</p>
+        <p>{tip(day.total, goal, reels, tone)}</p>
       </div>
-
-      {!preview && (!data.usageAccess || !data.reelsAccess) && (
-        <div className="card wb-setup">
-          <div className="wb-card-title">
-            <b>Set up</b>
-          </div>
-          {!data.usageAccess && (
-            <div className="wb-step">
-              <div>
-                <b>1. Show my screen time</b>
-                <small>Opens Android’s “Usage access”. Find Arogya in the list and switch it on.</small>
-              </div>
-              <button type="button" className="btn btn-primary btn-small" onClick={() => openSettings('usage')}>
-                Allow
-              </button>
-            </div>
-          )}
-          {!data.reelsAccess && (
-            <div className="wb-step col">
-              <div>
-                <b>{data.usageAccess ? '1' : '2'}. Count my reels (optional)</b>
-                <small>Needs Android’s accessibility setting. Please read what it does first.</small>
-              </div>
-              {!notice && !noticeOk() ? (
-                <button type="button" className="btn btn-small" onClick={() => setNotice(true)}>
-                  Read how it works
-                </button>
-              ) : (
-                <div className="wb-disclosure">
-                  <IconShieldCheck size={18} />
-                  <p>
-                    <b>What Arogya counts.</b> Arogya uses Android’s accessibility service only to notice when you swipe to the next reel or short in
-                    Instagram, YouTube, Facebook and Snapchat. It adds one to a number. It does <b>not</b> read, record or send what is on your screen,
-                    your messages, passwords or anything you type. The numbers stay on this phone, and you can switch this off any time in Android
-                    settings.
-                  </p>
-                  <div className="wb-disclosure-actions">
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-small"
-                      onClick={() => {
-                        try {
-                          localStorage.setItem(REELS_NOTICE_KEY, '1');
-                        } catch {
-                          // ignore
-                        }
-                        openSettings('reels');
-                      }}
-                    >
-                      I agree — open settings
-                    </button>
-                    <button type="button" className="btn btn-small wb-link" onClick={() => setNotice(false)}>
-                      Not now
-                    </button>
-                  </div>
-                  <small>In Android settings: Accessibility → Installed apps → Arogya reel counter → turn on.</small>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       <p className="wb-privacy">
         <IconShieldCheck size={14} /> Your screen-time numbers stay on your phone. Arogya doesn’t upload them.

@@ -21,8 +21,8 @@ import java.util.Locale
  * from what battery level to what. Android keeps no charging history an app
  * can read, so this starts counting from when Arogya 1.12.2 is installed.
  *
- * Changes are noticed straight away while the reel counter is on (it listens
- * for the charger), and otherwise by a light check every 15 minutes.
+ * Changes are noticed by a light check every 15 minutes and whenever the
+ * wellbeing page is opened, so a very short top-up can be missed.
  */
 object ChargeTracker {
   private const val PREFS = "arogya_wellbeing"
@@ -139,7 +139,7 @@ object ChargeTracker {
     }
   }
 
-  /** Listens for the charger while something long-lived (the reel counter) is running. */
+  /** Listens for the charger while registered by a long-lived component. */
   class Receiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       val plugged = intent.action == Intent.ACTION_POWER_CONNECTED

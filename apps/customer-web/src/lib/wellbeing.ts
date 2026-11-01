@@ -67,8 +67,22 @@ export const APPS: Record<string, { label: string; color: string; reels?: string
 export const appLabel = (pkg: string) => APPS[pkg]?.label ?? pkg.split('.').pop() ?? pkg;
 export const appColor = (pkg: string) => APPS[pkg]?.color ?? '#64748b';
 
+// Reels aren't counted one by one (that needs Android's accessibility
+// access, which Android blocks for apps installed outside Play Store).
+// Instead they're estimated from minutes in apps with a reels / shorts
+// feed: about half that time on the feed, about 3 reels a minute.
+export const REELS_PER_MINUTE = 1.5;
+export function reelsOf(day?: WellbeingDay): Record<string, number> {
+  if (!day) return {};
+  if (Object.keys(day.reels ?? {}).length) return day.reels;
+  const out: Record<string, number> = {};
+  for (const [pkg, min] of Object.entries(day.apps)) {
+    if (APPS[pkg]?.reels) out[pkg] = Math.round(min * REELS_PER_MINUTE);
+  }
+  return out;
+}
 export function sumReels(day?: WellbeingDay): number {
-  return day ? Object.values(day.reels).reduce((a, b) => a + b, 0) : 0;
+  return Object.values(reelsOf(day)).reduce((a, b) => a + b, 0);
 }
 
 export const GOAL_CHOICES = [60, 120, 180, 240, 300]; // minutes a day
@@ -117,12 +131,10 @@ export function scoreTone(score: number): { label: string; tone: 'good' | 'ok' |
 // A made-up week, shown in a browser so the page can be previewed.
 export function sampleData(): WellbeingData {
   const mins = [168, 205, 131, 242, 187, 152, 119];
-  const reels = [120, 180, 70, 260, 150, 95, 60];
   const days: WellbeingDay[] = mins.map((total, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const r = reels[i];
     const sleepMin = [415, 372, 438, 301, 389, 455, 428][i];
     const bedMin = 23 * 60 + [10, 50, 5, 100, 35, 0, 15][i];
     const wakeMin = (bedMin + sleepMin) % 1440;
@@ -155,12 +167,7 @@ export function sampleData(): WellbeingData {
         'com.facebook.katana': Math.round(total * 0.07),
         'com.snapchat.android': Math.round(total * 0.05),
       },
-      reels: {
-        'com.instagram.android': Math.round(r * 0.55),
-        'com.google.android.youtube': Math.round(r * 0.3),
-        'com.facebook.katana': Math.round(r * 0.1),
-        'com.snapchat.android': Math.round(r * 0.05),
-      },
+      reels: {},
     };
   });
   return { usageAccess: true, reelsAccess: true, days };
