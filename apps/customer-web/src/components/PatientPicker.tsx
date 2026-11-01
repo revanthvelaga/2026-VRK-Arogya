@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api } from '../api/client';
 import type { Gender, Patient, Relationship } from '../api/types';
-import { IconPlus } from './Icons';
+import { IconCheckCircle, IconPlus } from './Icons';
+import { PersonAvatar, genderAge } from './PersonAvatar';
 
 const RELATIONSHIPS: Relationship[] = ['SELF', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'];
 
@@ -146,7 +147,7 @@ export function PatientPicker({
               className={`patient-card${p.id === selectedId ? ' selected' : ''}`}
               onClick={() => onSelect(p.id)}
             >
-              <div className="patient-card-avatar">{p.fullName.charAt(0).toUpperCase()}</div>
+              <PersonAvatar patient={p} index={patients.indexOf(p)} size={38} />
               <div className="patient-card-text">
                 <div className="patient-card-name">{p.fullName}</div>
                 <div className="patient-card-rel">
@@ -179,33 +180,43 @@ export function PatientPicker({
     );
   }
 
+  // The booking form: everyone on one list, each with a portrait, gender
+  // and age, and a tick on the one picked. Adding someone is the last row.
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div className="field" style={{ marginBottom: 0, flex: 1, minWidth: 180 }}>
-          <label>Patient</label>
-          <select value={selectedId} onChange={(e) => onSelect(e.target.value)}>
-            {!selectedId && <option value="">Select a patient…</option>}
-            {patients.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.fullName}
-                {p.sharedBy
-                  ? ' · Family access'
-                  : p.relationship !== 'SELF'
-                    ? ` · ${relationshipLabel(p.relationship)}`
-                    : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-        {!adding && (
-          <button type="button" className="btn btn-small" onClick={() => setAdding(true)}>
-            <IconPlus size={13} />
-            Add family member
+      <div className="person-list" role="radiogroup" aria-label="Patient">
+        {patients.map((p, i) => {
+          const on = p.id === selectedId;
+          const meta = [genderAge(p), p.sharedBy ? 'Family access' : p.relationship !== 'SELF' ? relationshipLabel(p.relationship) : 'You']
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            <button
+              type="button"
+              role="radio"
+              aria-checked={on}
+              key={p.id}
+              className={`person-row${on ? ' on' : ''}`}
+              onClick={() => onSelect(p.id)}
+            >
+              <PersonAvatar patient={p} index={i} />
+              <span className="person-row-text">
+                <b>{p.fullName}</b>
+                <small>{meta}</small>
+              </span>
+              <span className="person-row-check" aria-hidden="true">
+                <IconCheckCircle size={20} />
+              </span>
+            </button>
+          );
+        })}
+        {allowAdd && !adding && (
+          <button type="button" className="person-row person-row-add" onClick={() => setAdding(true)}>
+            <IconPlus size={16} /> Add family member
           </button>
         )}
       </div>
-      {adding && (
+      {allowAdd && adding && (
         <AddPatientForm
           onAdded={(p) => {
             onPatientAdded?.(p);

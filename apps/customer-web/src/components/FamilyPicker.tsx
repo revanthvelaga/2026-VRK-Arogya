@@ -3,13 +3,7 @@ import type { Patient } from '../api/types';
 import { formatCurrency } from '../lib/format';
 import { FAMILY_TIERS, familyPercentOff } from '../lib/familyPricing';
 import { IconCheckCircle, IconLock } from './Icons';
-
-const AVATAR_TONES = ['#0ea5a0', '#6366f1', '#f97316', '#ec4899', '#0284c7', '#16a34a', '#a855f7', '#e11d48'];
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter((p) => !/^(mr|mrs|ms|dr)\.?$/i.test(p));
-  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
-}
+import { PersonAvatar, ageOf } from './PersonAvatar';
 
 function relationLabel(p: Patient): string {
   return p.relationship === 'SELF' ? 'You' : p.relationship.charAt(0) + p.relationship.slice(1).toLowerCase();
@@ -50,15 +44,18 @@ export function FamilyPicker({
               aria-pressed={on}
               onClick={() => toggle(p.id)}
             >
-              <span className="family-avatar" style={{ '--tone': AVATAR_TONES[i % AVATAR_TONES.length] } as CSSProperties}>
-                {initials(p.fullName)}
+              <span className="family-avatar">
+                <PersonAvatar patient={p} index={i} size={32} />
                 <span className="family-avatar-check" aria-hidden="true">
                   <IconCheckCircle size={14} />
                 </span>
               </span>
               <span className="family-chip-text">
                 <b>{p.fullName.replace(/^(mr|mrs|ms|dr)\.?\s+/i, '').split(' ')[0]}</b>
-                <small>{relationLabel(p)}</small>
+                <small>
+                  {relationLabel(p)}
+                  {ageOf(p) != null ? ` · ${ageOf(p)}` : ''}
+                </small>
               </span>
             </button>
           );
