@@ -77,7 +77,7 @@ export function RegisterPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaScene size={190} glow className="auth-scene" />
+          <ArogyaScene size={190} glow warm className="auth-scene" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Create your account</h1>
           <p>Book tests, track samples, and keep every report in one place.</p>

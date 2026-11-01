@@ -94,7 +94,7 @@ export function WelcomeSplash() {
       <div className="wow-center">
         <div className="wow-burst" aria-hidden />
         <div className="wow-burst b2" aria-hidden />
-        <ArogyaScene size={230} glow className="wow-scene" />
+        <ArogyaScene size={230} glow warm className="wow-scene" />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
