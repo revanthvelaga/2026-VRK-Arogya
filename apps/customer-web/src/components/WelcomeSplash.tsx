@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const SHOW_MS = 10300;
+const SHOW_MS = 9050;
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
@@ -60,7 +60,7 @@ export function WelcomeSplash() {
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${7.4 + i * 0.07}s` }}>
+            <span key={i} style={{ animationDelay: `${6.15 + i * 0.07}s` }}>
               {ch}
             </span>
           ))}

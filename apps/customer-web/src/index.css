@@ -9352,8 +9352,8 @@ a.suggest-name:hover {
 .wow-film .wow-intro { margin: 0 auto; border-radius: 0; }
 .wow-film .wow-word { margin-top: 4px; }
 .wow-film .wow-word span { background: linear-gradient(180deg, #e0302f 15%, #f97a26 100%); -webkit-background-clip: text; background-clip: text; }
-.wow-film .wow-greeting { animation-delay: 7.9s; color: #3b2a26; }
-.wow-film .wow-tagline { animation-delay: 8.2s; }
+.wow-film .wow-greeting { animation-delay: 6.65s; color: #3b2a26; }
+.wow-film .wow-tagline { animation-delay: 6.95s; }
 .wow-film .wow-intro {
   width: min(94vw, 420px) !important; height: auto !important; aspect-ratio: 1;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 92%, transparent);
