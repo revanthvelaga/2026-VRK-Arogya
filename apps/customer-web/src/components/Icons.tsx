@@ -456,3 +456,10 @@ export const IconImage = icon(
     <path d="M20.5 16l-5-5-8 8.5" />
   </>,
 );
+
+export const IconBellOff = icon(
+  <>
+    <path d="M8.5 5.3A6 6 0 0 1 18 11v4M6 11v5l-1.5 2h12" />
+    <path d="M10 20.5a2 2 0 0 0 4 0M3 3l18 18" />
+  </>,
+);

@@ -5,9 +5,10 @@ import { appCanReminders, inArogyaApp, nativeBridge } from '../lib/inApp';
 import { IconBell2, IconMoon, IconSun, IconSunrise, IconSunset } from './Icons';
 
 type Times = Record<MedicineTiming, string>;
-interface Status {
+export interface ReminderStatus {
   enabled: boolean;
   times: Times;
+  slots?: Partial<Record<MedicineTiming, boolean>>;
   scheduled?: number;
   permission?: boolean;
 }
@@ -18,7 +19,7 @@ const SLOTS: Array<{ value: MedicineTiming; label: string; Icon: ComponentType<{
   { value: 'EVENING', label: 'Evening', Icon: IconSunset },
   { value: 'NIGHT', label: 'Night', Icon: IconMoon },
 ];
-const DEFAULT_TIMES: Times = { MORNING: '08:00', AFTERNOON: '13:00', EVENING: '19:00', NIGHT: '21:30' };
+export const DEFAULT_TIMES: Times = { MORNING: '08:00', AFTERNOON: '13:00', EVENING: '19:00', NIGHT: '21:30' };
 
 const send = (msg: Record<string, unknown>) => nativeBridge?.postMessage(JSON.stringify(msg));
 
@@ -32,22 +33,21 @@ export function useSyncReminders(patient: Patient | undefined, meds: Medicine[] 
       patientId: patient.id,
       patientName: patient.fullName,
       self: patient.relationship === 'SELF' && !patient.sharedBy,
-      medicines: meds.map((m) => ({ name: m.name, dosage: m.dosage, timings: m.timings, food: m.food, active: m.isActive })),
+      medicines: meds.map((m) => ({ name: m.name, dosage: m.dosage, timings: m.timings, food: m.food, active: m.isActive, reminder: m.reminder !== false })),
     });
   }, [patient, meds]);
 }
 
-// Reminders on this phone: on/off, the four times, and a test sound.
-// Only in the Arogya app — a website can't ring at 8 am every day.
-export function MedicineReminders({ hasTimed }: { hasTimed: boolean }) {
-  const [status, setStatus] = useState<Status | null>(null);
+// The phone's reminder settings, and a way to change them. Only live in
+// the Arogya app (v1.4+); elsewhere status stays null.
+export function useReminderStatus() {
+  const [status, setStatus] = useState<ReminderStatus | null>(null);
   const [saving, setSaving] = useState(false);
-
   useEffect(() => {
     if (!appCanReminders) return;
     const onStatus = (e: Event) => {
       try {
-        setStatus(JSON.parse(String((e as CustomEvent<string>).detail)) as Status);
+        setStatus(JSON.parse(String((e as CustomEvent<string>).detail)) as ReminderStatus);
       } catch {
         // ignore
       }
@@ -57,6 +57,28 @@ export function MedicineReminders({ hasTimed }: { hasTimed: boolean }) {
     send({ type: 'medicine-reminders-get' });
     return () => window.removeEventListener('arogya-reminders-status', onStatus);
   }, []);
+  const update = (patch: Partial<{ enabled: boolean; times: Partial<Times>; slots: Partial<Record<MedicineTiming, boolean>> }>) => {
+    setSaving(true);
+    // Show the change straight away; the app confirms with a status.
+    setStatus((prev) =>
+      prev
+        ? {
+            ...prev,
+            ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+            times: { ...prev.times, ...(patch.times ?? {}) } as Times,
+            slots: { ...prev.slots, ...(patch.slots ?? {}) },
+          }
+        : prev,
+    );
+    send({ type: 'medicine-reminders', ...patch });
+  };
+  return { status, saving, update, available: appCanReminders };
+}
+
+// Reminders on this phone: on/off, the four times, and a test sound.
+// Only in the Arogya app — a website can't ring at 8 am every day.
+export function MedicineReminders({ hasTimed, reminders }: { hasTimed: boolean; reminders: ReturnType<typeof useReminderStatus> }) {
+  const { status, saving, update } = reminders;
 
   if (!inArogyaApp) {
     return <p className="reminder-hint">Get a reminder with sound and vibration at each time — open this in the Arogya app.</p>;
@@ -67,10 +89,6 @@ export function MedicineReminders({ hasTimed }: { hasTimed: boolean }) {
 
   const times = { ...DEFAULT_TIMES, ...(status?.times ?? {}) };
   const enabled = !!status?.enabled;
-  const update = (patch: Partial<{ enabled: boolean; times: Partial<Times> }>) => {
-    setSaving(true);
-    send({ type: 'medicine-reminders', ...patch });
-  };
 
   return (
     <div className={`reminder-panel${enabled ? ' on' : ''}`}>

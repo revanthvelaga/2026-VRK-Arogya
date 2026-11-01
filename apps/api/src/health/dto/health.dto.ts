@@ -155,6 +155,10 @@ export class UpdateMedicineDto {
   @IsOptional()
   @IsBoolean()
   locked?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  reminder?: boolean;
 }
 
 // Several medicines at once — what a strip scan hands back after review.

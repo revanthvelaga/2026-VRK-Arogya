@@ -303,7 +303,8 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     const row = await this.medicinesRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Medicine not found');
     await this.assertPatient(row.patientId, userId);
-    const { locked, ...changes } = dto;
+    // Turning a reminder on/off is allowed even when locked.
+    const { locked, reminder, ...changes } = dto;
     const changing = Object.values(changes).some((v) => v !== undefined);
     // Locked: only unlocking (or nothing) is allowed.
     if (row.locked && locked !== false && changing) {
@@ -323,6 +324,7 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     if (changes.food !== undefined) row.food = changes.food || null;
     if (changes.isActive !== undefined) row.isActive = changes.isActive;
     if (locked !== undefined) row.locked = locked;
+    if (reminder !== undefined) row.reminder = reminder;
     return this.medicinesRepo.save(row);
   }
 

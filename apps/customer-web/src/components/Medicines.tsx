@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, FormEvent } from 'react';
 import { api } from '../api/client';
 import type { Medicine, MedicineTiming, Patient } from '../api/types';
-import { MedicineReminders, useSyncReminders } from './MedicineReminders';
+import { DEFAULT_TIMES, MedicineReminders, useReminderStatus, useSyncReminders } from './MedicineReminders';
 import { useApi } from '../lib/useApi';
-import { IconCamera, IconEdit, IconImage, IconLock, IconMoon, IconPill, IconPlus, IconSun, IconSunrise, IconSunset, IconTrash, IconUnlock, IconX } from './Icons';
+import { IconBell2, IconBellOff, IconCamera, IconEdit, IconImage, IconLock, IconMoon, IconPill, IconPlus, IconSun, IconSunrise, IconSunset, IconTrash, IconUnlock, IconX } from './Icons';
 
 const MAX_PHOTOS = 5;
 
@@ -286,6 +286,110 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
   const patientsApi = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const patient = patientsApi.data?.find((p) => p.id === patientId);
   useSyncReminders(patient, medsApi.data);
+  const reminders = useReminderStatus();
+  const slotOn = (slot: MedicineTiming) => reminders.status?.slots?.[slot] !== false;
+  const reminderTime = (slot: MedicineTiming) => {
+    const [h, m] = (reminders.status?.times?.[slot] ?? DEFAULT_TIMES[slot]).split(':').map(Number);
+    return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  };
+  const [openKey, setOpenKey] = useState<string | null>(null);
+
+  // Morning / Afternoon / Evening / Night, each split into before food,
+  // after food and any time; then medicines with no time, then stopped.
+  const groups = (() => {
+    const split = (items: Medicine[]) =>
+      (
+        [
+          { label: 'Before food', food: 'before', items: items.filter((m) => m.food === 'BEFORE') },
+          { label: 'After food', food: 'after', items: items.filter((m) => m.food === 'AFTER') },
+          { label: 'Any time', food: 'any', items: items.filter((m) => !m.food) },
+        ] as const
+      ).filter((p) => p.items.length > 0);
+    const active = meds.filter((m) => m.isActive);
+    const out: Array<{ key: string; label: string; slot?: MedicineTiming; Icon: ComponentType<{ size?: number }>; parts: ReturnType<typeof split> }> = [];
+    for (const t of TIMINGS) {
+      const items = active.filter((m) => m.timings?.includes(t.value));
+      if (items.length) out.push({ key: t.value, label: t.label, slot: t.value, Icon: t.Icon, parts: split(items) });
+    }
+    const untimed = active.filter((m) => !m.timings?.length);
+    if (untimed.length) out.push({ key: 'NONE', label: 'No time set', Icon: IconPill, parts: split(untimed) });
+    const stopped = meds.filter((m) => !m.isActive);
+    if (stopped.length) out.push({ key: 'STOPPED', label: 'Stopped', Icon: IconPill, parts: [{ label: 'Any time', food: 'any', items: stopped }] as unknown as ReturnType<typeof split> });
+    return out;
+  })();
+
+  // One medicine row. Tap it to show Edit / Stop / Lock / Delete.
+  const renderMed = (m: Medicine, key: string) => {
+    if (editId === m.id && editing && openKey === key) {
+      return (
+        <div className="med-edit" key={key}>
+          <DraftEditor draft={editing} onChange={(patch) => setEditing((prev) => (prev ? { ...prev, ...patch } : prev))} />
+          <div className="med-review-actions">
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={() => {
+                setEditId(null);
+                setEditing(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" disabled={busyId === m.id} onClick={() => saveEdit(m)}>
+              {busyId === m.id ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    const open = openKey === key;
+    return (
+      <div className={`med${m.isActive ? '' : ' stopped'}${m.locked ? ' locked' : ''}${open ? ' open' : ''}`} key={key}>
+        <button type="button" className="med-row" aria-expanded={open} onClick={() => setOpenKey(open ? null : key)}>
+          <span className="med-icon">
+            <IconPill size={15} />
+          </span>
+          <span className="med-row-text">
+            <span className="med-title">
+              <b>{m.name}</b>
+              {m.dosage && <span className="med-dose"> · {m.dosage}</span>}
+              {m.locked && (
+                <span className="med-locked" title="Locked">
+                  <IconLock size={11} /> Locked
+                </span>
+              )}
+            </span>
+            {(m.brand || (m.timings?.length ?? 0) > 1) && (
+              <span className="med-sub">
+                {[m.brand, (m.timings?.length ?? 0) > 1 ? TIMINGS.filter((t) => m.timings?.includes(t.value)).map((t) => t.label).join(' + ') : null]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            )}
+          </span>
+          <span className="med-chevron" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+        {open && (
+          <div className="med-actions">
+            <button type="button" disabled={m.locked || busyId === m.id} onClick={() => startEdit(m)} title={m.locked ? 'Unlock to edit' : 'Edit'}>
+              <IconEdit size={14} /> Edit
+            </button>
+            <button type="button" disabled={m.locked || busyId === m.id} onClick={() => act(m, { isActive: !m.isActive })}>
+              {m.isActive ? 'Stop' : 'Resume'}
+            </button>
+            <button type="button" className={m.locked ? 'on' : ''} aria-pressed={!!m.locked} disabled={busyId === m.id} onClick={() => act(m, { locked: !m.locked })}>
+              {m.locked ? <IconUnlock size={14} /> : <IconLock size={14} />} {m.locked ? 'Unlock' : 'Lock'}
+            </button>
+            <button type="button" className="danger" disabled={m.locked || busyId === m.id} onClick={() => remove(m)} title={m.locked ? 'Unlock to delete' : 'Delete'}>
+              <IconTrash size={14} /> Delete
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
   const reviewing = drafts.length > 0;
 
   return (
@@ -422,92 +526,47 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
         </form>
       )}
 
-      {mode === 'none' && meds.length > 0 && <MedicineReminders hasTimed={meds.some((m) => m.isActive && m.timings?.length)} />}
+      {mode === 'none' && meds.length > 0 && (
+        <MedicineReminders hasTimed={meds.some((m) => m.isActive && m.timings?.length)} reminders={reminders} />
+      )}
 
       {meds.length === 0 && mode === 'none' ? (
         <p className="page-sub" style={{ margin: '12px 0 0' }}>
           Keep a list of what you take — handy when going through results with your doctor.
         </p>
       ) : meds.length > 0 ? (
-        <div className="med-list">
-          {meds.map((m) =>
-            editId === m.id && editing ? (
-              <div className="med-edit" key={m.id}>
-                <DraftEditor draft={editing} onChange={(patch) => setEditing((prev) => (prev ? { ...prev, ...patch } : prev))} />
-                <div className="med-review-actions">
+        <div className="med-groups">
+          {groups.map((g) => (
+            <section key={g.key} className={`med-group med-group--${g.key.toLowerCase()}${g.slot && !slotOn(g.slot) ? ' muted' : ''}`}>
+              <header className="med-group-head">
+                <span className="med-group-icon" aria-hidden="true">
+                  <g.Icon size={18} />
+                </span>
+                <div className="med-group-title">
+                  <h3>{g.label}</h3>
+                  {g.slot && <small>{reminderTime(g.slot)}</small>}
+                </div>
+                {g.slot && reminders.available && reminders.status?.enabled && (
                   <button
                     type="button"
-                    className="btn btn-small"
-                    onClick={() => {
-                      setEditId(null);
-                      setEditing(null);
-                    }}
+                    className={`med-group-bell${slotOn(g.slot) ? ' on' : ''}`}
+                    aria-pressed={slotOn(g.slot)}
+                    aria-label={`${g.label} reminder ${slotOn(g.slot) ? 'on' : 'off'}`}
+                    onClick={() => reminders.update({ slots: { [g.slot as MedicineTiming]: !slotOn(g.slot as MedicineTiming) } })}
                   >
-                    Cancel
+                    {slotOn(g.slot) ? <IconBell2 size={16} /> : <IconBellOff size={16} />}
+                    <span>{slotOn(g.slot) ? 'Reminder on' : 'Reminder off'}</span>
                   </button>
-                  <button type="button" className="btn btn-primary" disabled={busyId === m.id} onClick={() => saveEdit(m)}>
-                    {busyId === m.id ? 'Saving…' : 'Save changes'}
-                  </button>
+                )}
+              </header>
+              {g.parts.map((part) => (
+                <div className="med-part" key={part.label}>
+                  {g.parts.length > 1 || part.label !== 'Any time' ? <div className={`med-part-label med-part-label--${part.food}`}>{part.label}</div> : null}
+                  {part.items.map((m) => renderMed(m, `${g.key}:${m.id}`))}
                 </div>
-              </div>
-            ) : (
-              <div className={`med${m.isActive ? '' : ' stopped'}${m.locked ? ' locked' : ''}`} key={m.id}>
-                <span className="med-icon">
-                  <IconPill size={15} />
-                </span>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="med-title">
-                    <b>{m.name}</b>
-                    {m.dosage && <span className="med-dose"> · {m.dosage}</span>}
-                    {m.locked && (
-                      <span className="med-locked" title="Locked">
-                        <IconLock size={11} /> Locked
-                      </span>
-                    )}
-                    {!m.isActive && <span className="med-stopped-tag">Stopped</span>}
-                  </div>
-                  {m.brand && <div className="med-sub">{m.brand}</div>}
-                  {(m.timings?.length || m.food) && (
-                    <div className="med-times">
-                      {TIMINGS.filter((t) => m.timings?.includes(t.value)).map(({ value, label, Icon }) => (
-                        <span key={value} className={`med-time med-time--${value.toLowerCase()}`} title={label}>
-                          <Icon size={13} /> {label}
-                        </span>
-                      ))}
-                      {m.food && <span className="med-time med-time--food">{m.food === 'BEFORE' ? 'Before food' : 'After food'}</span>}
-                    </div>
-                  )}
-                  {m.schedule && <div className="med-sub">{m.schedule}</div>}
-                  <div className="med-actions">
-                    <button type="button" disabled={m.locked || busyId === m.id} onClick={() => startEdit(m)} title={m.locked ? 'Unlock to edit' : 'Edit'}>
-                      <IconEdit size={14} /> Edit
-                    </button>
-                    <button type="button" disabled={m.locked || busyId === m.id} onClick={() => act(m, { isActive: !m.isActive })}>
-                      {m.isActive ? 'Stop' : 'Resume'}
-                    </button>
-                    <button
-                      type="button"
-                      className={m.locked ? 'on' : ''}
-                      aria-pressed={!!m.locked}
-                      disabled={busyId === m.id}
-                      onClick={() => act(m, { locked: !m.locked })}
-                    >
-                      {m.locked ? <IconUnlock size={14} /> : <IconLock size={14} />} {m.locked ? 'Unlock' : 'Lock'}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={m.locked || busyId === m.id}
-                      onClick={() => remove(m)}
-                      title={m.locked ? 'Unlock to delete' : 'Delete'}
-                    >
-                      <IconTrash size={14} /> Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ),
-          )}
+              ))}
+            </section>
+          ))}
         </div>
       ) : null}
     </div>

@@ -98,13 +98,15 @@ const SLOT_TITLE: Record<Slot, string> = {
   NIGHT: 'Night medicines',
 };
 
-interface ReminderMed { name: string; dosage?: string | null; timings?: string[] | null; food?: string | null; active: boolean }
+interface ReminderMed { name: string; dosage?: string | null; timings?: string[] | null; food?: string | null; active: boolean; reminder?: boolean }
 interface ReminderStore {
   enabled: boolean;
   times: Record<Slot, string>; // "HH:MM"
+  slots: Record<Slot, boolean>; // a whole time of day switched off
   people: Record<string, { name: string; self: boolean; medicines: ReminderMed[] }>;
 }
 const DEFAULT_TIMES: Record<Slot, string> = { MORNING: '08:00', AFTERNOON: '13:00', EVENING: '19:00', NIGHT: '21:30' };
+const ALL_SLOTS_ON: Record<Slot, boolean> = { MORNING: true, AFTERNOON: true, EVENING: true, NIGHT: true };
 const reminderFile = () => new ExpoFile(Paths.document, 'medicine-reminders.json');
 
 function loadReminders(): ReminderStore {
@@ -112,12 +114,12 @@ function loadReminders(): ReminderStore {
     const f = reminderFile();
     if (f.exists) {
       const parsed = JSON.parse(f.textSync()) as ReminderStore;
-      return { enabled: !!parsed.enabled, times: { ...DEFAULT_TIMES, ...parsed.times }, people: parsed.people ?? {} };
+      return { enabled: !!parsed.enabled, times: { ...DEFAULT_TIMES, ...parsed.times }, slots: { ...ALL_SLOTS_ON, ...parsed.slots }, people: parsed.people ?? {} };
     }
   } catch {
     // Corrupt or unreadable — start fresh.
   }
-  return { enabled: false, times: { ...DEFAULT_TIMES }, people: {} };
+  return { enabled: false, times: { ...DEFAULT_TIMES }, slots: { ...ALL_SLOTS_ON }, people: {} };
 }
 
 function saveReminders(store: ReminderStore) {
@@ -160,12 +162,14 @@ async function scheduleReminders(store: ReminderStore): Promise<number> {
   if (!store.enabled) return 0;
   await ensureReminderChannel();
   const people = Object.values(store.people);
-  const several = people.filter((p) => p.medicines.some((m) => m.active && m.timings?.length)).length > 1;
+  const remind = (m: ReminderMed) => m.active && m.reminder !== false;
+  const several = people.filter((p) => p.medicines.some((m) => remind(m) && m.timings?.length)).length > 1;
   let count = 0;
   for (const slot of SLOTS) {
+    if (store.slots[slot] === false) continue;
     const lines: string[] = [];
     for (const person of people) {
-      const meds = person.medicines.filter((m) => m.active && m.timings?.includes(slot));
+      const meds = person.medicines.filter((m) => remind(m) && m.timings?.includes(slot));
       if (!meds.length) continue;
       const list = meds
         .map((m) => `${m.name}${m.dosage ? ` ${m.dosage}` : ''}${m.food === 'BEFORE' ? ' (before food)' : m.food === 'AFTER' ? ' (after food)' : ''}`)
@@ -339,6 +343,7 @@ function ArogyaWebApp() {
           medicines?: ReminderMed[];
           enabled?: boolean;
           times?: Partial<Record<Slot, string>>;
+          slots?: Partial<Record<Slot, boolean>>;
         };
         const store = loadReminders();
         if (m.patientId && m.medicines) {
@@ -346,12 +351,13 @@ function ArogyaWebApp() {
         }
         if (typeof m.enabled === 'boolean') store.enabled = m.enabled;
         if (m.times) store.times = { ...store.times, ...m.times } as Record<Slot, string>;
+        if (m.slots) store.slots = { ...store.slots, ...m.slots } as Record<Slot, boolean>;
         let permission = true;
         if (store.enabled) permission = await ensureNotificationPermission();
         if (!permission) store.enabled = false;
         saveReminders(store);
         const scheduled = await scheduleReminders(store).catch(() => -1);
-        tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, scheduled, permission }));
+        tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, slots: store.slots, scheduled, permission }));
       })();
       return;
     }
@@ -378,7 +384,7 @@ function ArogyaWebApp() {
     }
     if (msg.type === 'medicine-reminders-get') {
       const store = loadReminders();
-      tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, permission: true }));
+      tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, slots: store.slots, permission: true }));
       return;
     }
     if (msg.type === 'push-token-request') {

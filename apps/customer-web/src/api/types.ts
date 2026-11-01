@@ -470,6 +470,7 @@ export interface Medicine {
   timings?: MedicineTiming[] | null;
   food?: 'BEFORE' | 'AFTER' | null;
   locked?: boolean;
+  reminder?: boolean;
   dosage?: string | null;
   schedule?: string | null;
   isActive: boolean;

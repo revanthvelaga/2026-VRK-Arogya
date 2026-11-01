@@ -38,6 +38,10 @@ export class Medicine {
   @Column({ default: false })
   locked: boolean;
 
+  // Off = no phone reminder for this medicine (still on the list).
+  @Column({ default: true })
+  reminder: boolean;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
