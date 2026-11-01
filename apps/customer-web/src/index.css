@@ -9017,3 +9017,147 @@ a.suggest-name:hover {
 .switch--sm.on span {
   transform: translateX(14px);
 }
+
+/* ---------- Choice cards (centers, collection) ---------- */
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.choice-heading {
+  margin: 4px 0 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.choice-card {
+  --tone: var(--accent-a);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.choice-card.on {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 7%, var(--surface));
+  box-shadow: 0 6px 18px -12px color-mix(in srgb, var(--tone) 70%, transparent);
+}
+
+.choice-icon {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--tone) 12%, var(--surface));
+  color: var(--tone);
+}
+
+.choice-card.on .choice-icon {
+  background: var(--tone);
+  color: #fff;
+}
+
+.choice-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.choice-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choice-title b {
+  font-size: 15px;
+}
+
+.choice-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft-strong);
+  color: var(--accent-ink);
+}
+
+.choice-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.choice-detail {
+  display: grid;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.choice-address {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.choice-meta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.choice-check {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line-strong);
+  color: transparent;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.choice-card.on .choice-check {
+  background: var(--tone);
+  border-color: var(--tone);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .choice-card.on .choice-check {
+    animation: addPop 0.32s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .choice-card:active {
+    transform: scale(0.99);
+  }
+}
+
+.choice-card:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: 2px;
+}

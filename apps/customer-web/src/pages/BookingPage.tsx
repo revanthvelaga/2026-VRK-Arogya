@@ -20,10 +20,11 @@ import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PickupPointPicker } from '../components/PickupPointPicker';
 import { PatientPicker } from '../components/PatientPicker';
 import { FamilyPicker } from '../components/FamilyPicker';
+import { CenterPicker, ChoiceCard } from '../components/ChoiceCards';
 import { AnimatedAmount } from '../components/AnimatedNumber';
 import { familyPercentOff, MAX_FAMILY_DISCOUNT } from '../lib/familyPricing';
 import { OffersBox } from '../components/OffersBox';
-import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
+import { IconAlertTriangle, IconBuilding, IconCheckCircle, IconHome, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
 import type { SlotPeriod } from '../lib/geo';
 import { SLOT_PERIODS, formatSlotLabel, haversineDistanceKm, suggestedSlotsForPeriod } from '../lib/geo';
@@ -632,43 +633,20 @@ export function BookingPage() {
                   )}
 
                   {geoStatus === 'granted' && centersByDistance.length > 0 ? (
-                    <div className="field" style={{ marginBottom: 0 }}>
-                      <label>Center — nearest first</label>
-                      {centersByDistance.map(({ center: c, distanceKm }) => (
-                        <label key={c.id} className={`select-row${centerId === c.id ? ' selected' : ''}`}>
-                          <input
-                            type="radio"
-                            name="centerId"
-                            checked={centerId === c.id}
-                            onChange={() => setCenterId(c.id)}
-                          />
-                          <div className="select-row-label">
-                            <div className="name">{c.name}</div>
-                            <div className="meta">{distanceKm.toFixed(1)}km away{c.address ? ` — ${c.address}` : ''}</div>
-                          </div>
-                        </label>
-                      ))}
-                      <button
-                        type="button"
-                        className="btn btn-small"
-                        onClick={() => setGeoStatus('idle')}
-                        style={{ marginTop: 4 }}
-                      >
+                    <>
+                      <div className="choice-heading">Nearest first</div>
+                      <CenterPicker
+                        centers={centersByDistance.map((x) => x.center)}
+                        distances={new Map(centersByDistance.map((x) => [x.center.id, x.distanceKm]))}
+                        selectedId={centerId}
+                        onSelect={setCenterId}
+                      />
+                      <button type="button" className="btn btn-small" onClick={() => setGeoStatus('idle')} style={{ marginTop: 8 }}>
                         Browse all centers instead
                       </button>
-                    </div>
+                    </>
                   ) : (
-                    <div className="field" style={{ marginBottom: 0 }}>
-                      <label>Center</label>
-                      <select value={centerId} onChange={(e) => setCenterId(e.target.value)} required>
-                        <option value="">Select a center…</option>
-                        {(centers ?? []).map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <CenterPicker centers={centers ?? []} selectedId={centerId} onSelect={setCenterId} />
                   )}
                 </>
               )}
@@ -676,23 +654,17 @@ export function BookingPage() {
 
             <div className="card">
               <div className="card-title">4. Collection</div>
-              <div className="form-grid">
+              <div className="choice-list" role="radiogroup" aria-label="Collection">
                 {COLLECTION_MODES.map((m) => (
-                  <label
+                  <ChoiceCard
                     key={m.value}
-                    className={`select-row${collectionMode === m.value ? ' selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="collectionMode"
-                      checked={collectionMode === m.value}
-                      onChange={() => setCollectionMode(m.value)}
-                    />
-                    <div className="select-row-label">
-                      <div className="name">{m.label}</div>
-                      <div className="meta">{m.hint}</div>
-                    </div>
-                  </label>
+                    selected={collectionMode === m.value}
+                    onSelect={() => setCollectionMode(m.value)}
+                    icon={m.value === 'WALK_IN' ? <IconBuilding size={20} /> : m.value === 'PICKUP_POINT' ? <IconMapPin size={20} /> : <IconHome size={20} />}
+                    title={m.label}
+                    subtitle={m.hint}
+                    tone={m.value === 'WALK_IN' ? '#6366f1' : m.value === 'PICKUP_POINT' ? '#f97316' : '#0ea5a0'}
+                  />
                 ))}
               </div>
 
