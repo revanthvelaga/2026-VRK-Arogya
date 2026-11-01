@@ -19,6 +19,7 @@ import {
   IconMessage,
   IconPhone,
   IconTag,
+  IconSmartphone,
   IconUser,
   IconUsers,
   IconWallet,
@@ -149,6 +150,7 @@ function AccountMenu() {
       <div className="card account-group">
         <AccountRow to="/insights?view=reports" icon={<IconFileText size={17} />} label="My reports" sub="View, download or share your reports" />
         <AccountRow to="/profile/documents" icon={<IconFolder size={17} />} label="My documents" sub="Insurance, Aadhaar and other papers" />
+        <AccountRow to="/wellbeing" icon={<IconSmartphone size={17} />} label="Digital wellbeing" sub="Screen time, reels swiped and what it means for you" />
         <AccountRow to="/profile/family" icon={<IconUsers size={17} />} label="Family members" sub="Profiles and family access" />
       </div>
 

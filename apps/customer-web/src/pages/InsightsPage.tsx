@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
 import { GalaxyScore } from '../components/GalaxyScore';
+import { WellbeingTeaser } from '../components/WellbeingTeaser';
 import { ResultsViewSwitch, type ResultsView } from '../components/ResultsViewSwitch';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
@@ -699,6 +700,7 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
     return (
       <>
         <HealthScoreGauge score={0} normal={0} total={0} />
+        <WellbeingTeaser />
         <EmptyState
           icon={<IconBag size={20} />}
           title="No results yet"
@@ -722,6 +724,8 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
 
       <div id="sec-results" />
       <HealthScoreGauge score={healthStats.score} normal={healthStats.normal} total={healthStats.total} />
+
+      <WellbeingTeaser />
 
       <RetestCard patientId={patientId} />
 

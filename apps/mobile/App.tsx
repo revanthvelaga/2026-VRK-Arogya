@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
@@ -10,6 +10,7 @@ import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
+import { wellbeing } from './modules/arogya-wellbeing';
 
 // The app is the Arogya website in a full-screen web view, so every
 // feature on the site is in the app the moment it's deployed — no
@@ -278,6 +279,28 @@ function ArogyaWebApp() {
     [tellWeb],
   );
 
+  // Digital wellbeing: minutes per app and reels swiped, read on this phone
+  // and handed to the website. Sent when the page asks, and again when the
+  // person comes back from Android's settings screens.
+  const wellbeingWanted = useRef(false);
+  const pushWellbeing = useCallback(() => {
+    if (!wellbeing) {
+      tellWeb('arogya-wellbeing', JSON.stringify({ unsupported: true }));
+      return;
+    }
+    wellbeing
+      .getSnapshot(7)
+      .then((snap) => tellWeb('arogya-wellbeing', JSON.stringify(snap)))
+      .catch(() => tellWeb('arogya-wellbeing', JSON.stringify({ unsupported: true })));
+  }, [tellWeb]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && wellbeingWanted.current) pushWellbeing();
+    });
+    return () => sub.remove();
+  }, [pushWellbeing]);
+
   // Google rotates the token now and then: pass the new one along. A tap on
   // a notification while the app is running opens its page.
   useEffect(() => {
@@ -387,6 +410,21 @@ function ArogyaWebApp() {
       tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, slots: store.slots, permission: true }));
       return;
     }
+    if (msg.type === 'wellbeing-get') {
+      wellbeingWanted.current = true;
+      pushWellbeing();
+      return;
+    }
+    if (msg.type === 'wellbeing-open') {
+      const what = (msg as { what?: string }).what;
+      try {
+        if (what === 'reels') wellbeing?.openAccessibilitySettings();
+        else wellbeing?.openUsageSettings();
+      } catch {
+        // settings screen unavailable
+      }
+      return;
+    }
     if (msg.type === 'push-token-request') {
       void setUpPush();
       return;
@@ -396,7 +434,7 @@ function ArogyaWebApp() {
         webRef.current?.injectJavaScript(`alert(${JSON.stringify(`Couldn't open the file: ${err.message}`)}); true;`),
       );
     }
-  }, [setUpPush, tellWeb]);
+  }, [setUpPush, tellWeb, pushWellbeing]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -421,7 +459,7 @@ function ArogyaWebApp() {
         ref={webRef}
         style={failed ? styles.hidden : styles.web}
         source={{ uri: startUrl }}
-        applicationNameForUserAgent="ArogyaApp/1.4 ArogyaGoogle ArogyaReminders"
+        applicationNameForUserAgent="ArogyaApp/1.4 ArogyaGoogle ArogyaReminders ArogyaWellbeing"
         onShouldStartLoadWithRequest={onShouldStart}
         setSupportMultipleWindows={false}
         onNavigationStateChange={(s) => (canGoBack.current = s.canGoBack)}

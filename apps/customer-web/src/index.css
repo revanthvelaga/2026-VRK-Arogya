@@ -9611,3 +9611,81 @@ button.trends-toggle .system-chevron { margin-left: auto; }
   .galaxy-label { animation: galaxyIn 1s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.4s both; }
 }
 @keyframes galaxyIn { from { opacity: 0; transform: scale(0.6); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+
+/* ---------- Digital wellbeing ---------- */
+.wb-page { display: grid; gap: 14px; padding-bottom: 20px; }
+.wb-page .page-header { margin-bottom: 0; }
+.wb-page .card { margin: 0; }
+.wb-banner { background: var(--amber-soft); color: var(--amber); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; font-weight: 600; }
+.wb-empty { color: var(--ink-soft); font-size: 14px; margin: 6px 0; }
+.wb-hero { display: flex; align-items: center; gap: 18px; background: linear-gradient(135deg, #ecfbf9, #eef3ff); }
+.wb-ring { position: relative; width: 128px; height: 128px; flex: none; --tone: var(--green); }
+.wb-ring.ok { --tone: var(--amber); }
+.wb-ring.high { --tone: var(--red); }
+.wb-ring-bg { fill: none; stroke: rgba(16, 24, 44, 0.08); stroke-width: 10; }
+.wb-ring-fg { fill: none; stroke: var(--tone); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tone) 55%, transparent)); }
+.wb-ring-num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.wb-ring-num b { font-size: 34px; line-height: 1; color: var(--ink); }
+.wb-ring-num small { font-size: 11px; color: var(--ink-soft); letter-spacing: .04em; }
+.wb-hero-text { min-width: 0; }
+.wb-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.wb-big { font-size: 34px; font-weight: 800; line-height: 1.1; margin: 2px 0 6px; color: var(--ink); }
+.wb-pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--green-soft); color: var(--green); }
+.wb-pill.ok { background: var(--amber-soft); color: var(--amber); }
+.wb-pill.high { background: var(--red-soft); color: var(--red); }
+.wb-sub { margin-top: 8px; font-size: 13px; color: var(--ink-soft); }
+.wb-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wb-stat { padding: 14px 16px; }
+.wb-stat-num { font-size: 28px; font-weight: 800; margin: 4px 0 2px; color: var(--ink); }
+.wb-stat small { color: var(--ink-soft); font-size: 12px; }
+.wb-card-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.wb-card-title small { color: var(--ink-faint); font-size: 12px; }
+.wb-chart { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 152px; }
+.wb-goal-line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--accent); pointer-events: none; opacity: .7; z-index: 1; }
+.wb-goal-line span { position: absolute; right: 0; top: -17px; font-size: 10px; font-weight: 700; color: var(--accent-ink); }
+.wb-bar-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.wb-bar-val { height: 16px; flex: none; font-size: 9.5px; line-height: 16px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; }
+.wb-bar-track { height: 130px; flex: none; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.wb-bar { width: 62%; max-width: 30px; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, var(--accent-a), var(--accent-b)); opacity: .55; transform-origin: bottom; animation: wb-grow .9s cubic-bezier(.2,.8,.2,1) both; }
+.wb-bar.over { background: linear-gradient(180deg, #f59e0b, #ef4444); }
+.wb-bar-col.sel .wb-bar { opacity: 1; box-shadow: 0 6px 16px -6px rgba(47, 111, 237, .55); }
+.wb-bar-col.sel .wb-bar-day { color: var(--ink); font-weight: 800; }
+.wb-bar-day { height: 22px; line-height: 22px; font-size: 11px; color: var(--ink-soft); }
+@keyframes wb-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.wb-goal-pick { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; color: var(--ink-soft); flex-wrap: wrap; }
+.wb-goal-pick span { margin-right: 4px; }
+.wb-goal-chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+.wb-goal-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+.wb-apps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.wb-apps li { display: flex; gap: 12px; align-items: flex-start; }
+.wb-app-dot { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-content: center; color: #fff; font-weight: 800; font-size: 15px; }
+.wb-app-body { flex: 1; min-width: 0; display: grid; gap: 5px; }
+.wb-app-top { display: flex; justify-content: space-between; font-size: 14px; }
+.wb-app-top span { color: var(--ink-soft); font-weight: 600; }
+.wb-app-track { height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.wb-app-track span { display: block; height: 100%; border-radius: 99px; }
+.wb-app-body small { color: var(--ink-soft); font-size: 12px; }
+.wb-note { margin-top: 12px; font-size: 12px; color: var(--ink-faint); }
+.wb-tip { padding: 14px 16px; background: var(--green-soft); border-color: transparent; }
+.wb-tip.ok { background: var(--amber-soft); }
+.wb-tip.high { background: var(--red-soft); }
+.wb-tip b { font-size: 14px; }
+.wb-tip p { margin: 4px 0 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+.wb-step { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.wb-step.col { flex-direction: column; align-items: stretch; }
+.wb-step div:first-child { display: grid; gap: 2px; }
+.wb-step small { color: var(--ink-soft); font-size: 12.5px; line-height: 1.4; }
+.wb-disclosure { display: grid; gap: 10px; background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; color: var(--accent-ink); }
+.wb-disclosure p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.wb-disclosure small { color: var(--ink-soft); }
+.wb-disclosure-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.wb-link { background: transparent; border-color: transparent; color: var(--ink-soft); }
+.wb-privacy { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--ink-faint); margin: 2px 0 0; }
+.wb-teaser { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-decoration: none; color: inherit; }
+.wb-teaser-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-content: center; background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); color: #fff; flex: none; }
+.wb-teaser-text { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.wb-teaser-text small { color: var(--ink-soft); font-size: 12.5px; }
+.wb-teaser.high .wb-teaser-text small { color: var(--red); }
+.wb-teaser.ok .wb-teaser-text small { color: var(--amber); }
+@media (prefers-reduced-motion: reduce) { .wb-bar { animation: none; } .wb-ring-fg { transition: none; } }
+@media (max-width: 380px) { .wb-hero { flex-direction: column; text-align: center; } }

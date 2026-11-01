@@ -463,3 +463,10 @@ export const IconBellOff = icon(
     <path d="M10 20.5a2 2 0 0 0 4 0M3 3l18 18" />
   </>,
 );
+
+export const IconSmartphone = icon(
+  <>
+    <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+    <path d="M11 18.5h2" />
+  </>,
+);
