@@ -12,18 +12,24 @@ adb logcat -c || true
 adb install -r "$APK"
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 
+# pidof is unreliable on some emulator images; fall back to the process list.
+is_up() {
+  adb shell pidof "$PKG" >/dev/null 2>&1 && return 0
+  adb shell ps -A 2>/dev/null | grep -q "$PKG"
+}
+
 # On a slow emulator the process can take several seconds to appear after
 # launch; give it up to 30s to start before watching that it stays up.
 started=0
 for i in $(seq 1 30); do
   sleep 1
-  if adb shell pidof "$PKG" >/dev/null; then started=1; break; fi
+  if is_up; then started=1; break; fi
 done
 alive=$started
 for i in $(seq 1 30); do
   [ "$alive" = 1 ] || break
   sleep 1
-  if ! adb shell pidof "$PKG" >/dev/null; then alive=0; break; fi
+  if ! is_up; then alive=0; break; fi
 done
 
 adb shell dumpsys package "$PKG" | grep -E "android.permission.(POST_NOTIFICATIONS|ACCESS_FINE_LOCATION)" | sort -u > smoke/permissions.txt || true
