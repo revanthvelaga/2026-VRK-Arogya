@@ -9689,3 +9689,27 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 .wb-teaser.ok .wb-teaser-text small { color: var(--amber); }
 @media (prefers-reduced-motion: reduce) { .wb-bar { animation: none; } .wb-ring-fg { transition: none; } }
 @media (max-width: 380px) { .wb-hero { flex-direction: column; text-align: center; } }
+
+.wb-two { grid-template-columns: 1fr 1fr; }
+.wb-sleep { background: linear-gradient(160deg, #eef0ff, #f6f1ff); }
+.wb-sleep-main { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wb-sleep-big { font-size: 30px; margin: 0 0 6px; }
+.wb-sleep-times { display: flex; gap: 22px; }
+.wb-sleep-times span { display: grid; gap: 2px; text-align: center; }
+.wb-sleep-times small { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; }
+.wb-sleep-times b { font-size: 20px; color: #3b3fbf; }
+.wb-sleep-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 14px; }
+.wb-sleep-col { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; display: grid; gap: 4px; justify-items: center; }
+.wb-sleep-bar { width: 70%; max-width: 28px; height: 64px; background: rgba(99, 102, 241, .12); border-radius: 8px; display: flex; align-items: flex-end; overflow: hidden; }
+.wb-sleep-bar span { display: block; width: 100%; border-radius: 8px; background: linear-gradient(180deg, #818cf8, #6366f1); opacity: .6; }
+.wb-sleep-bar span.low { background: linear-gradient(180deg, #fbbf24, #f97316); }
+.wb-sleep-col.sel .wb-sleep-bar span { opacity: 1; }
+.wb-sleep-col small { font-size: 11px; color: var(--ink-soft); }
+.wb-split { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+.wb-split span { display: block; height: 100%; }
+.wb-cats { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.wb-cats li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.wb-cats li i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.wb-cats li span { flex: 1; color: var(--ink-soft); }
+.wb-cats li b { color: var(--ink); }
+.home-flow .wb-teaser { margin-bottom: 14px; }

@@ -3,7 +3,7 @@
     "name": "Arogya",
     "slug": "arogya",
     "owner": "revanthvelagas-team",
-    "version": "1.12.0",
+    "version": "1.12.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.arogya.customer",
-      "versionCode": 26,
+      "versionCode": 27,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

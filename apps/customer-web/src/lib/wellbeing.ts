@@ -10,7 +10,19 @@ export interface WellbeingDay {
   total: number; // minutes
   apps: Record<string, number>;
   reels: Record<string, number>;
+  cats?: Partial<Record<Category, number>>; // minutes by kind of app
+  night?: number; // minutes on the phone between 11 pm and 5 am
+  unlocks?: number;
+  sleep?: { bed: string; wake: string; minutes: number }; // estimated from when the phone went quiet
 }
+export type Category = 'social' | 'messaging' | 'video' | 'calls' | 'other';
+export const CATEGORIES: Array<{ key: Category; label: string; color: string }> = [
+  { key: 'social', label: 'Social media', color: '#e1306c' },
+  { key: 'messaging', label: 'Messaging', color: '#25d366' },
+  { key: 'video', label: 'Video & music', color: '#ff4d2e' },
+  { key: 'calls', label: 'Calls', color: '#2f6fed' },
+  { key: 'other', label: 'Everything else', color: '#94a3b8' },
+];
 export interface WellbeingData {
   usageAccess: boolean;
   reelsAccess: boolean;
@@ -74,10 +86,12 @@ export function fmtMinutes(min: number): string {
 
 // 0–100: full marks well inside the daily goal, falling as screen time passes
 // it; a long reels binge costs a little more.
-export function wellbeingScore(minutes: number, goal: number, reels: number): number {
+export function wellbeingScore(minutes: number, goal: number, reels: number, night = 0, sleepMin?: number): number {
   const ratio = minutes / Math.max(goal, 1);
   let s = ratio <= 1 ? 100 - ratio * 25 : 75 - (ratio - 1) * 50;
   s -= Math.min(15, reels / 8);
+  s -= Math.min(12, night / 5); // late-night scrolling
+  if (sleepMin !== undefined && sleepMin < 360) s -= Math.min(12, (360 - sleepMin) / 15);
   return Math.round(Math.min(100, Math.max(5, s)));
 }
 
@@ -96,7 +110,21 @@ export function sampleData(): WellbeingData {
     d.setDate(d.getDate() - (6 - i));
     const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const r = reels[i];
+    const sleepMin = [415, 372, 438, 301, 389, 455, 428][i];
+    const bedMin = 23 * 60 + [10, 50, 5, 100, 35, 0, 15][i];
+    const wakeMin = (bedMin + sleepMin) % 1440;
+    const hm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     return {
+      cats: {
+        social: Math.round(total * 0.34),
+        messaging: Math.round(total * 0.2),
+        video: Math.round(total * 0.24),
+        calls: Math.round(total * 0.06),
+        other: Math.round(total * 0.16),
+      },
+      night: [12, 38, 5, 64, 22, 0, 9][i],
+      unlocks: [74, 96, 61, 118, 83, 69, 52][i],
+      sleep: { bed: hm(bedMin), wake: hm(wakeMin), minutes: sleepMin },
       date,
       total,
       apps: {

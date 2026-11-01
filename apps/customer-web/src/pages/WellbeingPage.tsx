@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IconArrowLeft, IconShieldCheck } from '../components/Icons';
 import {
+  CATEGORIES,
   GOAL_CHOICES,
   appColor,
   appLabel,
@@ -63,7 +64,7 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
   const day = days.find((d) => d.date === selected) ?? today;
   const isToday = day === today;
   const reels = sumReels(day);
-  const score = wellbeingScore(day.total, goal, reels);
+  const score = wellbeingScore(day.total, goal, reels, day.night ?? 0, day.sleep?.minutes);
   const { label, tone } = scoreTone(score);
   const weekAvg = Math.round(days.reduce((a, d) => a + d.total, 0) / Math.max(days.length, 1));
   const weekReels = days.reduce((a, d) => a + sumReels(d), 0);
@@ -95,7 +96,7 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
 
       <div className="wb-two">
         <div className="card wb-stat">
-          <div className="wb-eyebrow">Reels & shorts swiped</div>
+          <div className="wb-eyebrow">Reels & shorts</div>
           <div className="wb-stat-num">{data.reelsAccess ? reels.toLocaleString() : '–'}</div>
           <small>{data.reelsAccess ? `${weekReels.toLocaleString()} this week` : 'Turn on counting below'}</small>
         </div>
@@ -104,6 +105,84 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
           <div className="wb-stat-num">{fmtMinutes(weekAvg)}</div>
           <small>last {days.length} days</small>
         </div>
+        <div className="card wb-stat">
+          <div className="wb-eyebrow">Phone pick-ups</div>
+          <div className="wb-stat-num">{day.unlocks ?? '–'}</div>
+          <small>times unlocked</small>
+        </div>
+        <div className="card wb-stat">
+          <div className="wb-eyebrow">Late night use</div>
+          <div className="wb-stat-num">{fmtMinutes(day.night ?? 0)}</div>
+          <small>between 11 pm and 5 am</small>
+        </div>
+      </div>
+
+      <div className="card wb-sleep">
+        <div className="wb-card-title">
+          <b>🌙 Night sleep</b>
+          <small>estimated from your phone</small>
+        </div>
+        {day.sleep ? (
+          <>
+            <div className="wb-sleep-main">
+              <div>
+                <div className="wb-big wb-sleep-big">{fmtMinutes(day.sleep.minutes)}</div>
+                <div className={`wb-pill ${day.sleep.minutes >= 420 ? 'good' : day.sleep.minutes >= 360 ? 'ok' : 'high'}`}>
+                  {day.sleep.minutes >= 420 ? 'Well rested' : day.sleep.minutes >= 360 ? 'A little short' : 'Not enough'}
+                </div>
+              </div>
+              <div className="wb-sleep-times">
+                <span><small>Phone down</small><b>{day.sleep.bed}</b></span>
+                <span><small>Phone up</small><b>{day.sleep.wake}</b></span>
+              </div>
+            </div>
+            <div className="wb-sleep-week" aria-label="Sleep over the week">
+              {days.map((d) => (
+                <button key={d.date} type="button" className={`wb-sleep-col${d === day ? ' sel' : ''}`} onClick={() => setSelected(d.date)} aria-label={`${weekday(d.date)} sleep`}>
+                  <span className="wb-sleep-bar">
+                    <span style={{ height: `${Math.min(100, ((d.sleep?.minutes ?? 0) / 600) * 100)}%` }} className={(d.sleep?.minutes ?? 0) >= 420 ? 'ok' : 'low'} />
+                  </span>
+                  <small>{d.sleep ? (d.sleep.minutes / 60).toFixed(1) : '–'}</small>
+                </button>
+              ))}
+            </div>
+            <p className="wb-note">The longest stretch last night when the phone wasn’t touched. If you read in bed or woke for a while, the real number differs.</p>
+          </>
+        ) : (
+          <p className="wb-empty">{data.usageAccess ? 'No clear night yet — it shows once the phone has stayed quiet for 3 hours or more overnight.' : 'Turn on screen-time access to estimate your sleep.'}</p>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="wb-card-title">
+          <b>Where the time goes</b>
+          <small>{isToday ? 'today' : weekday(day.date)}</small>
+        </div>
+        {day.total > 0 && day.cats ? (
+          <>
+            <div className="wb-split" role="img" aria-label="Time by kind of app">
+              {CATEGORIES.map((c) => {
+                const v = day.cats?.[c.key] ?? 0;
+                return v > 0 ? <span key={c.key} style={{ width: `${(v / Math.max(day.total, 1)) * 100}%`, background: c.color }} /> : null;
+              })}
+            </div>
+            <ul className="wb-cats">
+              {CATEGORIES.map((c) => {
+                const v = day.cats?.[c.key] ?? 0;
+                return (
+                  <li key={c.key}>
+                    <i style={{ background: c.color }} />
+                    <span>{c.label}</span>
+                    <b>{fmtMinutes(v)}</b>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="wb-note">Calls is time spent in the phone and meeting apps. Messaging covers WhatsApp, Telegram and SMS.</p>
+          </>
+        ) : (
+          <p className="wb-empty">Nothing recorded yet.</p>
+        )}
       </div>
 
       <div className="card wb-chart-card">

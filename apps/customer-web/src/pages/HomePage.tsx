@@ -6,6 +6,7 @@ import { useReveal } from '../lib/useReveal';
 import { useApi } from '../lib/useApi';
 import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
+import { WellbeingTeaser } from '../components/WellbeingTeaser';
 import { useCart } from '../context/CartContext';
 import { CardSkeletons } from '../components/Skeleton';
 import { WomenWellness } from '../components/WomenWellness';
@@ -215,6 +216,8 @@ export function HomePage() {
           </span>
         </Link>
       </div>
+
+      {user && <WellbeingTeaser />}
 
       <div className="quick-actions">
         {QUICK_ACTIONS.map((a) =>
