@@ -1,10 +1,14 @@
+import '@fontsource/cinzel/latin-600.css';
 import { ArogyaPulse } from './ArogyaPulse';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const MAX_MS = 6500; // safety net if the film never starts or ends
+const MAX_MS = 7500;
+
+// Dhanvantari mantra, the prayer to the god of medicine and Ayurveda.
+const MANTRA = ['Om Namo Bhagavate Vasudevaya Dhanvantaraye', 'Amrita Kalasha Hastaya Sarvamaya Vinashanaya', 'Trailokya Nathaya Shri Mahavishnave Namaha']; // safety net if the film never starts or ends
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
@@ -62,7 +66,7 @@ export function WelcomeSplash() {
       onClick={close}
     >
       <div className="wow-center">
-        <ArogyaPulse sound className="wow-pulse" onEnd={() => setTimeout(close, 650)} />
+        <ArogyaPulse sound className="wow-pulse" onEnd={() => setTimeout(close, 1500)} />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
@@ -73,6 +77,13 @@ export function WelcomeSplash() {
         </div>
         <div className="wow-greeting">{greeting}</div>
         <div className="wow-tagline">Your health, beautifully in one place</div>
+        <div className="wow-mantra">
+          {MANTRA.map((line, i) => (
+            <span key={i} style={{ animationDelay: `${1.85 + i * 0.22}s` }}>
+              {line}
+            </span>
+          ))}
+        </div>
       </div>
 
     </div>

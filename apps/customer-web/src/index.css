@@ -9861,3 +9861,15 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 @keyframes hpOrbitBeat { 0%, 100% { opacity: 1; } 10% { opacity: 1; filter: brightness(1.8); } 40% { filter: brightness(1); } }
 .hp-stage.still .hp-atom { opacity: 1; }
 .hp-stage.still .hp-orbit-line { stroke-dashoffset: 0; }
+
+/* Dhanvantari mantra in gold under the tagline */
+.wow-mantra { margin-top: 14px; display: grid; gap: 2px; font-size: min(11.5px, 2.85vw); line-height: 1.8; font-weight: 600; letter-spacing: 0.4px;
+  font-family: 'Cinzel', Georgia, 'Times New Roman', serif; padding: 0 6px; white-space: nowrap; }
+.wow-mantra span { display: block; opacity: 0;
+  background: linear-gradient(100deg, #b8862b 0%, #f7d77a 30%, #fff4cf 45%, #f2c35a 60%, #b8862b 100%); background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 8px rgba(255, 190, 90, 0.35));
+  animation: textRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards, wowGold 2.6s linear 2.3s infinite; }
+@keyframes wowGold { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+.wow-film:not(.go) .wow-mantra span { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .wow-mantra span { animation: none; opacity: 1; } }
