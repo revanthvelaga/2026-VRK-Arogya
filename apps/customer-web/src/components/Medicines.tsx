@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, FormEvent } from 'react';
 import { api } from '../api/client';
-import type { Medicine, MedicineTiming } from '../api/types';
+import type { Medicine, MedicineTiming, Patient } from '../api/types';
+import { MedicineReminders, useSyncReminders } from './MedicineReminders';
 import { useApi } from '../lib/useApi';
-import { IconCamera, IconMoon, IconPill, IconPlus, IconSun, IconSunrise, IconSunset, IconX } from './Icons';
+import { IconCamera, IconEdit, IconImage, IconLock, IconMoon, IconPill, IconPlus, IconSun, IconSunrise, IconSunset, IconTrash, IconUnlock, IconX } from './Icons';
 
 const MAX_PHOTOS = 5;
 
@@ -141,7 +142,12 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Draft | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Opens the camera straight away (one shot at a time).
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos]);
 
@@ -220,17 +226,66 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
     }
   };
 
-  const toggle = async (m: Medicine) => {
-    await api.patch(`/health/medicines/${m.id}`, { isActive: !m.isActive });
-    medsApi.reload();
+  const act = async (m: Medicine, body: Record<string, unknown>) => {
+    setBusyId(m.id);
+    setError(null);
+    try {
+      await api.patch(`/health/medicines/${m.id}`, body);
+      medsApi.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update');
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const remove = async (id: string) => {
-    await api.delete(`/health/medicines/${id}`);
-    medsApi.reload();
+  const remove = async (m: Medicine) => {
+    if (m.locked) return;
+    if (!window.confirm(`Delete ${m.name} from the list?`)) return;
+    setBusyId(m.id);
+    setError(null);
+    try {
+      await api.delete(`/health/medicines/${m.id}`);
+      medsApi.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const startEdit = (m: Medicine) => {
+    setEditId(m.id);
+    setEditing({
+      key: m.id,
+      name: m.name,
+      brand: m.brand ?? '',
+      dosage: m.dosage ?? '',
+      timings: (m.timings ?? []) as MedicineTiming[],
+      food: m.food ?? '',
+    });
+  };
+
+  const saveEdit = async (m: Medicine) => {
+    if (!editing || !editing.name.trim()) {
+      setError('Enter the medicine name.');
+      return;
+    }
+    await act(m, {
+      name: editing.name.trim(),
+      brand: editing.brand.trim(),
+      dosage: editing.dosage.trim(),
+      timings: editing.timings,
+      food: editing.food,
+    });
+    setEditId(null);
+    setEditing(null);
   };
 
   const meds = medsApi.data ?? [];
+  const patientsApi = useApi<Patient[]>(() => api.get('/patients/mine'), []);
+  const patient = patientsApi.data?.find((p) => p.id === patientId);
+  useSyncReminders(patient, medsApi.data);
   const reviewing = drafts.length > 0;
 
   return (
@@ -253,7 +308,7 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
             className="meds-add-btn meds-add-btn--scan"
             onClick={() => {
               setMode('scan');
-              setTimeout(() => fileRef.current?.click(), 0);
+              setTimeout(() => cameraRef.current?.click(), 0);
             }}
           >
             <IconCamera size={20} />
@@ -290,6 +345,17 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
           e.target.value = '';
         }}
       />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => {
+          addPhotos(e.target.files);
+          e.target.value = '';
+        }}
+      />
 
       {error && <div className="error-banner" style={{ marginTop: 12 }}>{error}</div>}
 
@@ -311,10 +377,16 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
               </div>
             ))}
             {photos.length < MAX_PHOTOS && !scanning && (
-              <button type="button" className="scan-thumb scan-thumb-add" onClick={() => fileRef.current?.click()}>
-                <IconCamera size={20} />
-                <span>{photos.length ? 'Add more' : 'Add photo'}</span>
-              </button>
+              <>
+                <button type="button" className="scan-thumb scan-thumb-add" onClick={() => cameraRef.current?.click()}>
+                  <IconCamera size={20} />
+                  <span>{photos.length ? 'Take another' : 'Take photo'}</span>
+                </button>
+                <button type="button" className="scan-thumb scan-thumb-add scan-thumb-gallery" onClick={() => fileRef.current?.click()}>
+                  <IconImage size={20} />
+                  <span>From gallery</span>
+                </button>
+              </>
             )}
           </div>
           <button type="button" className="btn btn-primary scan-go" disabled={!photos.length || scanning} onClick={scan}>
@@ -350,41 +422,92 @@ export function MedicinesCard({ patientId }: { patientId: string }) {
         </form>
       )}
 
+      {mode === 'none' && meds.length > 0 && <MedicineReminders hasTimed={meds.some((m) => m.isActive && m.timings?.length)} />}
+
       {meds.length === 0 && mode === 'none' ? (
         <p className="page-sub" style={{ margin: '12px 0 0' }}>
           Keep a list of what you take — handy when going through results with your doctor.
         </p>
       ) : meds.length > 0 ? (
         <div className="med-list">
-          {meds.map((m) => (
-            <div className={`med${m.isActive ? '' : ' stopped'}`} key={m.id}>
-              <span className="med-icon">
-                <IconPill size={15} />
-              </span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <b>{m.name}</b>
-                {m.dosage && <span className="med-dose"> · {m.dosage}</span>}
-                {m.brand && <div className="med-sub">{m.brand}</div>}
-                {(m.timings?.length || m.food) && (
-                  <div className="med-times">
-                    {TIMINGS.filter((t) => m.timings?.includes(t.value)).map(({ value, label, Icon }) => (
-                      <span key={value} className={`med-time med-time--${value.toLowerCase()}`} title={label}>
-                        <Icon size={13} /> {label}
-                      </span>
-                    ))}
-                    {m.food && <span className="med-time med-time--food">{m.food === 'BEFORE' ? 'Before food' : 'After food'}</span>}
-                  </div>
-                )}
-                {m.schedule && <div className="med-sub">{m.schedule}</div>}
+          {meds.map((m) =>
+            editId === m.id && editing ? (
+              <div className="med-edit" key={m.id}>
+                <DraftEditor draft={editing} onChange={(patch) => setEditing((prev) => (prev ? { ...prev, ...patch } : prev))} />
+                <div className="med-review-actions">
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    onClick={() => {
+                      setEditId(null);
+                      setEditing(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="button" className="btn btn-primary" disabled={busyId === m.id} onClick={() => saveEdit(m)}>
+                    {busyId === m.id ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
               </div>
-              <button type="button" className="btn btn-small" onClick={() => toggle(m)}>
-                {m.isActive ? 'Mark stopped' : 'Taking again'}
-              </button>
-              <button type="button" className="med-remove" aria-label={`Remove ${m.name}`} onClick={() => remove(m.id)}>
-                <IconX size={12} />
-              </button>
-            </div>
-          ))}
+            ) : (
+              <div className={`med${m.isActive ? '' : ' stopped'}${m.locked ? ' locked' : ''}`} key={m.id}>
+                <span className="med-icon">
+                  <IconPill size={15} />
+                </span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="med-title">
+                    <b>{m.name}</b>
+                    {m.dosage && <span className="med-dose"> · {m.dosage}</span>}
+                    {m.locked && (
+                      <span className="med-locked" title="Locked">
+                        <IconLock size={11} /> Locked
+                      </span>
+                    )}
+                    {!m.isActive && <span className="med-stopped-tag">Stopped</span>}
+                  </div>
+                  {m.brand && <div className="med-sub">{m.brand}</div>}
+                  {(m.timings?.length || m.food) && (
+                    <div className="med-times">
+                      {TIMINGS.filter((t) => m.timings?.includes(t.value)).map(({ value, label, Icon }) => (
+                        <span key={value} className={`med-time med-time--${value.toLowerCase()}`} title={label}>
+                          <Icon size={13} /> {label}
+                        </span>
+                      ))}
+                      {m.food && <span className="med-time med-time--food">{m.food === 'BEFORE' ? 'Before food' : 'After food'}</span>}
+                    </div>
+                  )}
+                  {m.schedule && <div className="med-sub">{m.schedule}</div>}
+                  <div className="med-actions">
+                    <button type="button" disabled={m.locked || busyId === m.id} onClick={() => startEdit(m)} title={m.locked ? 'Unlock to edit' : 'Edit'}>
+                      <IconEdit size={14} /> Edit
+                    </button>
+                    <button type="button" disabled={m.locked || busyId === m.id} onClick={() => act(m, { isActive: !m.isActive })}>
+                      {m.isActive ? 'Stop' : 'Resume'}
+                    </button>
+                    <button
+                      type="button"
+                      className={m.locked ? 'on' : ''}
+                      aria-pressed={!!m.locked}
+                      disabled={busyId === m.id}
+                      onClick={() => act(m, { locked: !m.locked })}
+                    >
+                      {m.locked ? <IconUnlock size={14} /> : <IconLock size={14} />} {m.locked ? 'Unlock' : 'Lock'}
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={m.locked || busyId === m.id}
+                      onClick={() => remove(m)}
+                      title={m.locked ? 'Unlock to delete' : 'Delete'}
+                    >
+                      <IconTrash size={14} /> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ),
+          )}
         </div>
       ) : null}
     </div>

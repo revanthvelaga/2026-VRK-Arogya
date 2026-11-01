@@ -17,6 +17,8 @@ export const inArogyaApp = Boolean(nativeBridge) && /ArogyaApp/.test(navigator.u
 //   a `window.ArogyaPasskeys` object)
 export const appCanGoogle = inArogyaApp && /ArogyaGoogle/.test(navigator.userAgent);
 export const appCanPasskeys = inArogyaApp && 'ArogyaPasskeys' in window;
+// v1.4+: daily medicine reminders with tone and vibration.
+export const appCanReminders = inArogyaApp && /ArogyaReminders/.test(navigator.userAgent);
 
 // Make the site behave like an app rather than a web page inside the app:
 // no pinch-zoom (a zoomed page can be dragged sideways, which showed up

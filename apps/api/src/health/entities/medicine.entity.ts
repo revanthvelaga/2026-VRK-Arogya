@@ -33,6 +33,11 @@ export class Medicine {
   @Column({ type: 'varchar', length: 120, nullable: true })
   schedule?: string | null;
 
+  // Locked medicines can't be edited or deleted until unlocked — so a
+  // long-term medicine isn't removed by a stray tap.
+  @Column({ default: false })
+  locked: boolean;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

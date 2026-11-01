@@ -420,3 +420,39 @@ export const IconSunset = icon(
 );
 
 export const IconMoon = icon(<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />);
+
+export const IconEdit = icon(
+  <>
+    <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
+    <path d="M13.5 6.5l4 4" />
+  </>,
+);
+
+export const IconTrash = icon(
+  <>
+    <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13" />
+    <path d="M10 11v6M14 11v6" />
+  </>,
+);
+
+export const IconUnlock = icon(
+  <>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+    <path d="M8 10.5V7a4 4 0 0 1 7.7-1.5" />
+  </>,
+);
+
+export const IconBell2 = icon(
+  <>
+    <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </>,
+);
+
+export const IconImage = icon(
+  <>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="M20.5 16l-5-5-8 8.5" />
+  </>,
+);

@@ -81,6 +81,116 @@ async function googleSignInInBrowser(): Promise<string | null> {
   return params.get('idToken');
 }
 
+// ---- Medicine reminders ----
+// The website (Insights → Medicines) sends each family member's medicines
+// and the reminder times; the app keeps them in a small file and schedules
+// one daily notification per time of day listing what to take, with our
+// bird-chirp tone and a vibration. Everything stays on the phone.
+const REMINDER_CHANNEL = 'medicine_reminders_v1'; // channel sound/vibration can't change after creation
+const REMINDER_SOUND = 'reminder.wav';
+const REMINDER_VIBRATION = [0, 350, 180, 350, 180, 650];
+const SLOTS = ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'] as const;
+type Slot = (typeof SLOTS)[number];
+const SLOT_TITLE: Record<Slot, string> = {
+  MORNING: 'Morning medicines',
+  AFTERNOON: 'Afternoon medicines',
+  EVENING: 'Evening medicines',
+  NIGHT: 'Night medicines',
+};
+
+interface ReminderMed { name: string; dosage?: string | null; timings?: string[] | null; food?: string | null; active: boolean }
+interface ReminderStore {
+  enabled: boolean;
+  times: Record<Slot, string>; // "HH:MM"
+  people: Record<string, { name: string; self: boolean; medicines: ReminderMed[] }>;
+}
+const DEFAULT_TIMES: Record<Slot, string> = { MORNING: '08:00', AFTERNOON: '13:00', EVENING: '19:00', NIGHT: '21:30' };
+const reminderFile = () => new ExpoFile(Paths.document, 'medicine-reminders.json');
+
+function loadReminders(): ReminderStore {
+  try {
+    const f = reminderFile();
+    if (f.exists) {
+      const parsed = JSON.parse(f.textSync()) as ReminderStore;
+      return { enabled: !!parsed.enabled, times: { ...DEFAULT_TIMES, ...parsed.times }, people: parsed.people ?? {} };
+    }
+  } catch {
+    // Corrupt or unreadable — start fresh.
+  }
+  return { enabled: false, times: { ...DEFAULT_TIMES }, people: {} };
+}
+
+function saveReminders(store: ReminderStore) {
+  try {
+    const f = reminderFile();
+    if (!f.exists) f.create();
+    f.write(JSON.stringify(store));
+  } catch {
+    // Not fatal: reminders already scheduled keep firing.
+  }
+}
+
+async function ensureReminderChannel() {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
+    name: 'Medicine reminders',
+    description: 'Daily reminders to take your medicines',
+    importance: Notifications.AndroidImportance.MAX,
+    sound: REMINDER_SOUND,
+    vibrationPattern: REMINDER_VIBRATION,
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    lightColor: '#0ea5a0',
+  });
+}
+
+async function ensureNotificationPermission(): Promise<boolean> {
+  let p = await Notifications.getPermissionsAsync();
+  if (!p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync();
+  return p.granted;
+}
+
+// Cancels our old reminders and schedules one per time of day that has
+// at least one medicine. Returns how many were scheduled.
+async function scheduleReminders(store: ReminderStore): Promise<number> {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    existing.filter((n) => n.identifier.startsWith('med-')).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+  if (!store.enabled) return 0;
+  await ensureReminderChannel();
+  const people = Object.values(store.people);
+  const several = people.filter((p) => p.medicines.some((m) => m.active && m.timings?.length)).length > 1;
+  let count = 0;
+  for (const slot of SLOTS) {
+    const lines: string[] = [];
+    for (const person of people) {
+      const meds = person.medicines.filter((m) => m.active && m.timings?.includes(slot));
+      if (!meds.length) continue;
+      const list = meds
+        .map((m) => `${m.name}${m.dosage ? ` ${m.dosage}` : ''}${m.food === 'BEFORE' ? ' (before food)' : m.food === 'AFTER' ? ' (after food)' : ''}`)
+        .join(', ');
+      lines.push(several ? `${person.self ? 'You' : person.name.split(' ')[0]}: ${list}` : list);
+    }
+    if (!lines.length) continue;
+    const [hour, minute] = (store.times[slot] ?? DEFAULT_TIMES[slot]).split(':').map(Number);
+    await Notifications.scheduleNotificationAsync({
+      identifier: `med-${slot}`,
+      content: {
+        title: `💊 ${SLOT_TITLE[slot]}`,
+        body: lines.join('\n'),
+        sound: REMINDER_SOUND,
+        vibrate: REMINDER_VIBRATION,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        data: { route: '/insights#sec-everyday' },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId: REMINDER_CHANNEL },
+    });
+    count += 1;
+  }
+  return count;
+}
+
 const EXT_BY_TYPE: Record<string, string> = {
   'application/pdf': '.pdf',
   'image/jpeg': '.jpg',
@@ -220,6 +330,57 @@ function ArogyaWebApp() {
         .catch(() => tellWeb('arogya-google-token', ''));
       return;
     }
+    if (msg.type === 'medicine-reminders') {
+      void (async () => {
+        const m = msg as unknown as {
+          patientId?: string;
+          patientName?: string;
+          self?: boolean;
+          medicines?: ReminderMed[];
+          enabled?: boolean;
+          times?: Partial<Record<Slot, string>>;
+        };
+        const store = loadReminders();
+        if (m.patientId && m.medicines) {
+          store.people[m.patientId] = { name: m.patientName ?? '', self: !!m.self, medicines: m.medicines };
+        }
+        if (typeof m.enabled === 'boolean') store.enabled = m.enabled;
+        if (m.times) store.times = { ...store.times, ...m.times } as Record<Slot, string>;
+        let permission = true;
+        if (store.enabled) permission = await ensureNotificationPermission();
+        if (!permission) store.enabled = false;
+        saveReminders(store);
+        const scheduled = await scheduleReminders(store).catch(() => -1);
+        tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, scheduled, permission }));
+      })();
+      return;
+    }
+    if (msg.type === 'medicine-reminder-test') {
+      void (async () => {
+        const ok = await ensureNotificationPermission();
+        if (!ok) {
+          tellWeb('arogya-reminders-status', JSON.stringify({ ...loadReminders(), people: undefined, permission: false }));
+          return;
+        }
+        await ensureReminderChannel();
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '💊 This is how your reminder sounds',
+            body: 'You will get one at each time you picked, listing the medicines to take.',
+            sound: REMINDER_SOUND,
+            vibrate: REMINDER_VIBRATION,
+            priority: Notifications.AndroidNotificationPriority.MAX,
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 2, channelId: REMINDER_CHANNEL },
+        });
+      })();
+      return;
+    }
+    if (msg.type === 'medicine-reminders-get') {
+      const store = loadReminders();
+      tellWeb('arogya-reminders-status', JSON.stringify({ enabled: store.enabled, times: store.times, permission: true }));
+      return;
+    }
     if (msg.type === 'push-token-request') {
       void setUpPush();
       return;
@@ -254,7 +415,7 @@ function ArogyaWebApp() {
         ref={webRef}
         style={failed ? styles.hidden : styles.web}
         source={{ uri: startUrl }}
-        applicationNameForUserAgent="ArogyaApp/1.3 ArogyaGoogle"
+        applicationNameForUserAgent="ArogyaApp/1.4 ArogyaGoogle ArogyaReminders"
         onShouldStartLoadWithRequest={onShouldStart}
         setSupportMultipleWindows={false}
         onNavigationStateChange={(s) => (canGoBack.current = s.canGoBack)}

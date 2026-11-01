@@ -128,8 +128,9 @@ export class UpdateMedicineDto {
   @IsIn(MEDICINE_TIMINGS, { each: true })
   timings?: string[];
 
+  // '' clears it.
   @IsOptional()
-  @IsIn(['BEFORE', 'AFTER'])
+  @IsIn(['BEFORE', 'AFTER', ''])
   food?: string;
 
   @IsOptional()
@@ -150,6 +151,10 @@ export class UpdateMedicineDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  locked?: boolean;
 }
 
 // Several medicines at once — what a strip scan hands back after review.

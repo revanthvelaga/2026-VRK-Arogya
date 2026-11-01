@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -302,7 +303,26 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     const row = await this.medicinesRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Medicine not found');
     await this.assertPatient(row.patientId, userId);
-    Object.assign(row, dto);
+    const { locked, ...changes } = dto;
+    const changing = Object.values(changes).some((v) => v !== undefined);
+    // Locked: only unlocking (or nothing) is allowed.
+    if (row.locked && locked !== false && changing) {
+      throw new ConflictException(`${row.name} is locked. Unlock it first to make changes.`);
+    }
+    const order = ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'];
+    if (changes.name !== undefined) {
+      if (!changes.name.trim()) throw new BadRequestException('Enter the medicine name.');
+      row.name = changes.name.trim();
+    }
+    if (changes.brand !== undefined) row.brand = changes.brand.trim() || null;
+    if (changes.dosage !== undefined) row.dosage = changes.dosage.trim() || null;
+    if (changes.schedule !== undefined) row.schedule = changes.schedule.trim() || null;
+    if (changes.timings !== undefined) {
+      row.timings = changes.timings.length ? [...new Set(changes.timings)].sort((a, b) => order.indexOf(a) - order.indexOf(b)) : null;
+    }
+    if (changes.food !== undefined) row.food = changes.food || null;
+    if (changes.isActive !== undefined) row.isActive = changes.isActive;
+    if (locked !== undefined) row.locked = locked;
     return this.medicinesRepo.save(row);
   }
 
@@ -310,6 +330,7 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
     const row = await this.medicinesRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Medicine not found');
     await this.assertPatient(row.patientId, userId);
+    if (row.locked) throw new ConflictException(`${row.name} is locked. Unlock it before deleting.`);
     await this.medicinesRepo.delete(id);
   }
 
