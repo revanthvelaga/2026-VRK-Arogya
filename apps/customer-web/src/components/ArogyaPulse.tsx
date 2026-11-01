@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 // The welcome moment after sign-in, drawn from the Arogya mark itself:
 // the plus settles in, then the heart beats three times (lub-dub) with a
 // heartbeat line tracing across inside it, in time with a heartbeat sound.
-// Around the plus — never on it — a halo breathes, light rays turn, pulse
-// rings ripple out on each beat and sparkles orbit and twinkle.
+// Around the plus — never on it — a big-bang flash opens it, atom-style
+// orbits with glowing electrons circle it, a halo breathes, pulse rings
+// ripple out on each beat and sparkles twinkle.
 // About 3 seconds; a still frame under reduced motion.
 
 const SOUND = '/brand/arogya-heartbeat.m4a';
@@ -56,6 +57,15 @@ const MOTES = Array.from({ length: 18 }, (_, i) => ({
   dur: `${(2.6 + rnd(i, 10) * 2).toFixed(2)}s`,
   drift: `${Math.round((rnd(i, 11) - 0.5) * 50)}px`,
 }));
+
+// Atom-style orbits around the plus (three ellipses at 0/60/120 degrees),
+// each with a glowing electron and a short comet trail.
+const ORBIT_PATH = 'M -92 0 A 92 30 0 1 1 92 0 A 92 30 0 1 1 -92 0';
+const ORBITS = [
+  { rot: 0, dur: 1.9, phase: 0, color: '#ffb057' },
+  { rot: 60, dur: 2.4, phase: -0.8, color: '#ff7a45' },
+  { rot: 120, dur: 2.9, phase: -1.7, color: '#ffd38a' },
+];
 
 export function ArogyaPulse({ sound = true, onEnd, className }: { sound?: boolean; onEnd?: () => void; className?: string }) {
   const [go, setGo] = useState(false);
@@ -109,17 +119,45 @@ export function ArogyaPulse({ sound = true, onEnd, className }: { sound?: boolea
 
   return (
     <div className={`hp-stage${go ? ' go' : ''}${reduced ? ' still' : ''}${className ? ` ${className}` : ''}`} aria-hidden>
-      <span className="hp-rays" />
+      <span className="hp-bang" />
       <span className="hp-halo" />
       <span className="hp-ring r1" />
       <span className="hp-ring r2" />
       <span className="hp-ring r3" />
-      <span className="hp-orbit o1">
-        <i />
-      </span>
-      <span className="hp-orbit o2">
-        <i />
-      </span>
+      <svg className="hp-atom" viewBox="-100 -100 200 200">
+        <defs>
+          <linearGradient id="hpOrbit" x1="0" x2="1">
+            <stop offset="0" stopColor="#ffd38a" stopOpacity=".15" />
+            <stop offset=".5" stopColor="#ffb057" stopOpacity=".95" />
+            <stop offset="1" stopColor="#ff4d3a" stopOpacity=".25" />
+          </linearGradient>
+          <filter id="hpSoft" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.6" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="hpSpark" x="-300%" y="-300%" width="700%" height="700%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {ORBITS.map((o, i) => (
+          <g key={i} className={`hp-orbit-g g${i}`} transform={`rotate(${o.rot})`}>
+            <ellipse className="hp-orbit-line" rx="92" ry="30" fill="none" stroke="url(#hpOrbit)" strokeWidth="1.3" filter="url(#hpSoft)" pathLength={1} />
+            {[0, 0.06, 0.12, 0.18].map((lag, k) => (
+              <circle key={k} r={k === 0 ? 3.4 : 2.4 - k * 0.5} fill={k === 0 ? '#fff6e6' : o.color} opacity={k === 0 ? 1 : 0.75 - k * 0.18} filter="url(#hpSpark)">
+                <animateMotion dur={`${o.dur}s`} begin={`${(o.phase - lag * o.dur).toFixed(2)}s`} repeatCount="indefinite" path={ORBIT_PATH} rotate="auto" />
+              </circle>
+            ))}
+          </g>
+        ))}
+      </svg>
       {STARS.map((s, i) => (
         <span
           key={i}
