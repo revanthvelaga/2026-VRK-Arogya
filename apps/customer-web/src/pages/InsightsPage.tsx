@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
+import { ResultsViewSwitch, type ResultsView } from '../components/ResultsViewSwitch';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
@@ -34,6 +35,7 @@ import {
   IconShieldCheck,
   IconSparkle,
   IconUser,
+  IconChevronDown,
 } from '../components/Icons';
 import { formatDateTime, formatNumber } from '../lib/format';
 
@@ -493,6 +495,11 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
 
   // Abnormal first within this one report.
   const ordered = [...group.values].sort((a, b) => Number(b.isAbnormal) - Number(a.isAbnormal));
+  const abnormal = ordered.filter((v) => v.isAbnormal).length;
+  const [resultsView, setResultsView] = useState<ResultsView>(abnormal > 0 ? 'attention' : 'all');
+  const [collapsed, setCollapsed] = useState(false);
+  const shown = resultsView === 'all' ? ordered : ordered.filter((v) => v.isAbnormal);
+  const hiddenNormal = ordered.length - shown.length;
 
   return (
     <div className="card">
@@ -520,8 +527,26 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
         </div>
       </div>
 
-      <div className="insight-param-list" style={{ marginTop: 12 }}>
-        {ordered.map((v) => {
+      <div className="results-toolbar" style={{ marginTop: 12 }}>
+        <ResultsViewSwitch value={resultsView} onChange={setResultsView} attention={abnormal} total={ordered.length} />
+        <button type="button" className="link-btn" aria-expanded={!collapsed} onClick={() => setCollapsed((c) => !c)}>
+          {collapsed ? 'Expand' : 'Minimize'}
+          <IconChevronDown size={14} className={`system-chevron${collapsed ? '' : ' up'}`} />
+        </button>
+      </div>
+
+      <div className={`collapse-wrap${collapsed ? '' : ' open'}`}>
+      <div className="collapse-inner">
+      {shown.length === 0 && (
+        <p className="system-empty" style={{ marginTop: 10 }}>
+          All {ordered.length} results in this report are in the normal range.{' '}
+          <button type="button" className="link-btn" onClick={() => setResultsView('all')}>
+            Show them
+          </button>
+        </p>
+      )}
+      <div className="insight-param-list" style={{ marginTop: 8 }}>
+        {shown.map((v) => {
           const hasRange = v.normalLow != null && v.normalHigh != null;
           const hasTrend = v.previousValue != null && Number(v.previousValue) !== Number(v.value);
           return (
@@ -555,6 +580,13 @@ function ReportDetailCard({ group }: { group: ReportGroup }) {
             </div>
           );
         })}
+      </div>
+      {hiddenNormal > 0 && shown.length > 0 && (
+        <button type="button" className="show-normal-btn" onClick={() => setResultsView('all')}>
+          + {hiddenNormal} normal result{hiddenNormal === 1 ? '' : 's'} hidden · Show all
+        </button>
+      )}
+      </div>
       </div>
     </div>
   );
@@ -789,7 +821,7 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
         </div>
       </div>
 
-      {selectedGroup && <ReportDetailCard group={selectedGroup} />}
+      {selectedGroup && <ReportDetailCard key={selectedGroup.reportId} group={selectedGroup} />}
 
       <div id="sec-trends" />
       <HealthTrends values={values} />

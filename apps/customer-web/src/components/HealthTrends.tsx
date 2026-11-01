@@ -6,7 +6,8 @@ import { buildMeasurements, LEVEL_LABEL } from '../lib/healthValues';
 import type { Measurement } from '../lib/healthValues';
 import { RangeBar } from './RangeBar';
 import { TrendChart } from './TrendChart';
-import { IconTrend } from './Icons';
+import { IconCheckCircle, IconChevronDown, IconTrend } from './Icons';
+import { ResultsViewSwitch, type ResultsView } from './ResultsViewSwitch';
 
 // Friendlier names and a colour per body system, in the order people
 // usually think about them. Anything else lands under its own name.
@@ -43,6 +44,12 @@ function changeText(m: Measurement): { text: string; dir: 'up' | 'down' | 'same'
 export function HealthTrends({ values }: { values: MyReportValue[] }) {
   const measurements = useMemo(() => buildMeasurements(values), [values]);
   const [filter, setFilter] = useState<string>('ALL');
+  const issueCount = measurements.filter((m) => m.latest.level === 'low' || m.latest.level === 'high').length;
+  // Start on just the results that need attention (if there are any).
+  const [view, setView] = useState<ResultsView>(() => (issueCount > 0 ? 'attention' : 'all'));
+  // Which body-system cards are open. Unset = default (open if it has issues).
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [chartsOpen, setChartsOpen] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map<string, { label: string; tone: string; order: number; items: Measurement[] }>();
@@ -63,8 +70,13 @@ export function HealthTrends({ values }: { values: MyReportValue[] }) {
 
   if (measurements.length === 0) return null;
 
+  const isIssue = (m: Measurement) => m.latest.level === 'low' || m.latest.level === 'high';
   const visible = filter === 'ALL' ? groups : groups.filter((g) => g.label === filter);
-  const repeated = visible.flatMap((g) => g.items.filter((m) => m.readings.length > 1).map((m) => ({ m, g })));
+  const repeated = visible.flatMap((g) =>
+    g.items.filter((m) => m.readings.length > 1 && (view === 'all' || isIssue(m))).map((m) => ({ m, g })),
+  );
+  const isOpen = (label: string, issues: number) => open[label] ?? (filter !== 'ALL' || issues > 0);
+  const allOpen = visible.every((g) => isOpen(g.label, g.items.filter(isIssue).length));
 
   return (
     <div className="card health-trends">
@@ -75,6 +87,17 @@ export function HealthTrends({ values }: { values: MyReportValue[] }) {
       <p className="page-sub" style={{ margin: '-4px 0 12px' }}>
         Latest value of every test, against its normal range. Tap a body system to focus on it.
       </p>
+
+      <div className="results-toolbar">
+        <ResultsViewSwitch value={view} onChange={setView} attention={issueCount} total={measurements.length} />
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => setOpen(Object.fromEntries(visible.map((g) => [g.label, !allOpen])))}
+        >
+          {allOpen ? 'Collapse all' : 'Expand all'}
+        </button>
+      </div>
 
       <div className="system-chips" role="group" aria-label="Body system">
         {[{ label: 'ALL', tone: 'var(--accent-a)', items: measurements }, ...groups].map((g) => {
@@ -100,37 +123,73 @@ export function HealthTrends({ values }: { values: MyReportValue[] }) {
         {visible.map((g) => {
           const normal = g.items.filter((m) => m.latest.level === 'normal').length;
           const total = g.items.filter((m) => m.latest.level !== 'unknown').length;
+          const issues = g.items.filter(isIssue).length;
+          const shown = view === 'all' ? g.items : g.items.filter(isIssue);
+          const hidden = g.items.length - shown.length;
+          const expanded = isOpen(g.label, issues);
           return (
-            <section className="system-card" key={g.label} style={{ '--tone': g.tone } as CSSProperties}>
-              <header className="system-card-head">
+            <section className={`system-card${expanded ? ' open' : ''}`} key={g.label} style={{ '--tone': g.tone } as CSSProperties}>
+              <button
+                type="button"
+                className="system-card-head"
+                aria-expanded={expanded}
+                onClick={() => setOpen((o) => ({ ...o, [g.label]: !expanded }))}
+              >
                 <h3>{g.label}</h3>
-                {total > 0 && (
-                  <span className={`system-score${normal === total ? ' all-good' : ''}`}>
-                    {normal === total ? 'All normal' : `${total - normal} of ${total} need attention`}
-                  </span>
-                )}
-              </header>
-              <ul className="measure-list">
-                {g.items.map((m) => {
-                  const ch = changeText(m);
-                  return (
-                    <li key={m.key} className={`measure measure--${m.latest.level}`}>
-                      <div className="measure-top">
-                        <span className="measure-name">{m.name}</span>
-                        <span className="measure-value">
-                          {formatNumber(m.latest.value)}
-                          {m.unit && <small> {m.unit}</small>}
-                        </span>
-                      </div>
-                      <RangeBar value={m.latest.value} low={m.low} high={m.high} level={m.latest.level} />
-                      <div className="measure-foot">
-                        <span className={`measure-level measure-level--${m.latest.level}`}>{LEVEL_LABEL[m.latest.level]}</span>
-                        {ch && <span className={`measure-change measure-change--${ch.dir}`}>{ch.text}</span>}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                <span className="system-head-right">
+                  {total > 0 && (
+                    <span className={`system-score${normal === total ? ' all-good' : ''}`}>
+                      {normal === total ? (
+                        <>
+                          <IconCheckCircle size={13} /> All normal
+                        </>
+                      ) : (
+                        `${total - normal} of ${total} need attention`
+                      )}
+                    </span>
+                  )}
+                  <IconChevronDown size={16} className="system-chevron" />
+                </span>
+              </button>
+              <div className="system-body">
+                <div className="system-body-inner">
+                  {shown.length === 0 ? (
+                    <p className="system-empty">
+                      All {g.items.length} results are in the normal range.{' '}
+                      <button type="button" className="link-btn" onClick={() => setView('all')}>
+                        Show them
+                      </button>
+                    </p>
+                  ) : (
+                    <ul className="measure-list">
+                      {shown.map((m) => {
+                        const ch = changeText(m);
+                        return (
+                          <li key={m.key} className={`measure measure--${m.latest.level}`}>
+                            <div className="measure-top">
+                              <span className="measure-name">{m.name}</span>
+                              <span className="measure-value">
+                                {formatNumber(m.latest.value)}
+                                {m.unit && <small> {m.unit}</small>}
+                              </span>
+                            </div>
+                            <RangeBar value={m.latest.value} low={m.low} high={m.high} level={m.latest.level} />
+                            <div className="measure-foot">
+                              <span className={`measure-level measure-level--${m.latest.level}`}>{LEVEL_LABEL[m.latest.level]}</span>
+                              {ch && <span className={`measure-change measure-change--${ch.dir}`}>{ch.text}</span>}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {hidden > 0 && shown.length > 0 && (
+                    <button type="button" className="show-normal-btn" onClick={() => setView('all')}>
+                      + {hidden} normal result{hidden === 1 ? '' : 's'} hidden · Show all
+                    </button>
+                  )}
+                </div>
+              </div>
             </section>
           );
         })}
@@ -138,8 +197,11 @@ export function HealthTrends({ values }: { values: MyReportValue[] }) {
 
       {repeated.length > 0 && (
         <>
-          <h3 className="trends-subtitle">How your results changed</h3>
-          <div className="trend-grid">
+          <button type="button" className="trends-subtitle trends-toggle" aria-expanded={chartsOpen} onClick={() => setChartsOpen((v) => !v)}>
+            How your results changed <span className="rs-count">{repeated.length}</span>
+            <IconChevronDown size={16} className={`system-chevron${chartsOpen ? ' up' : ''}`} />
+          </button>
+          {chartsOpen && <div className="trend-grid">
             {repeated.map(({ m, g }) => {
               const first = m.readings[0];
               const change = m.latest.value - first.value;
@@ -202,7 +264,7 @@ export function HealthTrends({ values }: { values: MyReportValue[] }) {
                 </div>
               );
             })}
-          </div>
+          </div>}
         </>
       )}
     </div>
