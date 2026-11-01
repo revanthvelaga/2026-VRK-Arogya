@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const MAX_MS = 9000; // safety net if the film never starts or ends
+const MAX_MS = 7000; // safety net if the film never starts or ends
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
@@ -63,11 +63,11 @@ export function WelcomeSplash() {
       onClick={close}
     >
       <div className="wow-center">
-        <ArogyaIntro size={320} sound className="wow-intro" onStart={() => setGo(true)} onEnd={() => setTimeout(close, 1100)} />
+        <ArogyaIntro size={320} sound className="wow-intro" onStart={() => setGo(true)} onEnd={() => setTimeout(close, 1000)} />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${2.2 + i * 0.06}s` }}>
+            <span key={i} style={{ animationDelay: `${1.05 + i * 0.05}s` }}>
               {ch}
             </span>
           ))}

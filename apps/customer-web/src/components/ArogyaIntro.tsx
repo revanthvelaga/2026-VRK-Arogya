@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-// The Arogya intro film (about 4 s): the doctors beside the glowing plus,
+// The Arogya intro film (2 s, with its own chime): the doctors beside the glowing plus,
 // golden light swirls around it and they strike a pose. Over it: a burst of
 // light from the heart, sparkles around the plus and the doctors, embers
 // drifting up, two sparks orbiting and a shimmer sweeping across. A warm glow breathes around
