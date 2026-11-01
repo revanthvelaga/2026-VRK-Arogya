@@ -1,0 +1,27 @@
+import { useId } from 'react';
+
+// The Arogya mark: a sample drop with a heartbeat running through it — a
+// lab test and good health in one shape — on the teal-to-blue tile.
+export function ArogyaMark({ size = 34, className }: { size?: number; className?: string }) {
+  const id = useId().replace(/:/g, '');
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Arogya">
+      <defs>
+        <linearGradient id={`am-${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#14b8a6" />
+          <stop offset="1" stopColor="#2563eb" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill={`url(#am-${id})`} />
+      <path d="M32 9.5C32 9.5 15 28.5 15 40a17 17 0 0 0 34 0C49 28.5 32 9.5 32 9.5Z" fill="#fff" />
+      <path
+        d="M19.5 41.5h7l3.2-7.5 4.6 13 3.4-8.5 1.8 3h5.5"
+        fill="none"
+        stroke={`url(#am-${id})`}
+        strokeWidth="3.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

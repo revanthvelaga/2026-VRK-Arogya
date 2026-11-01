@@ -125,18 +125,36 @@ export function MedicineReminders({ hasTimed, reminders }: { hasTimed: boolean; 
       {enabled && (
         <>
           <div className="reminder-times">
-            {SLOTS.map(({ value, label, Icon }) => (
-              <label key={value} className={`reminder-time reminder-time--${value.toLowerCase()}`}>
-                <span>
-                  <Icon size={15} /> {label}
-                </span>
-                <input
-                  type="time"
-                  value={times[value]}
-                  onChange={(e) => e.target.value && update({ times: { [value]: e.target.value } })}
-                />
-              </label>
-            ))}
+            {SLOTS.map(({ value, label, Icon }) => {
+              const on = status?.slots?.[value] !== false;
+              return (
+                <div key={value} className={`reminder-time reminder-time--${value.toLowerCase()}${on ? '' : ' off'}`}>
+                  <div className="reminder-time-top">
+                    <span>
+                      <Icon size={15} /> {label}
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={`${label} reminder`}
+                      className={`switch switch--sm${on ? ' on' : ''}`}
+                      onClick={() => update({ slots: { [value]: !on } })}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                  <input
+                    type="time"
+                    value={times[value]}
+                    disabled={!on}
+                    aria-label={`${label} reminder time`}
+                    onChange={(e) => e.target.value && update({ times: { [value]: e.target.value } })}
+                  />
+                  {!on && <small className="reminder-time-off">No reminder</small>}
+                </div>
+              );
+            })}
           </div>
           <button type="button" className="btn btn-small" onClick={() => send({ type: 'medicine-reminder-test' })}>
             <IconBell2 size={13} /> Play test reminder
