@@ -3,7 +3,7 @@
     "name": "Arogya",
     "slug": "arogya",
     "owner": "revanthvelagas-team",
-    "version": "1.14.0",
+    "version": "1.14.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,9 +16,9 @@
     },
     "android": {
       "package": "com.arogya.customer",
-      "versionCode": 31,
+      "versionCode": 32,
       "adaptiveIcon": {
-        "backgroundColor": "#F6EEE4",
+        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -46,7 +46,7 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#C8321F",
+          "color": "#0ea5a0",
           "defaultChannel": "arogya_updates",
           "sounds": [
             "./assets/sounds/reminder.wav"
