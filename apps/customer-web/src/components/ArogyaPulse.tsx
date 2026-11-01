@@ -36,7 +36,7 @@ const rnd = (i: number, k: number) => {
 // Twinkling stars around the plus (kept outside its arms).
 const STARS = Array.from({ length: 26 }, (_, i) => {
   const a = (i / 26) * Math.PI * 2 + rnd(i, 1) * 0.35;
-  const r = 37 + rnd(i, 2) * 12; // % of stage from centre
+  const r = 31 + rnd(i, 2) * 16; // % of stage from centre
   return {
     left: `${50 + Math.cos(a) * r}%`,
     top: `${50 + Math.sin(a) * r}%`,
@@ -138,17 +138,26 @@ export function ArogyaPulse({ sound = true, onEnd, className }: { sound?: boolea
       <svg className="hp-mark" viewBox="440 430 1160 1160">
         <defs>
           <linearGradient id="hpPlus" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#1BD1BC" />
-            <stop offset=".55" stopColor="#14A9C9" />
-            <stop offset="1" stopColor="#2459E8" />
+            <stop offset="0" stopColor="#FF6A3D" />
+            <stop offset=".5" stopColor="#E8322E" />
+            <stop offset="1" stopColor="#B3122E" />
           </linearGradient>
           <linearGradient id="hpShine" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#fff" stopOpacity=".34" />
             <stop offset=".45" stopColor="#fff" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="hpEcg" x1="0" x2="1">
-            <stop offset="0" stopColor="#10B5A6" />
-            <stop offset="1" stopColor="#2563EB" />
+            <stop offset="0" stopColor="#F97A26" />
+            <stop offset="1" stopColor="#D81E2C" />
+          </linearGradient>
+          <linearGradient id="hpDepth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset=".55" stopColor="#000" stopOpacity="0" />
+            <stop offset="1" stopColor="#3a0008" stopOpacity=".35" />
+          </linearGradient>
+          <linearGradient id="hpRim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#FFE3A3" />
+            <stop offset=".5" stopColor="#F6B25A" />
+            <stop offset="1" stopColor="#C9772E" />
           </linearGradient>
           <clipPath id="hpHeartClip">
             <path d={HEART} />
@@ -158,17 +167,26 @@ export function ArogyaPulse({ sound = true, onEnd, className }: { sound?: boolea
           </filter>
         </defs>
         <g className="hp-plus">
+          {/* thin gold rim: stroked shapes underneath, so only the outer edge shows */}
+          <rect x="862" y="466" width="341" height="1050" rx="170" fill="none" stroke="url(#hpRim)" strokeWidth="18" />
+          <rect x="498" y="811" width="1039" height="392" rx="196" fill="none" stroke="url(#hpRim)" strokeWidth="18" />
           <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpPlus)" />
           <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpPlus)" />
+          <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpDepth)" />
+          <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpDepth)" />
           <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpShine)" />
           <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpShine)" />
+          {/* soft highlight along the top edges */}
+          <rect x="890" y="482" width="285" height="160" rx="142" fill="#fff" opacity=".14" />
+          <rect x="520" y="826" width="330" height="90" rx="45" fill="#fff" opacity=".1" />
+          <rect x="1200" y="826" width="320" height="90" rx="45" fill="#fff" opacity=".1" />
         </g>
         <g className="hp-heart">
           <path d={HEART} fill="#fff" className="hp-heart-glow" filter="url(#hpGlow)" />
           <path d={HEART} fill="#fff" />
           <g clipPath="url(#hpHeartClip)">
             <path d={ECG} className="hp-ecg-base" fill="none" stroke="url(#hpEcg)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={ECG} pathLength={1} className="hp-ecg-glow" fill="none" stroke="#38bdf8" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" filter="url(#hpGlow)" />
+            <path d={ECG} pathLength={1} className="hp-ecg-glow" fill="none" stroke="#ff7a45" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" filter="url(#hpGlow)" />
             <path d={ECG} pathLength={1} className="hp-ecg" fill="none" stroke="url(#hpEcg)" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" />
           </g>
         </g>
