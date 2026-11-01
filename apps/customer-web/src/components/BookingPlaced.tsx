@@ -1,24 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import type { Booking } from '../api/types';
 import { formatDateTime } from '../lib/format';
+import { Confetti } from './Confetti';
 import { IconX } from './Icons';
 
-// Shown once, right after the customer places a booking: a check that
-// draws itself, then what happens next. Reloading the page doesn't bring
-// it back (the "just booked" flag is cleared from history straight away).
-export function BookingPlaced({ booking }: { booking: Booking }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [show, setShow] = useState(() => Boolean((location.state as { justBooked?: boolean } | null)?.justBooked));
-
-  useEffect(() => {
-    if (show) navigate(location.pathname, { replace: true, state: null });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!show) return null;
-
+// Shown once, right after the booking is paid for (the booking only counts
+// as placed once paid): a check that pops in with confetti, then what
+// happens next.
+export function BookingPlaced({ booking, onClose }: { booking: Booking; onClose: () => void }) {
   const when = formatDateTime(booking.scheduledAt);
   const next =
     booking.collectionMode === 'HOME_VISIT'
@@ -29,16 +17,22 @@ export function BookingPlaced({ booking }: { booking: Booking }) {
 
   return (
     <div className="booked-card" role="status">
-      <svg className="booked-check" viewBox="0 0 52 52" aria-hidden="true">
-        <circle className="booked-check-ring" cx="26" cy="26" r="23" />
-        <path className="booked-check-tick" d="M15 27 l7.5 7.5 L37.5 19" />
-      </svg>
+      <span className="booked-shine" aria-hidden />
+      <div className="booked-check-wrap">
+        <span className="booked-ripple" aria-hidden />
+        <span className="booked-ripple r2" aria-hidden />
+        <svg className="booked-check" viewBox="0 0 52 52" aria-hidden="true">
+          <circle className="booked-check-ring" cx="26" cy="26" r="23" />
+          <path className="booked-check-tick" d="M15 27 l7.5 7.5 L37.5 19" />
+        </svg>
+        <Confetti />
+      </div>
       <div className="booked-text">
         <h2>Booking placed</h2>
         <p>{next}</p>
         <p className="booked-hint">Track your sample on this page — each step updates as it moves.</p>
       </div>
-      <button type="button" className="booked-close" aria-label="Close" onClick={() => setShow(false)}>
+      <button type="button" className="booked-close" aria-label="Close" onClick={onClose}>
         <IconX size={16} />
       </button>
     </div>

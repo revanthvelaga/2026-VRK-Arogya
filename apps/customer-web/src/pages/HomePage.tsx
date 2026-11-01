@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Package, Test } from '../api/types';
+import { useReveal } from '../lib/useReveal';
 import { useApi } from '../lib/useApi';
 import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
@@ -167,11 +168,14 @@ export function HomePage() {
     [],
   );
 
+  const flowRef = useRef<HTMLDivElement>(null);
+  useReveal(flowRef, [testsLoading, packagesLoading]);
+
   const recommendedTests = useMemo(() => (tests ?? []).slice(0, 8), [tests]);
   const featuredPackages = useMemo(() => (packages ?? []).slice(0, 8), [packages]);
 
   return (
-    <>
+    <div className="home-flow" ref={flowRef}>
       <form
         role="search"
         className="search-bar"
@@ -296,6 +300,6 @@ export function HomePage() {
           </Link>
         </div>
       )}
-    </>
+    </div>
   );
 }

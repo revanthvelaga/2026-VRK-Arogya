@@ -467,7 +467,7 @@ export function BookingPage() {
         useWallet: walletUsed > 0 ? true : undefined,
       });
       cart.clear();
-      navigate(`/bookings/${booking.id}`, { state: { justBooked: true } });
+      navigate(`/bookings/${booking.id}`, { state: { payNow: true } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the booking');
     } finally {
@@ -943,7 +943,7 @@ export function BookingPage() {
               disabled={submitting || !patientId || selected.length === 0 || !locationReady || !scheduledDate || !scheduledSlot}
               style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
             >
-              {submitting ? 'Booking…' : familyMode ? `Confirm ${everyone.length} bookings` : 'Confirm booking'}
+              {submitting ? 'Booking…' : familyMode ? `Pay & confirm ${everyone.length} bookings` : 'Pay & confirm booking'}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Booking, Issue, Report, Sample, SampleStatusHistoryEntry } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -159,12 +159,13 @@ function SampleCard({ sample }: { sample: Sample }) {
   );
 }
 
-function PaymentButton({ booking, onPaid }: { booking: Booking; onPaid: () => void }) {
+function usePayBooking(booking: Booking | null, onPaid: () => void) {
   const { user } = useAuth();
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
   const pay = async () => {
+    if (!booking) return;
     setPaying(true);
     setPayError(null);
     try {
@@ -201,6 +202,31 @@ function PaymentButton({ booking, onPaid }: { booking: Booking; onPaid: () => vo
     }
   };
 
+  return { pay, paying, payError };
+}
+
+// The booking is only placed once it is paid: until then this card asks
+// for payment (and checkout opens payment straight away).
+function PaymentDue({ booking, pay, paying, payError }: { booking: Booking; pay: () => void; paying: boolean; payError: string | null }) {
+  return (
+    <div className="pay-due" role="status">
+      <div className="pay-due-icon" aria-hidden>
+        <IconCreditCard size={22} />
+      </div>
+      <div className="pay-due-text">
+        <h2>Pay to confirm your booking</h2>
+        <p>Your slot on {formatDateTime(booking.scheduledAt)} is held for you. The booking is placed as soon as the payment goes through.</p>
+        {payError && <div className="error-banner" style={{ marginTop: 10 }}>{payError}</div>}
+        <button className="btn btn-primary pay-due-btn" onClick={pay} disabled={paying}>
+          <IconCreditCard size={15} />
+          {paying ? 'Opening payment…' : `Pay ${formatCurrency(booking.totalAmount)} & confirm`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PaymentButton({ booking, pay, paying, payError }: { booking: Booking; pay: () => void; paying: boolean; payError: string | null }) {
   // Rendered inside the parent's .action-row, next to Cancel — the error
   // banner takes a full row of its own there (width: 100% in a wrapping
   // flex row) rather than squeezing beside the buttons.
@@ -393,14 +419,38 @@ function IssuesSection({ bookingId }: { bookingId: string }) {
 
 export function BookingDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   // Opened from somewhere else (a ticket, say) — go back there, not to the list.
-  const backTo = (useLocation().state as { backTo?: { path: string; label: string } } | null)?.backTo;
+  const backTo = (location.state as { backTo?: { path: string; label: string } } | null)?.backTo;
+  // Straight from checkout: open payment right away. Read once, then cleared
+  // from history so a reload doesn't reopen it.
+  const [payNow] = useState(() => Boolean((location.state as { payNow?: boolean } | null)?.payNow));
+  const autoPaid = useRef(false);
+  const [celebrate, setCelebrate] = useState(false);
   const bookingApi = useApi<Booking>(() => api.get(`/bookings/${id}`), [id]);
   const samplesApi = useApi<Sample[]>(() => api.get(`/bookings/${id}/samples`), [id]);
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const booking = bookingApi.data;
+  const payment = usePayBooking(booking, () => {
+    setCelebrate(true);
+    bookingApi.reload();
+  });
+
+  useEffect(() => {
+    if (payNow) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!payNow || !booking || autoPaid.current) return;
+    autoPaid.current = true;
+    if (booking.paymentStatus === 'PAID' || Number(booking.totalAmount) <= 0) setCelebrate(true);
+    else void payment.pay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payNow, booking]);
   const samples = samplesApi.data ?? [];
   // Once any sample has been collected the lab is already on it.
   const sampleCollected = samples.some((smp) => smp.status !== 'BOOKED');
@@ -431,7 +481,7 @@ export function BookingDetailPage() {
     }
   };
 
-  if (bookingApi.loading) return <LoadingLine label="Loading booking…" />;
+  if (bookingApi.loading && !booking) return <LoadingLine label="Loading booking…" />;
   if (bookingApi.error) return <div className="error-banner">{bookingApi.error}</div>;
   if (!booking) return null;
 
@@ -449,7 +499,13 @@ export function BookingDetailPage() {
         <StatusBadge status={booking.status} variant={bookingStatusVariant(booking.status)} />
       </div>
 
-      <BookingPlaced booking={booking} />
+      {celebrate && booking.paymentStatus === 'PAID' ? (
+        <BookingPlaced booking={booking} onClose={() => setCelebrate(false)} />
+      ) : booking.status !== 'CANCELLED' && booking.paymentStatus !== 'PAID' && Number(booking.totalAmount) > 0 ? (
+        <PaymentDue booking={booking} {...payment} />
+      ) : celebrate ? (
+        <BookingPlaced booking={booking} onClose={() => setCelebrate(false)} />
+      ) : null}
 
       {actionError && <div className="error-banner">{actionError}</div>}
 
@@ -508,8 +564,8 @@ export function BookingDetailPage() {
             <Link className="btn" to={`/bookings/${booking.id}/invoice`}>
               <IconFileText size={15} /> Invoice / 80D receipt
             </Link>
-            {booking.paymentStatus !== 'PAID' && (
-              <PaymentButton booking={booking} onPaid={() => bookingApi.reload()} />
+            {booking.paymentStatus !== 'PAID' && Number(booking.totalAmount) > 0 && (
+              <PaymentButton booking={booking} {...payment} />
             )}
             {canCancel && (
               <button className="btn btn-danger" onClick={cancel} disabled={cancelling}>
