@@ -124,7 +124,7 @@ export function ForgotPasswordPage() {
       <div className="login-screen">
         <div className="login-card">
           <div className="auth-hero">
-            <ArogyaLogo size={60} className="auth-logo" />
+            <ArogyaLogo size={84} className="auth-logo" />
             <div className="login-eyebrow">Arogya</div>
             <h1>Reset password</h1>
             <p>Mobile verification isn't set up on this deployment yet. Please contact support.</p>
@@ -141,7 +141,7 @@ export function ForgotPasswordPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaLogo size={60} className="auth-logo" />
+          <ArogyaLogo size={84} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Reset your password</h1>
           <p>

@@ -115,7 +115,7 @@ export function LoginPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaLogo size={60} className="auth-logo" />
+          <ArogyaLogo size={84} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Welcome back</h1>
           <p>

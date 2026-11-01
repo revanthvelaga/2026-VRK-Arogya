@@ -26,7 +26,7 @@ export function AppGooglePage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaLogo size={60} className="auth-logo" />
+          <ArogyaLogo size={84} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Continue with Google</h1>
           <p>{sent ? 'Going back to the Arogya app…' : 'Pick your Google account to sign in to the Arogya app.'}</p>

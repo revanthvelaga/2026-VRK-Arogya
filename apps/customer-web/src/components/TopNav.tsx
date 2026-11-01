@@ -19,7 +19,7 @@ export function TopNav() {
     <header className="site-header">
       <div className="site-header-inner">
         <Link to="/" className="site-brand">
-          <ArogyaLogo size={38} className="brand-mark" />
+          <ArogyaLogo size={42} className="brand-mark" />
           <span className="site-brand-text">Arogya</span>
         </Link>
 

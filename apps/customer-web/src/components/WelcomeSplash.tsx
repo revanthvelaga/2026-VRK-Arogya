@@ -95,7 +95,7 @@ export function WelcomeSplash() {
         <div className="wow-burst" aria-hidden />
         <div className="wow-burst b2" aria-hidden />
         <div className="wow-tile">
-          <ArogyaLogo size={84} className="wow-logo" />
+          <ArogyaLogo size={96} className="wow-logo" />
           <span className="wow-shine" aria-hidden />
         </div>
 
