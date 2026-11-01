@@ -1,10 +1,10 @@
-import { ArogyaLogo } from './ArogyaLogo';
+import { ArogyaScene } from './ArogyaScene';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const SHOW_MS = 2900;
+const SHOW_MS = 3600;
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
@@ -94,10 +94,7 @@ export function WelcomeSplash() {
       <div className="wow-center">
         <div className="wow-burst" aria-hidden />
         <div className="wow-burst b2" aria-hidden />
-        <div className="wow-tile">
-          <ArogyaLogo size={96} className="wow-logo" />
-          <span className="wow-shine" aria-hidden />
-        </div>
+        <ArogyaScene size={230} glow className="wow-scene" />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (

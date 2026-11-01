@@ -1,4 +1,4 @@
-// The Arogya logo: the doctor goddess of health standing inside a plus.
+// The Arogya logo: teal-blue plus with a beating heart and two doctors (static icon image).
 export function ArogyaLogo({ size = 36, className, title = 'Arogya' }: { size?: number; className?: string; title?: string }) {
   return (
     <img
