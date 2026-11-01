@@ -164,10 +164,13 @@ function usePayBooking(booking: Booking | null, onPaid: () => void) {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
-  const pay = async () => {
+  // delayMs: from checkout, show this page (and its "Opening payment…"
+  // card) for a moment before the payment sheet slides over it.
+  const pay = async (delayMs = 0) => {
     if (!booking) return;
     setPaying(true);
     setPayError(null);
+    if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
     try {
       const order = await api.post<{ orderId: string; amount: number; currency: string; keyId: string }>(
         `/bookings/${booking.id}/payment/order`,
@@ -180,6 +183,7 @@ function usePayBooking(booking: Booking | null, onPaid: () => void) {
         name: 'Arogya Diagnostics',
         description: `Booking ${booking.id.slice(0, 8)}`,
         prefillContact: user?.phone,
+        returnPath: `/bookings/${booking.id}`,
         onSuccess: async (response) => {
           try {
             await api.post('/payments/verify', {
@@ -202,7 +206,7 @@ function usePayBooking(booking: Booking | null, onPaid: () => void) {
     }
   };
 
-  return { pay, paying, payError };
+  return { pay, paying, payError, setPayError };
 }
 
 // The booking is only placed once it is paid: until then this card asks
@@ -217,7 +221,7 @@ function PaymentDue({ booking, pay, paying, payError }: { booking: Booking; pay:
         <h2>Pay to confirm your booking</h2>
         <p>Your slot on {formatDateTime(booking.scheduledAt)} is held for you. The booking is placed as soon as the payment goes through.</p>
         {payError && <div className="error-banner" style={{ marginTop: 10 }}>{payError}</div>}
-        <button className="btn btn-primary pay-due-btn" onClick={pay} disabled={paying}>
+        <button className="btn btn-primary pay-due-btn" onClick={() => pay()} disabled={paying}>
           <IconCreditCard size={15} />
           {paying ? 'Opening payment…' : `Pay ${formatCurrency(booking.totalAmount)} & confirm`}
         </button>
@@ -237,7 +241,7 @@ function PaymentButton({ booking, pay, paying, payError }: { booking: Booking; p
           {payError}
         </div>
       )}
-      <button className="btn btn-primary" onClick={pay} disabled={paying}>
+      <button className="btn btn-primary" onClick={() => pay()} disabled={paying}>
         <IconCreditCard size={14} />
         {paying ? 'Opening payment…' : `Pay ${formatCurrency(booking.totalAmount)}`}
       </button>
@@ -441,6 +445,13 @@ export function BookingDetailPage() {
 
   useEffect(() => {
     if (payNow) navigate(location.pathname, { replace: true, state: null });
+    // Back from the app's redirect checkout: ?paid=1 or ?payfail=1.
+    const q = new URLSearchParams(location.search);
+    if (q.has('paid') || q.has('payfail')) {
+      if (q.has('paid')) setCelebrate(true);
+      else payment.setPayError("The payment didn't go through. Please try again.");
+      navigate(location.pathname, { replace: true, state: null });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -448,7 +459,7 @@ export function BookingDetailPage() {
     if (!payNow || !booking || autoPaid.current) return;
     autoPaid.current = true;
     if (booking.paymentStatus === 'PAID' || Number(booking.totalAmount) <= 0) setCelebrate(true);
-    else void payment.pay();
+    else void payment.pay(1200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payNow, booking]);
   const samples = samplesApi.data ?? [];

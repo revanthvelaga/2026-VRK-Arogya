@@ -280,6 +280,12 @@ export class BookingsService {
   }
 
   // The bookings of one family checkout, if they're this customer's.
+  // Every booking of a family checkout, without an ownership check — only for
+  // server-side flows that have already proven the caller (a signed payment).
+  async findGroup(groupId: string): Promise<Booking[]> {
+    return this.bookingsRepo.find({ where: { groupId } });
+  }
+
   async findGroupForUser(groupId: string, user: AuthenticatedUser): Promise<Booking[]> {
     const rows = await this.bookingsRepo.find({ where: { groupId } });
     if (rows.length === 0) throw new NotFoundException('Booking group not found');

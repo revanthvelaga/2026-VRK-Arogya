@@ -164,6 +164,35 @@ export class PaymentsService {
     return payment;
   }
 
+  // Razorpay's redirect checkout (used inside the Android app, where the
+  // popup checkout can't complete) posts the result straight to us instead
+  // of to the page. The signature proves it came from Razorpay for this
+  // order, so no signed-in user is needed. Returns the booking it was for.
+  async verifyFromRedirect(orderId: string, paymentId: string, signature: string): Promise<{ ok: boolean; bookingId?: string }> {
+    const payment = await this.paymentsRepo.findOne({ where: { razorpayOrderId: orderId } });
+    if (!payment || !this.keySecret) return { ok: false, bookingId: payment?.bookingId };
+    const expected = crypto.createHmac('sha256', this.keySecret).update(`${orderId}|${paymentId}`).digest('hex');
+    if (expected !== signature) {
+      payment.status = PaymentStatus.FAILED;
+      await this.paymentsRepo.save(payment);
+      return { ok: false, bookingId: payment.bookingId };
+    }
+    if (payment.status !== PaymentStatus.PAID) {
+      payment.razorpayPaymentId = paymentId;
+      payment.razorpaySignature = signature;
+      payment.status = PaymentStatus.PAID;
+      await this.paymentsRepo.save(payment);
+      if (payment.groupId) {
+        for (const b of await this.bookingsService.findGroup(payment.groupId)) {
+          if (b.paymentStatus !== PaymentStatus.PAID) await this.bookingsService.setPaymentStatus(b.id, PaymentStatus.PAID);
+        }
+      } else {
+        await this.bookingsService.setPaymentStatus(payment.bookingId, PaymentStatus.PAID);
+      }
+    }
+    return { ok: true, bookingId: payment.bookingId };
+  }
+
   async findForBooking(bookingId: string, user: AuthenticatedUser): Promise<Payment[]> {
     await this.bookingsService.findOneForUser(bookingId, user);
     return this.paymentsRepo.find({ where: { bookingId }, order: { createdAt: 'DESC' } });

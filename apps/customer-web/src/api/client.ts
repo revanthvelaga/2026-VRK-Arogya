@@ -3,6 +3,7 @@ import type { AuthSession, JwtPayload } from './types';
 
 const STORAGE_KEY = 'arogya_admin_session';
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+export const API_URL = BASE_URL;
 
 // ---- Session lifetime ----------------------------------------------------
 // Signed out after IDLE_LIMIT_MS with no taps/typing/scrolling — measured

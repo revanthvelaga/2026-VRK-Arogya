@@ -336,7 +336,19 @@ function ArogyaWebApp() {
     return () => sub.remove();
   }, []);
 
+  // While a payment is going on, every web page (Razorpay, the bank's
+  // 3-D Secure / OTP page, our server's return) stays in the app; the phone's
+  // browser would lose the payment. Ends once we're back on the Arogya site.
+  const paying = useRef(false);
   const onShouldStart = useCallback((req: WebViewNavigation & { isTopFrame?: boolean }) => {
+    if (paying.current && /^https?:/.test(req.url)) {
+      try {
+        if (new URL(req.url).host === SITE_HOST) paying.current = false;
+      } catch {
+        /* keep going */
+      }
+      return true;
+    }
     // Embedded frames (reCAPTCHA, payment widgets) always load in place.
     if (req.isTopFrame === false || opensInside(req.url)) return true;
     // tel:, mailto:, upi:, whatsapp:, intent: and outside websites.
@@ -349,6 +361,10 @@ function ArogyaWebApp() {
     try {
       msg = JSON.parse(e.nativeEvent.data);
     } catch {
+      return;
+    }
+    if (msg.type === 'payment-start') {
+      paying.current = true;
       return;
     }
     if (msg.type === 'google-sign-in') {

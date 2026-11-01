@@ -60,6 +60,7 @@ export function FamilyBooked({ onPaid }: { onPaid: () => void }) {
         name: 'Arogya Diagnostics',
         description: `${info.count} family bookings`,
         prefillContact: user?.phone,
+        returnPath: '/bookings',
         onSuccess: async (response) => {
           try {
             await api.post('/payments/verify', {

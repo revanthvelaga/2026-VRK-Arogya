@@ -7,12 +7,12 @@ import { useEffect, useRef } from 'react';
 // /brand/arogya-welcome.html and plays inside a frame.
 
 const PAGE = '/brand/arogya-welcome.html';
-export const PULSE_MS = 3300; // entrance, then three lub-dub heartbeats
+export const PULSE_MS = 3400; // entrance with three lub-dub heartbeats
 
 let pagePreload: Promise<unknown> | null = null;
 export function preloadPulse(): Promise<unknown> {
   if (!pagePreload)
-    pagePreload = Promise.all([fetch(PAGE), fetch('/brand/arogya-heartbeat.m4a')]).catch(() => (pagePreload = null));
+    pagePreload = Promise.all([fetch(PAGE), fetch('/brand/arogya-welcome-beat.m4a')]).catch(() => (pagePreload = null));
   return pagePreload;
 }
 

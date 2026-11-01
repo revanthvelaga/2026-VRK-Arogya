@@ -716,6 +716,15 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
+.success-banner {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .error-banner {
   background: var(--red-soft);
   color: #9c2822;

@@ -868,43 +868,59 @@
         requestAnimationFrame(animateParticles);
       }
 
-      // Heartbeat (added): once the entrance settles, the heart beats three
-      // times — lub (big), dub (smaller) — locked to the heartbeat sound.
+      // Heartbeat (added): picture and sound start together — the entrance
+      // begins the moment the sound starts — and the heart beats three times,
+      // lub (big) then dub (smaller), exactly on the thumps in the sound.
       const heart = document.querySelector('.heart-group');
-      const LUB = [0.05, 0.85, 1.65]; // seconds after the beat clock starts
-      const SOUND_OFFSET = 0.712;      // where the first "lub" sits in the sound, minus 0.05 s
+      const LUB = [1.102, 1.902, 2.702]; // where each "lub" is in the sound, seconds
+      const REST = { transform: 'scale(1)', filter: 'drop-shadow(0 0 18px rgba(255,160,70,.45))' };
       function beatFrames() {
-        const T = 2.2, k = [{ offset: 0, transform: 'scale(1)', filter: 'drop-shadow(0 0 18px rgba(255,160,70,.45))' }];
-        for (const l of LUB) {
-          k.push({ offset: Math.max(0, (l - 0.01) / T), transform: 'scale(1)', filter: 'drop-shadow(0 0 18px rgba(255,160,70,.45))', easing: 'cubic-bezier(.3,0,.2,1)' });
-          k.push({ offset: (l + 0.07) / T, transform: 'scale(1.075)', filter: 'drop-shadow(0 0 34px rgba(255,195,100,.95))', easing: 'cubic-bezier(.4,0,.6,1)' });
-          k.push({ offset: (l + 0.15) / T, transform: 'scale(0.985)', filter: 'drop-shadow(0 0 22px rgba(255,175,80,.7))', easing: 'cubic-bezier(.3,0,.2,1)' });
-          k.push({ offset: (l + 0.25) / T, transform: 'scale(1.04)', filter: 'drop-shadow(0 0 28px rgba(255,175,80,.85))', easing: 'cubic-bezier(.3,0,.4,1)' });
-          k.push({ offset: (l + 0.45) / T, transform: 'scale(1)', filter: 'drop-shadow(0 0 18px rgba(255,160,70,.45))' });
+        // starts just before the first lub, so the heart's own entrance plays untouched
+        const S = LUB[0] - 0.01, T = 3.4 - S, k = [{ offset: 0, ...REST }];
+        for (const L of LUB) {
+          const l = L - S;
+          k.push({ offset: Math.max(0, l - 0.01) / T, ...REST, easing: 'cubic-bezier(.3,0,.2,1)' });
+          k.push({ offset: (l + 0.06) / T, transform: 'scale(1.075)', filter: 'drop-shadow(0 0 34px rgba(255,195,100,.95))', easing: 'cubic-bezier(.4,0,.6,1)' });
+          k.push({ offset: (l + 0.13) / T, transform: 'scale(0.985)', filter: 'drop-shadow(0 0 22px rgba(255,175,80,.7))', easing: 'cubic-bezier(.3,0,.2,1)' });
+          k.push({ offset: (l + 0.21) / T, transform: 'scale(1.04)', filter: 'drop-shadow(0 0 28px rgba(255,175,80,.85))', easing: 'cubic-bezier(.3,0,.4,1)' });
+          k.push({ offset: (l + 0.42) / T, ...REST });
         }
-        k.push({ offset: 1, transform: 'scale(1)', filter: 'drop-shadow(0 0 18px rgba(255,160,70,.45))' });
-        return { k, T };
+        k.push({ offset: 1, ...REST });
+        return { k, T, S };
       }
       const muted = /[?&]mute/.test(location.search);
-      const sound = muted ? null : new Audio('/brand/arogya-heartbeat.m4a');
+      const sound = muted ? null : new Audio('/brand/arogya-welcome-beat.m4a');
       if (sound) { sound.preload = 'auto'; sound.load(); }
+      stage.style.opacity = '0';
       window.onload = function () {
         animateParticles();
-        // Remove entrance class after initial load so infinite loops run smoothly
-        setTimeout(() => {
+        let beat = null;
+        let begunAt = 0;
+        const begin = () => {
+          if (begunAt) return;
+          begunAt = performance.now();
           stage.classList.remove('stage-entering');
-          heart.style.animation = 'none';
-          const { k, T } = beatFrames();
-          const beat = heart.animate(k, { duration: T * 1000, fill: 'forwards' });
-          if (!sound) return;
-          sound.addEventListener('playing', () => {
-            // lock the heart to where the sound actually is
-            beat.startTime = document.timeline.currentTime - (sound.currentTime - SOUND_OFFSET) * 1000;
-          }, { once: true });
-          try { sound.currentTime = SOUND_OFFSET; } catch (e) {}
-          sound.play().catch(() => undefined);
-        }, 1450);
-        window.addEventListener('pagehide', () => sound && sound.pause());
+          void stage.offsetWidth;
+          stage.classList.add('stage-entering');
+          stage.style.opacity = '';
+          const { k, T, S } = beatFrames();
+          beat = heart.animate(k, { duration: T * 1000, delay: S * 1000, fill: 'forwards' });
+          // Remove entrance class after initial load so infinite loops run smoothly
+          setTimeout(() => {
+            stage.classList.remove('stage-entering');
+            heart.style.animation = 'none';
+          }, 1450);
+        };
+        if (!sound) return begin();
+        sound.addEventListener('playing', () => {
+          if (begunAt && performance.now() - begunAt > 250) { sound.pause(); return; } // too late to match: stay silent
+          begin();
+          // lock the heart to where the sound actually is
+          beat.startTime = document.timeline.currentTime - sound.currentTime * 1000;
+        }, { once: true });
+        sound.play().catch(begin);
+        setTimeout(begin, 900); // sound slow or blocked: don't hold the picture
+        window.addEventListener('pagehide', () => sound.pause());
       };
 
       })();

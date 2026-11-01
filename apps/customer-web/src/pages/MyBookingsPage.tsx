@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Booking, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
@@ -14,6 +14,17 @@ export function MyBookingsPage() {
   const { data: bookings, loading, error, reload } = useApi<Booking[]>(() => api.get('/bookings/mine'), []);
   const { data: patients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientFilter, setPatientFilter] = useState<string | 'ALL'>('ALL');
+  // Back from the app's redirect checkout for a family booking.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [payResult] = useState(() => {
+    const q = new URLSearchParams(location.search);
+    return q.has('paid') ? 'paid' : q.has('payfail') ? 'failed' : null;
+  });
+  useEffect(() => {
+    if (payResult) navigate(location.pathname, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const patientName = useMemo(() => {
     const map = new Map((patients ?? []).map((p) => [p.id, p.fullName]));
@@ -37,6 +48,8 @@ export function MyBookingsPage() {
       </div>
 
       <FamilyBooked onPaid={reload} />
+      {payResult === 'paid' && <div className="success-banner" style={{ marginBottom: 14 }}>Payment received — your bookings are confirmed.</div>}
+      {payResult === 'failed' && <div className="error-banner" style={{ marginBottom: 14 }}>The payment didn't go through. Open a booking to pay again.</div>}
 
       {(patients?.length ?? 0) > 1 && (
         <div className="chip-row">

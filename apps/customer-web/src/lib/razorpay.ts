@@ -1,3 +1,5 @@
+import { API_URL } from '../api/client';
+
 // Loads Razorpay's checkout.js on demand (once) rather than on every page
 // load — most visits never reach a payment screen.
 declare global {
@@ -36,7 +38,15 @@ export interface RazorpayCheckoutOptions {
     razorpay_signature: string;
   }) => void;
   onDismiss?: () => void;
+  // Where to come back to after paying in the app (redirect checkout).
+  returnPath?: string;
 }
+
+// Inside the Android app the popup checkout can't finish (the bank/test
+// page opens as a new window the web view can't give back), so the app uses
+// Razorpay's redirect checkout: the whole screen goes to Razorpay, and
+// Razorpay posts the result to our server, which sends the customer back.
+const inApp = () => typeof navigator !== 'undefined' && /ArogyaApp/.test(navigator.userAgent);
 
 export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Promise<void> {
   await loadCheckoutScript();
@@ -53,6 +63,19 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     theme: { color: '#0f766e' },
     handler: options.onSuccess,
     modal: { ondismiss: options.onDismiss },
+    ...(inApp()
+      ? {
+          redirect: true,
+          callback_url: `${API_URL}/payments/callback${options.returnPath ? `?r=${encodeURIComponent(options.returnPath)}` : ''}`,
+        }
+      : {}),
   });
+  if (inApp()) {
+    // Let the app keep bank and payment pages on screen instead of sending
+    // them to the phone's browser.
+    (window as unknown as { ReactNativeWebView?: { postMessage: (m: string) => void } }).ReactNativeWebView?.postMessage(
+      JSON.stringify({ type: 'payment-start' }),
+    );
+  }
   rzp.open();
 }
