@@ -868,12 +868,34 @@
         requestAnimationFrame(animateParticles);
       }
 
+      // Welcome sound (added): the entrance starts the moment the sound starts,
+      // so the chime lands with the cross and the lub-dubs with the heartbeats.
+      stage.style.opacity = '0';
       window.onload = function () {
         animateParticles();
-        // Remove entrance class after initial load so infinite loops run smoothly
-        setTimeout(() => {
+        let begunAt = 0;
+        const begin = () => {
+          if (begunAt) return;
+          begunAt = performance.now();
           stage.classList.remove('stage-entering');
-        }, 1450);
+          void stage.offsetWidth;
+          stage.classList.add('stage-entering');
+          stage.style.opacity = '';
+          // Remove entrance class after initial load so infinite loops run smoothly
+          setTimeout(() => {
+            stage.classList.remove('stage-entering');
+          }, 1450);
+        };
+        if (/[?&]mute/.test(location.search)) return begin();
+        const sound = new Audio('/brand/arogya-welcome.m4a');
+        sound.addEventListener('playing', () => {
+          // Started too late to match the picture: stay silent rather than out of step.
+          if (begunAt && performance.now() - begunAt > 250) sound.pause();
+          else begin();
+        }, { once: true });
+        sound.play().catch(begin);
+        setTimeout(begin, 900);
+        window.addEventListener('pagehide', () => sound.pause());
       };
 
       })();

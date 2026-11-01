@@ -3,15 +3,16 @@ import { useEffect, useRef } from 'react';
 // The welcome moment after sign-in: Revanth's own "Allopathic Healthcare"
 // animation, kept exactly as he designed it (glossy cross, beating heart,
 // ECG line, doctors, swirling gold rings and embers), with atom-style orbit
-// lines added around the cross. It lives as a standalone page in
+// lines added around the cross, and a welcome sound timed to its beats. It lives as a standalone page in
 // /brand/arogya-welcome.html and plays inside a frame.
 
 const PAGE = '/brand/arogya-welcome.html';
-export const PULSE_MS = 3100;
+export const PULSE_MS = 4700; // two heartbeats; the welcome sound lasts about 6 s
 
 let pagePreload: Promise<unknown> | null = null;
 export function preloadPulse(): Promise<unknown> {
-  if (!pagePreload) pagePreload = fetch(PAGE).catch(() => (pagePreload = null));
+  if (!pagePreload)
+    pagePreload = Promise.all([fetch(PAGE), fetch('/brand/arogya-welcome.m4a')]).catch(() => (pagePreload = null));
   return pagePreload;
 }
 
