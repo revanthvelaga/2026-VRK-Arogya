@@ -7678,3 +7678,115 @@ a.suggest-name:hover {
   outline: 2px solid var(--rose-ink);
   outline-offset: 2px;
 }
+
+/* ---------- Closing promise (end of Home) ---------- */
+.promise {
+  margin: 12px 0 28px;
+  padding: 28px 4px 8px;
+}
+
+.promise-title {
+  margin: 0 0 18px;
+  font-size: clamp(24px, 6.4vw, 34px);
+  line-height: 1.18;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #8590a6;
+  max-width: 18ch;
+}
+
+.promise-points {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.promise-points li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.promise-points svg {
+  color: #16a34a;
+  margin-top: 1px;
+}
+
+.promise-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 520px;
+}
+
+.promise-signoff {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 861px) {
+  .promise {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 40px;
+    align-items: center;
+  }
+  .promise-art {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+}
+
+/* The scooter rides in from the left once, wheels turning, then stops. */
+@media (prefers-reduced-motion: no-preference) {
+  .promise .promise-scooter {
+    opacity: 0;
+  }
+  .promise.is-seen .promise-scooter {
+    animation: scooterIn 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+  }
+  .promise.is-seen .promise-wheel {
+    animation: wheelSpin 0.5s linear 0.15s 3.6 both;
+  }
+  .promise .promise-dust {
+    opacity: 0;
+  }
+  .promise.is-seen .promise-dust {
+    animation: dustPuff 1.8s ease-out 0.15s both;
+  }
+  .promise .promise-points li {
+    opacity: 0;
+  }
+  .promise.is-seen .promise-points li {
+    animation: promisePoint 0.45s ease-out both;
+  }
+  .promise.is-seen .promise-points li:nth-child(1) { animation-delay: 0.1s; }
+  .promise.is-seen .promise-points li:nth-child(2) { animation-delay: 0.25s; }
+  .promise.is-seen .promise-points li:nth-child(3) { animation-delay: 0.4s; }
+}
+
+@keyframes scooterIn {
+  0% { opacity: 0; transform: translate(-60px, 134px); }
+  15% { opacity: 1; }
+  100% { opacity: 1; transform: translate(70px, 128px); }
+}
+@keyframes wheelSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes dustPuff {
+  0%, 20% { opacity: 0; }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-14px); }
+}
+@keyframes promisePoint {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}

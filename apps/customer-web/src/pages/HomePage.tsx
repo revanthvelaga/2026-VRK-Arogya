@@ -8,13 +8,13 @@ import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { CardSkeletons } from '../components/Skeleton';
 import { WomenWellness } from '../components/WomenWellness';
+import { VillagePromise } from '../components/VillagePromise';
 import { CompareToggle } from '../components/CompareToggle';
 import { SEGMENTS } from '../lib/segments';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
 import {
   IconBag,
   IconBox,
-  IconCalendar,
   IconCheckCircle,
   IconFlask,
   IconLayers,
@@ -23,7 +23,6 @@ import {
   IconPhone,
   IconPlus,
   IconSearch,
-  IconShieldCheck,
   IconStethoscope,
   IconUpload,
 } from '../components/Icons';
@@ -279,24 +278,7 @@ export function HomePage() {
         </div>
       )}
 
-      <div className="trust-row" style={{ marginTop: 8, marginBottom: 40 }}>
-        <div className="trust-item">
-          <IconShieldCheck size={17} />
-          Accredited testing
-        </div>
-        <div className="trust-item">
-          <IconBag size={17} />
-          Priced up front, no surprises
-        </div>
-        <div className="trust-item">
-          <IconCalendar size={17} />
-          Book in under 2 minutes
-        </div>
-        <div className="trust-item">
-          <IconCheckCircle size={17} />
-          Free recollection guarantee
-        </div>
-      </div>
+      <VillagePromise />
 
       {!user && (
         <div
