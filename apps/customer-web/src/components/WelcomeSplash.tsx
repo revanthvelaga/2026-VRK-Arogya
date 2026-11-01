@@ -94,9 +94,9 @@ export function WelcomeSplash() {
         <div className="wow-burst" aria-hidden />
         <div className="wow-burst b2" aria-hidden />
         <div className="wow-tile">
-          <svg viewBox="0 0 64 64" className="wow-plus" aria-hidden>
-            <path className="wow-drop" d="M32 9.5C32 9.5 15 28.5 15 40a17 17 0 0 0 34 0C49 28.5 32 9.5 32 9.5Z" pathLength={1} />
-            <path className="wow-beat" d="M19.5 41.5h7l3.2-7.5 4.6 13 3.4-8.5 1.8 3h5.5" pathLength={1} />
+          <svg viewBox="0 0 48 48" className="wow-plus" aria-hidden>
+            <line x1="24" y1="11" x2="24" y2="37" pathLength={1} />
+            <line x1="11" y1="24" x2="37" y2="24" pathLength={1} />
           </svg>
           <span className="wow-shine" aria-hidden />
         </div>

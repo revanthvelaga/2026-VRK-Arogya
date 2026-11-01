@@ -1,9 +1,8 @@
-import { ArogyaMark } from '../components/ArogyaMark';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconArrowLeft, IconPhone } from '../components/Icons';
+import { IconArrowLeft, IconPhone, IconPlus } from '../components/Icons';
 import { friendlyOtpError, prepareOtp, sendOtp, useOtpProvider } from '../lib/firebaseAuth';
 import type { OtpConfirmation } from '../lib/firebaseAuth';
 
@@ -124,7 +123,9 @@ export function ForgotPasswordPage() {
       <div className="login-screen">
         <div className="login-card">
           <div className="auth-hero">
-            <ArogyaMark size={54} className="auth-logo" />
+            <div className="auth-logo">
+              <IconPlus size={22} />
+            </div>
             <div className="login-eyebrow">Arogya</div>
             <h1>Reset password</h1>
             <p>Mobile verification isn't set up on this deployment yet. Please contact support.</p>
@@ -141,7 +142,9 @@ export function ForgotPasswordPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaMark size={54} className="auth-logo" />
+          <div className="auth-logo">
+            <IconPlus size={22} />
+          </div>
           <div className="login-eyebrow">Arogya</div>
           <h1>Reset your password</h1>
           <p>

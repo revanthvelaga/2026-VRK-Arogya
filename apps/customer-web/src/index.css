@@ -188,7 +188,7 @@ code {
   height: 34px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: none;
+  background: var(--gradient);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1706,8 +1706,7 @@ tbody tr:hover {
   height: 54px;
   margin: 0 auto 14px;
   border-radius: 16px;
-  background: none;
-  overflow: visible;
+  background: var(--gradient);
   color: #fff;
   display: flex;
   align-items: center;
@@ -7036,33 +7035,18 @@ a.suggest-name:hover {
   height: 58px;
 }
 
-.wow-plus path {
-  fill: none;
+.wow-plus line {
   stroke: #fff;
+  stroke-width: 5;
   stroke-linecap: round;
-  stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+  animation: ecgDraw 0.45s cubic-bezier(0.65, 0, 0.35, 1) 1.2s forwards;
 }
 
-/* The drop draws itself, fills white, then the heartbeat runs across it. */
-.wow-plus .wow-drop {
-  stroke-width: 3.5;
-  animation:
-    ecgDraw 0.55s cubic-bezier(0.65, 0, 0.35, 1) 1.15s forwards,
-    dropFill 0.3s ease 1.65s forwards;
-}
-
-.wow-plus .wow-beat {
-  stroke: #0e9f9a;
-  stroke-width: 3.8;
-  filter: none;
-  animation: ecgDraw 0.5s cubic-bezier(0.65, 0, 0.35, 1) 1.8s forwards;
-}
-
-@keyframes dropFill {
-  to { fill: #fff; }
+.wow-plus line + line {
+  animation-delay: 1.4s;
 }
 
 .wow-shine {
