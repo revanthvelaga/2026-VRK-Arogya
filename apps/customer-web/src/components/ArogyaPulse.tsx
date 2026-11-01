@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
-// The welcome moment after sign-in, drawn from the Arogya mark itself:
-// the plus settles in, then the heart beats three times (lub-dub) with a
-// heartbeat line tracing across inside it, in time with a heartbeat sound.
+// The welcome moment after sign-in: the Arogya artwork (the glowing plus,
+// the heart and our two doctors) settles in, then the heart beats three
+// times (lub-dub) with light racing along its heartbeat line, in time with
+// a heartbeat sound.
 // Around the plus — never on it — a big-bang flash opens it, atom-style
 // orbits with glowing electrons circle it, a halo breathes, pulse rings
 // ripple out on each beat and sparkles twinkle.
 // About 3 seconds; a still frame under reduced motion.
 
 const SOUND = '/brand/arogya-heartbeat.m4a';
+const HERO = '/brand/arogya-hero.webp';
 export const PULSE_MS = 3100;
 
 let soundUrl: Promise<string> | null = null;
 export function preloadPulse(): Promise<string> {
+  const img = new Image();
+  img.src = HERO;
   if (!soundUrl) {
     soundUrl = fetch(SOUND)
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error('sound'))))
@@ -25,11 +29,6 @@ export function preloadPulse(): Promise<string> {
   return soundUrl;
 }
 
-// Same geometry as the app icon.
-const HEART =
-  'M1028.0 942.9 C1028.0 876.1 955.2 845.0 892.8 845.0 C820.0 845.0 768.0 898.4 768.0 974.0 C768.0 1094.2 924.0 1183.2 1028.0 1290.0 C1132.0 1183.2 1288.0 1094.2 1288.0 974.0 C1288.0 898.4 1236.0 845.0 1163.2 845.0 C1100.8 845.0 1028.0 876.1 1028.0 942.9 Z';
-const ECG = 'M760 1058 H880 L902 1012 L926 1094 L966 922 L1008 1186 L1044 998 L1068 1080 L1090 1058 H1296';
-
 const rnd = (i: number, k: number) => {
   const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
   return x - Math.floor(x);
@@ -37,7 +36,7 @@ const rnd = (i: number, k: number) => {
 // Twinkling stars around the plus (kept outside its arms).
 const STARS = Array.from({ length: 26 }, (_, i) => {
   const a = (i / 26) * Math.PI * 2 + rnd(i, 1) * 0.35;
-  const r = 31 + rnd(i, 2) * 16; // % of stage from centre
+  const r = 40 + rnd(i, 2) * 10; // % of stage from centre
   return {
     left: `${50 + Math.cos(a) * r}%`,
     top: `${50 + Math.sin(a) * r}%`,
@@ -173,62 +172,12 @@ export function ArogyaPulse({ sound = true, onEnd, className }: { sound?: boolea
         />
       ))}
 
-      <svg className="hp-mark" viewBox="440 430 1160 1160">
-        <defs>
-          <linearGradient id="hpPlus" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#FF6A3D" />
-            <stop offset=".5" stopColor="#E8322E" />
-            <stop offset="1" stopColor="#B3122E" />
-          </linearGradient>
-          <linearGradient id="hpShine" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity=".34" />
-            <stop offset=".45" stopColor="#fff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="hpEcg" x1="0" x2="1">
-            <stop offset="0" stopColor="#F97A26" />
-            <stop offset="1" stopColor="#D81E2C" />
-          </linearGradient>
-          <linearGradient id="hpDepth" x1="0" y1="0" x2="0" y2="1">
-            <stop offset=".55" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#3a0008" stopOpacity=".35" />
-          </linearGradient>
-          <linearGradient id="hpRim" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#FFE3A3" />
-            <stop offset=".5" stopColor="#F6B25A" />
-            <stop offset="1" stopColor="#C9772E" />
-          </linearGradient>
-          <clipPath id="hpHeartClip">
-            <path d={HEART} />
-          </clipPath>
-          <filter id="hpGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="14" />
-          </filter>
-        </defs>
-        <g className="hp-plus">
-          {/* thin gold rim: stroked shapes underneath, so only the outer edge shows */}
-          <rect x="862" y="466" width="341" height="1050" rx="170" fill="none" stroke="url(#hpRim)" strokeWidth="18" />
-          <rect x="498" y="811" width="1039" height="392" rx="196" fill="none" stroke="url(#hpRim)" strokeWidth="18" />
-          <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpPlus)" />
-          <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpPlus)" />
-          <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpDepth)" />
-          <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpDepth)" />
-          <rect x="862" y="466" width="341" height="1050" rx="170" fill="url(#hpShine)" />
-          <rect x="498" y="811" width="1039" height="392" rx="196" fill="url(#hpShine)" />
-          {/* soft highlight along the top edges */}
-          <rect x="890" y="482" width="285" height="160" rx="142" fill="#fff" opacity=".14" />
-          <rect x="520" y="826" width="330" height="90" rx="45" fill="#fff" opacity=".1" />
-          <rect x="1200" y="826" width="320" height="90" rx="45" fill="#fff" opacity=".1" />
-        </g>
-        <g className="hp-heart">
-          <path d={HEART} fill="#fff" className="hp-heart-glow" filter="url(#hpGlow)" />
-          <path d={HEART} fill="#fff" />
-          <g clipPath="url(#hpHeartClip)">
-            <path d={ECG} className="hp-ecg-base" fill="none" stroke="url(#hpEcg)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={ECG} pathLength={1} className="hp-ecg-glow" fill="none" stroke="#ff7a45" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" filter="url(#hpGlow)" />
-            <path d={ECG} pathLength={1} className="hp-ecg" fill="none" stroke="url(#hpEcg)" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" />
-          </g>
-        </g>
-      </svg>
+      <div className="hp-art">
+        <img src={HERO} alt="" draggable={false} />
+        <span className="hp-artglow" />
+        <span className="hp-heartbeat" />
+        <span className="hp-trace" />
+      </div>
     </div>
   );
 }
