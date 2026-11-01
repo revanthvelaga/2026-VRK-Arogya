@@ -1,6 +1,6 @@
 // A one-shot confetti burst from the centre of its parent (which should be
 // position: relative). Pieces fly out, tumble and fall away. Pure CSS.
-const COLORS = ['#C8321F', '#EA4C1F', '#F5B83D', '#FFD38A', '#9E1C12', '#FFF1D6'];
+const COLORS = ['#10B5A6', '#2563EB', '#F5B83D', '#FF6B6B', '#8B5CF6', '#34D399'];
 
 const PIECES = Array.from({ length: 30 }, (_, i) => {
   const a = (i / 30) * Math.PI * 2 + (i % 2 ? 0.2 : -0.1);

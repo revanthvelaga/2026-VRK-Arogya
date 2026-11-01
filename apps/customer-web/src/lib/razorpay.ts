@@ -50,7 +50,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     name: options.name,
     description: options.description,
     prefill: { name: options.prefillName, contact: options.prefillContact },
-    theme: { color: '#c8321f' },
+    theme: { color: '#0f766e' },
     handler: options.onSuccess,
     modal: { ondismiss: options.onDismiss },
   });

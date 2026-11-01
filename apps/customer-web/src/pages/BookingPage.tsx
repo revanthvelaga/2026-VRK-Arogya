@@ -663,7 +663,7 @@ export function BookingPage() {
                     icon={m.value === 'WALK_IN' ? <IconBuilding size={20} /> : m.value === 'PICKUP_POINT' ? <IconMapPin size={20} /> : <IconHome size={20} />}
                     title={m.label}
                     subtitle={m.hint}
-                    tone={m.value === 'WALK_IN' ? '#6366f1' : m.value === 'PICKUP_POINT' ? '#f97316' : '#c8321f'}
+                    tone={m.value === 'WALK_IN' ? '#6366f1' : m.value === 'PICKUP_POINT' ? '#f97316' : '#0ea5a0'}
                   />
                 ))}
               </div>

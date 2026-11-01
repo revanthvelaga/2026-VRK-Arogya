@@ -71,7 +71,7 @@ export function ArogyaScene({
   const plusStops = warm
     ? [['0', '#C81E2C'], ['0.5', '#EE4A2C'], ['1', '#FB7A26']]
     : [['0', '#1BD1BC'], ['0.55', '#14A9C9'], ['1', '#2459E8']];
-  const ecgStops = warm ? ['#FF7A1A', '#E0262F'] : ['#FF7A1A', '#E0262F'];
+  const ecgStops = warm ? ['#FF7A1A', '#E0262F'] : ['#10B5A6', '#2563EB'];
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const g = (n: string) => `${n}${uid}`;
 

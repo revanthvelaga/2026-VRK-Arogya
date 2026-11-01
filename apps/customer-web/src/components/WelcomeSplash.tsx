@@ -77,9 +77,6 @@ export function WelcomeSplash() {
         </div>
         <div className="wow-greeting">{greeting}</div>
         <div className="wow-tagline">Your health, beautifully in one place</div>
-        <div className="wow-rule" aria-hidden>
-          <i />
-        </div>
         <div className="wow-mantra">
           {MANTRA.map((line, i) => (
             <span key={i} style={{ animationDelay: `${1.85 + i * 0.22}s` }}>

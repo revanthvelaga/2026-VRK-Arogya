@@ -87,17 +87,17 @@ export function VillagePromise() {
             <circle cx="-6" cy="44" r="5" />
             <circle cx="-16" cy="40" r="3.5" />
           </g>
-          <rect x="-2" y="10" width="26" height="22" rx="4" fill="#c8321f" />
+          <rect x="-2" y="10" width="26" height="22" rx="4" fill="#0ea5a0" />
           <path d="M11 15 v12 M5 21 h12" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-          <path d="M4 34 H52 C60 34 64 28 66 20 L70 8" stroke="#9e1c12" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 34 H52 C60 34 64 28 66 20 L70 8" stroke="#2563eb" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M70 8 L76 6" stroke="#334155" strokeWidth="4" strokeLinecap="round" />
-          <path d="M28 34 C28 24 36 20 46 22 L54 34" fill="#9e1c12" />
+          <path d="M28 34 C28 24 36 20 46 22 L54 34" fill="#2563eb" />
           {/* rider */}
           <path d="M40 22 L36 6 L48 0 L56 12 L50 24" fill="#f97316" />
           <path d="M44 24 L56 30 L60 36" stroke="#334155" strokeWidth="5" fill="none" strokeLinecap="round" />
           <path d="M50 4 L66 10" stroke="#a16207" strokeWidth="4" strokeLinecap="round" />
           <circle cx="46" cy="-8" r="8" fill="#a16207" />
-          <path d="M37 -9 A9 9 0 0 1 55 -10 L55 -6 L37 -5Z" fill="#ffffff" stroke="#c8321f" strokeWidth="2" />
+          <path d="M37 -9 A9 9 0 0 1 55 -10 L55 -6 L37 -5Z" fill="#ffffff" stroke="#0ea5a0" strokeWidth="2" />
           {/* wheels */}
           <g className="promise-wheel" style={{ transformOrigin: '12px 40px' }}>
             <circle cx="12" cy="40" r="9" fill="#334155" />
