@@ -4290,55 +4290,61 @@ a.suggest-name:hover {
 
 .trend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 14px;
 }
 
 .trend-card {
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px 14px 8px;
+  border-radius: 16px;
+  padding: 14px 14px 10px;
   background: var(--surface);
-  min-width: 0;
+  border-top: 3px solid var(--tone, var(--accent-a));
 }
 
 .trend-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.trend-card-system {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tone, var(--accent-ink));
 }
 
 .trend-card-name {
+  font-size: 15px;
   font-weight: 800;
-  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.25;
 }
 
 .trend-card-latest {
+  font-size: 20px;
   font-weight: 800;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
 }
 
 .trend-card-latest small {
-  font-size: 11px;
+  margin-left: 3px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink-soft);
-  margin-left: 3px;
 }
 
 .trend-card-sub {
-  font-size: 11.5px;
+  margin: 4px 0 6px;
+  font-size: 12.5px;
   color: var(--ink-soft);
-  margin-top: 2px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .trend-chart {
   position: relative;
-  margin-top: 6px;
+  margin: 0 -6px;
 }
 
 .trend-chart svg {
@@ -4346,51 +4352,407 @@ a.suggest-name:hover {
   overflow: visible;
 }
 
+.trend-band {
+  fill: var(--green-soft);
+}
+
+.trend-band-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--green);
+}
+
+.trend-line {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.trend-point circle {
+  stroke: var(--surface);
+  stroke-width: 2.5;
+  transition: r 0.15s ease;
+}
+
+.trend-point--normal circle,
+.trend-point--unknown circle {
+  fill: var(--accent-a);
+}
+
+.trend-point--high circle {
+  fill: var(--red);
+}
+
+.trend-point--low circle {
+  fill: var(--amber);
+}
+
+.trend-value {
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+}
+
+.trend-point--high .trend-value {
+  fill: var(--red);
+}
+
+.trend-point--low .trend-value {
+  fill: var(--amber);
+}
+
+.trend-date {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--ink-soft);
+}
+
+.trend-date-sub {
+  font-size: 9.5px;
+  font-weight: 500;
+  fill: var(--ink-faint);
+}
+
 .trend-tooltip {
   position: absolute;
-  pointer-events: none;
-  transform: translate(-50%, calc(-100% - 12px));
+  transform: translate(-50%, calc(-100% - 18px));
   background: var(--ink);
   color: #fff;
   font-size: 11.5px;
   line-height: 1.4;
-  padding: 6px 9px;
+  padding: 6px 10px;
   border-radius: 8px;
   white-space: nowrap;
-  box-shadow: 0 8px 20px -8px rgba(16, 24, 44, 0.5);
+  pointer-events: none;
   z-index: 2;
 }
 
 .trend-tooltip b {
-  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.trend-note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
 }
 
 .trend-table {
   width: 100%;
-  font-size: 12px;
   border-collapse: collapse;
-  margin-top: 6px;
+  font-size: 12.5px;
+  margin: 6px 0 4px;
 }
 
 .trend-table td,
 .trend-table th {
   text-align: left;
-  padding: 4px 0;
+  padding: 7px 4px;
   border-bottom: 1px solid var(--line);
+}
+
+.trend-table th {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint);
 }
 
 .trend-table td:last-child,
 .trend-table th:last-child {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 .trend-card details summary {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink-soft);
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0 2px;
+}
+
+/* ---------- Results at a glance (Insights → Trends) ---------- */
+.system-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 12px;
+  scrollbar-width: none;
+}
+
+.system-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.system-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.system-chip.on {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+}
+
+.system-chip-flag {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--red);
+  color: #fff;
+}
+
+.system-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.system-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 7%, var(--surface)) 0, var(--surface) 64px);
+}
+
+.system-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.system-card-head h3 {
+  margin: 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-card-head h3::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--tone);
+}
+
+.system-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.system-score.all-good {
+  color: var(--green);
+}
+
+.measure-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.measure {
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--line);
+}
+
+.measure:first-child {
+  border-top: 0;
+}
+
+.measure-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.measure-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.measure-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.measure--high .measure-value {
+  color: var(--red);
+}
+
+.measure--low .measure-value {
+  color: var(--amber);
+}
+
+.measure-value small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.measure-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.measure-level {
+  font-weight: 800;
+}
+
+.measure-level--normal {
+  color: var(--green);
+}
+
+.measure-level--high {
+  color: var(--red);
+}
+
+.measure-level--low {
+  color: var(--amber);
+}
+
+.measure-level--unknown {
+  color: var(--ink-faint);
+}
+
+.measure-change {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.trends-subtitle {
+  margin: 22px 0 12px;
+  font-size: 16px;
+}
+
+/* Low · Normal · High bar */
+.range-bar {
+  margin-top: 8px;
+}
+
+.range-bar-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 3px;
+  height: 8px;
+}
+
+.range-zone {
+  border-radius: 4px;
+}
+
+.range-zone--low {
+  background: var(--amber-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 25%, transparent);
+}
+
+.range-zone--normal {
+  background: color-mix(in srgb, var(--green) 30%, var(--green-soft));
+}
+
+.range-zone--high {
+  background: color-mix(in srgb, var(--red) 14%, var(--surface));
+}
+
+.range-marker {
+  position: absolute;
+  top: 50%;
+  left: var(--pos);
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--accent-a);
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(16, 24, 44, 0.25);
+}
+
+.range-bar--high .range-marker {
+  background: var(--red);
+}
+
+.range-bar--low .range-marker {
+  background: var(--amber);
+}
+
+.range-bar-scale {
+  position: relative;
+  height: 14px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.range-bar-scale span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The marker slides to its value; the trend line draws itself. */
+  .range-marker {
+    animation: markerIn 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+  }
+  .trend-line {
+    animation: lineDraw 0.9s ease-out both;
+  }
+  .trend-point {
+    animation: pointIn 0.3s ease-out 0.5s both;
+  }
+}
+
+@keyframes markerIn {
+  from { left: 50%; opacity: 0; }
+  to { left: var(--pos); opacity: 1; }
+}
+@keyframes lineDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes pointIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (max-width: 720px) {

@@ -7,7 +7,8 @@ import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
 import { PatientPicker } from '../components/PatientPicker';
-import { TrendChart } from '../components/TrendChart';
+import { HealthTrends } from '../components/HealthTrends';
+import { measurementKey } from '../lib/healthValues';
 import { GoalsCard, MedicinesCard, VitalsCard } from '../components/HealthTracking';
 import { HealthTimeline, RetestCard } from '../components/HealthHistory';
 import { ShareReportButton } from '../components/ShareReport';
@@ -32,7 +33,6 @@ import {
   IconPhone,
   IconShieldCheck,
   IconSparkle,
-  IconTrend,
   IconUser,
 } from '../components/Icons';
 import { formatDateTime, formatNumber } from '../lib/format';
@@ -388,113 +388,6 @@ function ExplainValue({ valueId }: { valueId: string }) {
   );
 }
 
-interface TrendSeries {
-  key: string;
-  name: string;
-  unit?: string;
-  normalLow?: number;
-  normalHigh?: number;
-  points: Array<{ date: string; value: number; isAbnormal: boolean }>;
-}
-
-// Every parameter measured on two or more reports, oldest reading first.
-function buildTrendSeries(values: MyReportValue[]): TrendSeries[] {
-  const byKey = new Map<string, TrendSeries>();
-  for (const v of values) {
-    const key = v.testId ?? v.testName;
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        key,
-        name: v.testName,
-        unit: v.unit,
-        normalLow: v.normalLow != null ? Number(v.normalLow) : undefined,
-        normalHigh: v.normalHigh != null ? Number(v.normalHigh) : undefined,
-        points: [],
-      });
-    }
-    byKey.get(key)!.points.push({ date: v.reportGeneratedAt, value: Number(v.value), isAbnormal: v.isAbnormal });
-  }
-  return Array.from(byKey.values())
-    .filter((s) => s.points.length >= 2)
-    .map((s) => ({ ...s, points: s.points.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) }));
-}
-
-function TrendsCard({ values }: { values: MyReportValue[] }) {
-  const series = useMemo(() => buildTrendSeries(values), [values]);
-  if (series.length === 0) return null;
-
-  return (
-    <div className="card">
-      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <IconTrend size={16} style={{ color: 'var(--accent-ink)' }} />
-        Your trends
-      </div>
-      <p className="page-sub" style={{ margin: '-4px 0 14px' }}>
-        How each result has changed across reports. Shaded band = normal range.
-      </p>
-      <div className="trend-grid">
-        {series.map((s) => {
-          const latest = s.points[s.points.length - 1];
-          const first = s.points[0];
-          const change = latest.value - first.value;
-          return (
-            <div className="trend-card" key={s.key}>
-              <div className="trend-card-head">
-                <div className="trend-card-name">{s.name}</div>
-                <div className="trend-card-latest">
-                  {formatNumber(latest.value)}
-                  <small>{s.unit ?? ''}</small>
-                </div>
-              </div>
-              <div className="trend-card-sub">
-                {latest.isAbnormal ? (
-                  <>
-                    <IconAlertTriangle size={11} style={{ color: 'var(--red)' }} /> Out of range now
-                  </>
-                ) : (
-                  'Within range now'
-                )}
-                {' · '}
-                {change === 0 ? 'no change' : `${change > 0 ? '+' : ''}${formatNumber(Number(change.toFixed(2)))} since first test`}
-              </div>
-              <TrendChart
-                points={s.points}
-                normalLow={s.normalLow}
-                normalHigh={s.normalHigh}
-                unit={s.unit}
-                label={s.name}
-              />
-              <details>
-                <summary>View as table</summary>
-                <table className="trend-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.points.map((p, i) => (
-                      <tr key={p.date + i}>
-                        <td>{formatDateTime(p.date).split(',')[0]}</td>
-                        <td>{p.isAbnormal ? 'Out of range' : 'Normal'}</td>
-                        <td>
-                          {formatNumber(p.value)} {s.unit ?? ''}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // View / Download right on a report's row in the list, so getting the PDF
 // never needs the report to be opened first.
 function ReportFileButtons({ group }: { group: ReportGroup }) {
@@ -787,7 +680,8 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
     const seen = new Set<string>();
     const result: MyReportValue[] = [];
     for (const v of values ?? []) {
-      const key = v.testId ?? v.testName;
+      // Per measurement (Urea, Creatinine…), not per catalog test.
+      const key = measurementKey(v.testName);
       if (seen.has(key)) continue;
       seen.add(key);
       result.push(v);
@@ -898,7 +792,7 @@ function PatientResultsSection({ patientId }: { patientId: string }) {
       {selectedGroup && <ReportDetailCard group={selectedGroup} />}
 
       <div id="sec-trends" />
-      <TrendsCard values={values} />
+      <HealthTrends values={values} />
 
       <div className="section-title" id="sec-everyday">
         Everyday health

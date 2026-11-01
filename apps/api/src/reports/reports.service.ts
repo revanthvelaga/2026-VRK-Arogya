@@ -453,11 +453,10 @@ export class ReportsService implements OnApplicationBootstrap {
       .orderBy('r.generated_at', 'DESC')
       .limit(1);
 
-    if (value.testId) {
-      qb.andWhere('rv.test_id = :testId', { testId: value.testId });
-    } else {
-      qb.andWhere('rv.test_id IS NULL').andWhere('rv.test_name = :testName', { testName: value.testName });
-    }
+    // Match the same measurement by name, not by catalog test: one test
+    // (a kidney panel, say) carries several values — Urea, Creatinine… —
+    // and matching on test_id compared Creatinine with an older Urea.
+    qb.andWhere('LOWER(TRIM(rv.test_name)) = LOWER(TRIM(:testName))', { testName: value.testName });
 
     return qb.getOne();
   }

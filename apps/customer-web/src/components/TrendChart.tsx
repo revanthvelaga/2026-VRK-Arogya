@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatNumber } from '../lib/format';
+import type { Level } from '../lib/healthValues';
 
 export interface TrendPoint {
   date: string;
   value: number;
   isAbnormal: boolean;
+  // Each reading's own verdict, when known (its report's own range).
+  level?: Level;
 }
 
 interface Props {
@@ -15,8 +18,8 @@ interface Props {
   label: string;
 }
 
-const HEIGHT = 128;
-const PAD = { top: 12, right: 12, bottom: 22, left: 34 };
+const HEIGHT = 168;
+const PAD = { top: 26, right: 18, bottom: 34, left: 18 };
 
 function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -32,103 +35,99 @@ function useWidth<T extends HTMLElement>() {
   return [ref, width] as const;
 }
 
-function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+const day = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+const year = (iso: string) => new Date(iso).getFullYear();
+const time = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+
+// Readings taken on the same day get their time too, so two reports from
+// one morning don't both just say "24 Oct".
+function pointLabels(points: TrendPoint[]): Array<[string, string]> {
+  const days = points.map((p) => day(p.date));
+  const years = new Set(points.map((p) => year(p.date)));
+  return points.map((p, i) => {
+    const sameDay = days.filter((d) => d === days[i]).length > 1;
+    const second = sameDay ? time(p.date) : years.size > 1 ? String(year(p.date)) : '';
+    return [days[i], second];
+  });
 }
 
-// One parameter's readings over time: a single 2px line, the normal range
-// as a shaded band behind it, and a hover/tap tooltip per reading. Out of
-// range readings get a red marker *and* say "Out of range" in the tooltip
-// and the table, so the state is never carried by colour alone.
+function levelOfPoint(p: TrendPoint, low?: number, high?: number): Level {
+  if (p.level) return p.level;
+  if (low != null && p.value < low) return 'low';
+  if (high != null && p.value > high) return 'high';
+  return p.isAbnormal ? 'high' : 'normal';
+}
+
+// One measurement over time. The normal range is a labelled green band;
+// every reading shows its value right on the chart, coloured by its own
+// verdict (red high, amber low) and also named in the tooltip and table,
+// so colour is never the only signal. Readings are spaced evenly, each
+// with its date underneath.
 export function TrendChart({ points, normalLow, normalHigh, unit, label }: Props) {
   const [wrapRef, width] = useWidth<HTMLDivElement>();
-  const [hover, setHover] = useState<number | null>(null);
+  const [active, setActive] = useState<number | null>(null);
 
   const values = points.map((p) => p.value);
-  const lows = [...values, ...(normalLow != null ? [normalLow] : [])];
-  const highs = [...values, ...(normalHigh != null ? [normalHigh] : [])];
-  let min = Math.min(...lows);
-  let max = Math.max(...highs);
+  let min = Math.min(...values, ...(normalLow != null ? [normalLow] : []));
+  let max = Math.max(...values, ...(normalHigh != null ? [normalHigh] : []));
   if (min === max) {
-    min -= 1;
-    max += 1;
+    min -= Math.abs(min) * 0.2 || 1;
+    max += Math.abs(max) * 0.2 || 1;
   }
   const span = max - min;
-  min -= span * 0.12;
-  max += span * 0.12;
+  min -= span * 0.18;
+  max += span * 0.18;
 
   const plotW = Math.max(width - PAD.left - PAD.right, 40);
   const plotH = HEIGHT - PAD.top - PAD.bottom;
   const x = (i: number) => PAD.left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
   const y = (v: number) => PAD.top + (1 - (v - min) / (max - min)) * plotH;
-
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
-  // Label the edges of the normal range when there is one — those are the
-  // numbers a reader compares against; otherwise the lowest/highest reading.
-  const ticks =
-    normalLow != null && normalHigh != null ? [normalLow, normalHigh] : [Math.min(...values), Math.max(...values)];
-  const hovered = hover != null ? points[hover] : null;
+  const labels = pointLabels(points);
+  const hasBand = normalLow != null && normalHigh != null;
+  const bandTop = hasBand ? y(normalHigh as number) : 0;
+  const bandBottom = hasBand ? y(normalLow as number) : 0;
+  // With many readings, only every other label fits on a phone.
+  const labelEvery = points.length > 6 && plotW / points.length < 46 ? 2 : 1;
+  const shown = active != null ? points[active] : null;
 
   return (
     <div className="trend-chart" ref={wrapRef}>
-      <svg width={width} height={HEIGHT} role="img" aria-label={`${label} trend`}>
-        {normalLow != null && normalHigh != null && (
-          <rect
-            x={PAD.left}
-            y={y(normalHigh)}
-            width={plotW}
-            height={Math.max(y(normalLow) - y(normalHigh), 1)}
-            fill="var(--green-soft)"
-            rx={4}
-          />
-        )}
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={PAD.left} x2={PAD.left + plotW} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeDasharray="2 4" />
-            <text x={PAD.left - 6} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--ink-faint)">
-              {formatNumber(t)}
+      <svg width={width} height={HEIGHT} role="img" aria-label={`${label} over time`}>
+        {hasBand && (
+          <>
+            <rect x={PAD.left - 8} y={bandTop} width={plotW + 16} height={Math.max(bandBottom - bandTop, 2)} className="trend-band" rx={6} />
+            <text x={PAD.left - 2} y={bandTop + 12} className="trend-band-label">
+              Normal {formatNumber(normalLow as number)}–{formatNumber(normalHigh as number)}
+              {unit ? ` ${unit}` : ''}
             </text>
-          </g>
-        ))}
-        {points.length > 1 && (
-          <path d={path} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          </>
         )}
-        {hover != null && (
-          <line
-            x1={x(hover)}
-            x2={x(hover)}
-            y1={PAD.top}
-            y2={PAD.top + plotH}
-            stroke="var(--line-strong)"
-            strokeWidth={1}
-          />
-        )}
-        {points.map((p, i) => (
-          <circle
-            key={p.date + i}
-            cx={x(i)}
-            cy={y(p.value)}
-            r={hover === i ? 6 : 4.5}
-            fill={p.isAbnormal ? 'var(--red)' : 'var(--accent)'}
-            stroke="var(--surface)"
-            strokeWidth={2}
-          />
-        ))}
-        {[0, points.length - 1]
-          .filter((i, idx, arr) => arr.indexOf(i) === idx)
-          .map((i) => (
-            <text
-              key={`d${i}`}
-              x={x(i)}
-              y={HEIGHT - 6}
-              textAnchor={points.length === 1 ? 'middle' : i === 0 ? 'start' : 'end'}
-              fontSize="10"
-              fill="var(--ink-faint)"
-            >
-              {shortDate(points[i].date)}
+        {points.length > 1 && <path d={path} className="trend-line" pathLength={1} />}
+        {points.map((p, i) => {
+          const lv = levelOfPoint(p, normalLow, normalHigh);
+          return (
+            <g key={p.date + i} className={`trend-point trend-point--${lv}${active === i ? ' is-active' : ''}`}>
+              <circle cx={x(i)} cy={y(p.value)} r={active === i ? 7 : 5.5} />
+              <text x={x(i)} y={y(p.value) - 11} textAnchor="middle" className="trend-value">
+                {formatNumber(p.value)}
+              </text>
+            </g>
+          );
+        })}
+        {points.map((_, i) =>
+          i % labelEvery === 0 || i === points.length - 1 ? (
+            <text key={`d${i}`} x={x(i)} y={HEIGHT - 16} textAnchor="middle" className="trend-date">
+              <tspan x={x(i)}>{labels[i][0]}</tspan>
+              {labels[i][1] && (
+                <tspan x={x(i)} dy="12" className="trend-date-sub">
+                  {labels[i][1]}
+                </tspan>
+              )}
             </text>
-          ))}
-        {/* Hit targets wider than the markers, one column per reading. */}
+          ) : null,
+        )}
+        {/* Tap targets: one column per reading. */}
         {points.map((_, i) => {
           const colW = points.length === 1 ? plotW : plotW / (points.length - 1);
           return (
@@ -139,17 +138,25 @@ export function TrendChart({ points, normalLow, normalHigh, unit, label }: Props
               width={colW}
               height={HEIGHT}
               fill="transparent"
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-              onTouchStart={() => setHover(i)}
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => setActive((a) => (a === i ? null : i))}
             />
           );
         })}
       </svg>
-      {hovered && hover != null && (
-        <div className="trend-tooltip" style={{ left: x(hover), top: y(hovered.value) }}>
-          {shortDate(hovered.date)} · <b>{formatNumber(hovered.value)}</b> {unit ?? ''}
-          {hovered.isAbnormal ? ' · Out of range' : ' · Normal'}
+      {shown && active != null && (
+        <div
+          className="trend-tooltip"
+          style={{ left: Math.min(Math.max(x(active), 70), width - 70), top: y(shown.value) }}
+          role="status"
+        >
+          <b>
+            {formatNumber(shown.value)} {unit ?? ''}
+          </b>{' '}
+          · {levelOfPoint(shown, normalLow, normalHigh) === 'normal' ? 'Normal' : levelOfPoint(shown, normalLow, normalHigh) === 'low' ? 'Low' : 'High'}
+          <br />
+          {new Date(shown.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
         </div>
       )}
     </div>
