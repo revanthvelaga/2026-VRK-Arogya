@@ -9370,3 +9370,30 @@ a.suggest-name:hover {
   backdrop-filter: blur(6px); box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.4);
   animation: textRise 0.4s ease both;
 }
+/* Glow breathing around the plus + a golden ring of light circling it */
+.ai-plusglow {
+  position: absolute; left: 49.5%; top: 50%; width: 76%; height: 76%; translate: -50% -50%;
+  border-radius: 50%; pointer-events: none; z-index: 2; opacity: 0;
+  background: radial-gradient(closest-side, rgba(255, 170, 90, 0) 50%, rgba(255, 150, 70, 0.34) 64%, rgba(255, 200, 120, 0.18) 76%, rgba(255, 200, 120, 0) 92%);
+  filter: blur(3px);
+}
+.ai-plusring {
+  position: absolute; left: 49.5%; top: 50%; width: 66%; height: 62%; translate: -50% -50%;
+  border-radius: 50%; pointer-events: none; z-index: 2; opacity: 0;
+  border: 2px solid transparent;
+  border-top-color: rgba(255, 214, 140, 0.95);
+  border-right-color: rgba(255, 170, 90, 0.4);
+  filter: blur(0.8px) drop-shadow(0 0 6px rgba(255, 180, 80, 1)) drop-shadow(0 0 14px rgba(255, 130, 60, 0.6));
+}
+.ai-playing .ai-plusglow, .ai-done .ai-plusglow { animation: aiGlow 2.4s ease-in-out infinite; }
+.ai-playing .ai-plusring, .ai-done .ai-plusring { animation: aiRing 4.5s linear infinite, aiFadeIn 0.8s ease forwards; }
+.ai-spark { animation-play-state: paused; }
+.ai-playing .ai-spark, .ai-done .ai-spark { animation-play-state: running; }
+@keyframes aiGlow { 0%, 100% { opacity: 0.55; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes aiRing { to { rotate: 360deg; } }
+@keyframes aiFadeIn { from { opacity: 0; } to { opacity: 0.9; } }
+/* The welcome text waits for the film to actually start */
+.wow-film:not(.go) .wow-word span, .wow-film:not(.go) .wow-greeting, .wow-film:not(.go) .wow-tagline { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .ai-plusglow, .ai-plusring { animation: none !important; opacity: 0.7; }
+}

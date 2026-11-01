@@ -1,3 +1,4 @@
+import { preloadIntro } from '../components/ArogyaIntro';
 import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -18,6 +19,11 @@ interface LocationState {
 type Mode = 'password' | 'otp';
 
 export function LoginPage() {
+  // Fetch the welcome film while the person signs in, so it plays instantly.
+  useEffect(() => {
+    const t = setTimeout(() => void preloadIntro(), 1200);
+    return () => clearTimeout(t);
+  }, []);
   const { login, loginWithGoogle, loginWithPasskey, user } = useAuth();
   const otp = useOtpProvider();
   const navigate = useNavigate();
