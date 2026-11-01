@@ -9763,3 +9763,83 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 @media (prefers-reduced-motion: reduce) {
   .ai-ember, .ai-shimmer, .ai-orbit, .ai-burst { display: none; }
 }
+
+/* ---------- Welcome: beating Arogya heart (no film) ---------- */
+.wow-splash.wow-beat { background: radial-gradient(110% 80% at 50% 38%, #12345a 0%, #0a1d38 45%, #050d1e 100%); color: #e8f4ff; }
+.wow-beat .wow-center { margin-top: -4vh; }
+.wow-beat .wow-word span { background: linear-gradient(180deg, #ffffff 10%, #7fe3ff 60%, #4f8dff 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 14px rgba(80, 200, 255, 0.35)); }
+.wow-beat .wow-greeting { color: #e8f4ff; }
+.wow-beat .wow-tagline { color: #9db5cc; }
+
+.hp-stage { position: relative; width: min(84vw, 360px); aspect-ratio: 1; isolation: isolate; }
+.hp-stage > span { position: absolute; pointer-events: none; }
+.hp-mark { position: absolute; left: 50%; top: 50%; width: 64%; height: 64%; translate: -50% -50%; overflow: visible; z-index: 5; }
+.hp-plus { transform-box: fill-box; transform-origin: center; opacity: 0; filter: drop-shadow(0 18px 30px rgba(10, 120, 200, 0.45)); }
+.go .hp-plus { animation: hpPlusIn 0.7s cubic-bezier(0.2, 1.3, 0.4, 1) forwards; }
+@keyframes hpPlusIn { 0% { opacity: 0; transform: scale(0.55); filter: blur(10px); } 60% { opacity: 1; filter: blur(0); } 100% { opacity: 1; transform: scale(1); } }
+.hp-heart { transform-box: fill-box; transform-origin: 50% 55%; opacity: 0; }
+.go .hp-heart { animation: hpHeartIn 0.45s ease 0.35s forwards, hpBeat 0.8s ease-out 0.75s 3; }
+@keyframes hpHeartIn { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes hpBeat {
+  0% { transform: scale(1); }
+  9% { transform: scale(1.16); }
+  18% { transform: scale(0.98); }
+  28% { transform: scale(1.1); }
+  42% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+.hp-heart-glow { opacity: 0.35; }
+.go .hp-heart-glow { animation: hpHeartGlow 0.8s ease-out 0.75s 3; }
+@keyframes hpHeartGlow { 0%, 60%, 100% { opacity: 0.3; } 9% { opacity: 1; } 28% { opacity: 0.85; } }
+.hp-ecg-base { opacity: 0.18; }
+.hp-ecg, .hp-ecg-glow { stroke-dasharray: 0.35 1.65; stroke-dashoffset: 0.4; opacity: 0; }
+.go .hp-ecg { animation: hpTrace 0.8s linear 0.72s 3; }
+.go .hp-ecg-glow { animation: hpTraceGlow 0.8s linear 0.72s 3; }
+@keyframes hpTrace { 0% { stroke-dashoffset: 0.4; opacity: 1; } 85% { opacity: 1; } 100% { stroke-dashoffset: -1.6; opacity: 0.2; } }
+@keyframes hpTraceGlow { 0% { stroke-dashoffset: 0.4; opacity: 0.9; } 100% { stroke-dashoffset: -1.6; opacity: 0; } }
+/* after the beats, the line rests fully drawn */
+.go .hp-ecg-base { animation: hpBaseIn 0.5s ease 3.05s forwards; }
+@keyframes hpBaseIn { to { opacity: 1; } }
+
+/* Around the plus */
+.hp-halo { inset: 8%; border-radius: 50%; z-index: 1; opacity: 0;
+  background: radial-gradient(closest-side, rgba(80, 220, 255, 0.55), rgba(40, 140, 255, 0.28) 45%, rgba(40, 140, 255, 0) 75%); filter: blur(6px); }
+.go .hp-halo { animation: hpFade 0.8s ease forwards, hpHalo 0.8s ease-out 0.75s 3; }
+@keyframes hpHalo { 0%, 100% { transform: scale(1); } 10% { transform: scale(1.12); opacity: 1; } 30% { transform: scale(1.06); } }
+@keyframes hpFade { to { opacity: 0.8; } }
+.hp-rays { inset: -6%; border-radius: 50%; z-index: 0; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(120, 220, 255, 0.16) 0deg 5deg, rgba(120, 220, 255, 0) 5deg 22deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 30%, #000 45%, transparent 100%);
+  mask: radial-gradient(closest-side, transparent 30%, #000 45%, transparent 100%); }
+.go .hp-rays { animation: hpFade 1.2s ease 0.2s forwards, hpSpin 18s linear infinite; }
+@keyframes hpSpin { to { rotate: 360deg; } }
+.hp-ring { left: 50%; top: 50%; width: 62%; height: 62%; translate: -50% -50%; border-radius: 50%; z-index: 2; opacity: 0;
+  border: 2px solid rgba(125, 225, 255, 0.85); box-shadow: 0 0 18px rgba(80, 200, 255, 0.6), inset 0 0 18px rgba(80, 200, 255, 0.35); }
+.go .hp-ring.r1 { animation: hpRing 1.3s cubic-bezier(0.1, 0.6, 0.3, 1) 0.75s 1; }
+.go .hp-ring.r2 { animation: hpRing 1.3s cubic-bezier(0.1, 0.6, 0.3, 1) 1.55s 1; }
+.go .hp-ring.r3 { animation: hpRing 1.3s cubic-bezier(0.1, 0.6, 0.3, 1) 2.35s 1; }
+@keyframes hpRing { 0% { opacity: 0.95; transform: scale(0.85); } 100% { opacity: 0; transform: scale(1.65); } }
+.hp-orbit { left: 50%; top: 50%; width: 80%; height: 80%; translate: -50% -50%; z-index: 4; opacity: 0; border-radius: 50%; }
+.hp-orbit.o2 { width: 92%; height: 92%; }
+.hp-orbit i { position: absolute; left: 50%; top: -4px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 10px 4px rgba(120, 225, 255, 0.95), 0 0 26px 10px rgba(60, 150, 255, 0.45); }
+.hp-orbit.o2 i { top: auto; bottom: -3px; width: 6px; height: 6px; box-shadow: 0 0 10px 3px rgba(255, 210, 120, 0.95), 0 0 22px 8px rgba(255, 160, 60, 0.4); }
+.hp-orbit::after { content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(140, 225, 255, 0.55), rgba(140, 225, 255, 0) 70deg, transparent 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  mask: radial-gradient(closest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); }
+.hp-orbit.o2::after { background: conic-gradient(from 180deg, rgba(255, 210, 130, 0.5), rgba(255, 210, 130, 0) 60deg, transparent 360deg); }
+.go .hp-orbit.o1 { animation: hpFade 0.6s ease 0.4s forwards, hpSpin 2.4s linear infinite; }
+.go .hp-orbit.o2 { animation: hpFade 0.6s ease 0.6s forwards, hpSpinRev 3.2s linear infinite; }
+@keyframes hpSpinRev { to { rotate: -360deg; } }
+.hp-star { z-index: 3; border-radius: 50%; opacity: 0; background: #e9fbff; box-shadow: 0 0 8px 2px rgba(120, 220, 255, 0.9); }
+.hp-star.gold { background: #fff4d6; box-shadow: 0 0 8px 2px rgba(255, 195, 100, 0.9); }
+.hp-star.cross { border-radius: 0; box-shadow: none; scale: 2.6; clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); filter: drop-shadow(0 0 4px rgba(150, 230, 255, 1)); }
+.go .hp-star { animation: asTwinkle 2s ease-in-out infinite; }
+.hp-mote { z-index: 3; border-radius: 50%; opacity: 0; background: #bdeeff; box-shadow: 0 0 6px 2px rgba(110, 210, 255, 0.8); }
+.go .hp-mote { animation: hpMote 3.2s ease-out infinite; }
+@keyframes hpMote { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 0.9; } 100% { opacity: 0; transform: translate(var(--drift, 0), -140px); } }
+.hp-stage.still .hp-plus, .hp-stage.still .hp-heart { opacity: 1; }
+.hp-stage.still .hp-halo { opacity: 0.7; }
+.hp-stage.still .hp-ecg-base { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .hp-stage * { animation: none !important; } }

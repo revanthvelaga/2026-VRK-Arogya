@@ -1,17 +1,16 @@
-import { ArogyaIntro } from './ArogyaIntro';
+import { ArogyaPulse } from './ArogyaPulse';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const MAX_MS = 7000; // safety net if the film never starts or ends
+const MAX_MS = 6500; // safety net if the film never starts or ends
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
-// The moment after signing in: the short Arogya film plays — golden light
-// swirls around the glowing plus and sparkles, the doctors strike a pose —
-// then the name and greeting rise under it and the screen closes into a
-// circle to reveal Home. Tap anywhere to skip.
+// The moment after signing in: the Arogya heart beats three times in time
+// with a heartbeat sound, light and sparkles glow around the plus, then the
+// name and greeting rise under it and the screen opens to Home. Tap to skip.
 // Shown once per sign-in, never on reload; a plain fade under reduced motion.
 export function WelcomeSplash() {
   const { welcome, clearWelcome } = useAuth();
@@ -39,7 +38,7 @@ export function WelcomeSplash() {
       .get<ProfileResponse>('/users/me')
       .then((p) => setName(p.fullName?.trim().split(/\s+/)[0] ?? null))
       .catch(() => undefined);
-    setGo(false);
+    setGo(true);
     // The film drives the timing: text rises once it starts, the screen
     // opens when it ends. Reduced motion just shows the greeting briefly.
     const show = reduced ? REDUCED_MS : MAX_MS;
@@ -56,14 +55,14 @@ export function WelcomeSplash() {
 
   return (
     <div
-      className={`wow-splash wow-film${go || reduced ? ' go' : ''}${leaving ? ' leaving' : ''}`}
+      className={`wow-splash wow-film wow-beat${go || reduced ? ' go' : ''}${leaving ? ' leaving' : ''}`}
       role="status"
       aria-live="polite"
       aria-label={greeting}
       onClick={close}
     >
       <div className="wow-center">
-        <ArogyaIntro size={320} sound className="wow-intro" onStart={() => setGo(true)} onEnd={() => setTimeout(close, 1000)} />
+        <ArogyaPulse sound className="wow-pulse" onEnd={() => setTimeout(close, 650)} />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (

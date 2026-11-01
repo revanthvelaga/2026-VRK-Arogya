@@ -1,4 +1,4 @@
-import { preloadIntro } from '../components/ArogyaIntro';
+import { preloadPulse } from '../components/ArogyaPulse';
 import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -14,7 +14,7 @@ interface LocationState {
 export function RegisterPage() {
   // Fetch the welcome film while the person signs in, so it plays instantly.
   useEffect(() => {
-    const t = setTimeout(() => void preloadIntro(), 1200);
+    const t = setTimeout(() => void preloadPulse(), 1200);
     return () => clearTimeout(t);
   }, []);
   const { register, loginWithGoogle, user } = useAuth();
