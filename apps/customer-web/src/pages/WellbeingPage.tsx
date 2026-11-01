@@ -64,7 +64,7 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
   const day = days.find((d) => d.date === selected) ?? today;
   const isToday = day === today;
   const reels = sumReels(day);
-  const score = wellbeingScore(day.total, goal, reels, day.night ?? 0, day.sleep?.minutes);
+  const score = wellbeingScore(day.total, goal, reels, day.night ?? 0, day.sleep?.minutes, day.longest?.minutes);
   const { label, tone } = scoreTone(score);
   const weekAvg = Math.round(days.reduce((a, d) => a + d.total, 0) / Math.max(days.length, 1));
   const weekReels = days.reduce((a, d) => a + sumReels(d), 0);
@@ -114,6 +114,65 @@ function Dashboard({ data, preview, openSettings }: { data: WellbeingData; previ
           <div className="wb-eyebrow">Late night use</div>
           <div className="wb-stat-num">{fmtMinutes(day.night ?? 0)}</div>
           <small>between 11 pm and 5 am</small>
+        </div>
+      </div>
+
+      <div className="wb-two wb-two-cards">
+        <div className="card wb-break">
+          <div className="wb-card-title">
+            <b>⏱️ Without a break</b>
+          </div>
+          {day.longest ? (
+            <>
+              <div className="wb-stat-num">{fmtMinutes(day.longest.minutes)}</div>
+              <small className="wb-muted">
+                longest stretch, {day.longest.start}–{day.longest.end}
+              </small>
+              <div className="wb-break-row">
+                <span>
+                  <b>{day.longStretches ?? 0}</b> over 30 min
+                </span>
+                <span>
+                  <b>{day.sessions ?? 0}</b> sittings
+                </span>
+              </div>
+              {day.longest.minutes > 45 && <p className="wb-hint">Look away and stretch every 30 minutes. Long sittings strain the eyes, neck and back.</p>}
+            </>
+          ) : (
+            <p className="wb-empty">No long sittings {isToday ? 'yet today' : 'that day'}.</p>
+          )}
+        </div>
+        <div className="card wb-charge">
+          <div className="wb-card-title">
+            <b>🔌 Charged</b>
+          </div>
+          {day.charges === undefined ? (
+            <p className="wb-empty">Update the app to count charges.</p>
+          ) : (
+            <>
+              <div className="wb-stat-num">
+                {day.charges.length} <span className="wb-unit">time{day.charges.length === 1 ? '' : 's'}</span>
+              </div>
+              {day.charges.length === 0 ? (
+                <small className="wb-muted">{isToday ? 'Not charged yet today' : 'Not charged that day'}</small>
+              ) : (
+                <ul className="wb-charges">
+                  {day.charges.map((c, i) => (
+                    <li key={i}>
+                      <span>
+                        {c.start}–{c.now ? 'now' : c.end}
+                      </span>
+                      {c.from >= 0 && c.to >= 0 && (
+                        <b>
+                          {c.from}% → {c.to}%
+                        </b>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
         </div>
       </div>
 

@@ -9713,3 +9713,17 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 .wb-cats li span { flex: 1; color: var(--ink-soft); }
 .wb-cats li b { color: var(--ink); }
 .home-flow .wb-teaser { margin-bottom: 14px; }
+
+.wb-two-cards > .card { padding: 14px 16px; }
+.wb-two-cards .wb-card-title { margin-bottom: 6px; }
+.wb-muted { color: var(--ink-soft); font-size: 12px; display: block; }
+.wb-unit { font-size: 15px; font-weight: 600; color: var(--ink-soft); }
+.wb-break-row { display: flex; gap: 12px; margin-top: 10px; font-size: 12.5px; color: var(--ink-soft); flex-wrap: wrap; }
+.wb-break-row b { color: var(--ink); font-size: 15px; }
+.wb-hint { margin: 10px 0 0; font-size: 12px; line-height: 1.45; color: var(--amber); }
+.wb-charges { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.wb-charges li { display: flex; justify-content: space-between; gap: 6px; font-size: 12.5px; color: var(--ink-soft); }
+.wb-charges li b { color: var(--green); font-weight: 700; white-space: nowrap; }
+@media (max-width: 360px) { .wb-two-cards { grid-template-columns: 1fr; } }
+.wb-charges li { flex-direction: column; gap: 0; }
+.wb-charges li span { white-space: nowrap; }

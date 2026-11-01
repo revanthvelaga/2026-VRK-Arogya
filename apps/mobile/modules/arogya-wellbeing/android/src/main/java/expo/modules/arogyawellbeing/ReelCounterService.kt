@@ -2,6 +2,8 @@ package expo.modules.arogyawellbeing
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
@@ -48,6 +50,34 @@ class ReelCounterService : AccessibilityService() {
   }
 
   override fun onInterrupt() {}
+
+  // While this service runs, notice the charger the moment it's plugged in or out.
+  private var charge: ChargeTracker.Receiver? = null
+
+  override fun onServiceConnected() {
+    super.onServiceConnected()
+    try {
+      val r = ChargeTracker.Receiver()
+      val f = IntentFilter().apply {
+        addAction(Intent.ACTION_POWER_CONNECTED)
+        addAction(Intent.ACTION_POWER_DISCONNECTED)
+      }
+      registerReceiver(r, f)
+      charge = r
+      ChargeTracker.update(this)
+      ChargeTracker.schedule(this)
+    } catch (_: Exception) {
+    }
+  }
+
+  override fun onDestroy() {
+    try {
+      charge?.let { unregisterReceiver(it) }
+    } catch (_: Exception) {
+    }
+    charge = null
+    super.onDestroy()
+  }
 
   // A reels feed shows up as a screen holding a view whose id mentions
   // reels / shorts / clips / spotlight. Depth-limited so a swipe stays cheap.

@@ -91,6 +91,13 @@ class ArogyaWellbeingModule : Module() {
   private fun snapshot(days: Int): Map<String, Any> {
     val hasUsage = usageAccess()
     val reels = ReelCounterService.readAll(context)
+    try {
+      ChargeTracker.update(context)
+      ChargeTracker.schedule(context)
+    } catch (_: Exception) {
+    }
+    val charges = ChargeTracker.sessions(context)
+    val useSpans = ArrayList<LongArray>() // stretches of real app use, for "without a break"
 
     val perDay = HashMap<String, HashMap<String, Long>>() // day -> pkg -> ms
     val perNight = HashMap<String, Long>() // day -> ms between 23:00 and 05:00
@@ -115,7 +122,10 @@ class ArogyaWellbeingModule : Module() {
           UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> {
             val from = openSince.remove(pkg) ?: continue
             addSpan(perDay, perNight, pkg, from, e.timeStamp)
-            if (!isNoise(pkg)) points.add(e.timeStamp)
+            if (!isNoise(pkg)) {
+              points.add(e.timeStamp)
+              useSpans.add(longArrayOf(from, e.timeStamp))
+            }
           }
           UsageEvents.Event.KEYGUARD_HIDDEN -> {
             val cal = Calendar.getInstance()
@@ -127,10 +137,14 @@ class ArogyaWellbeingModule : Module() {
       }
       for ((pkg, from) in openSince) {
         addSpan(perDay, perNight, pkg, from, end)
-        if (!isNoise(pkg)) points.add(end)
+        if (!isNoise(pkg)) {
+          points.add(end)
+          useSpans.add(longArrayOf(from, end))
+        }
       }
       points.sort()
     }
+    val sessions = mergeSessions(useSpans)
 
     val out = ArrayList<Map<String, Any>>()
     for (i in days - 1 downTo 0) {
@@ -157,11 +171,43 @@ class ArogyaWellbeingModule : Module() {
         "night" to ((perNight[key] ?: 0L) / 60000).toInt(),
         "unlocks" to (unlocks[key] ?: 0),
       )
+      day["charges"] = charges[key] ?: emptyList<Map<String, Any>>()
+      val mine = sessions.filter { dayKey(Calendar.getInstance().apply { timeInMillis = it[0] }) == key }
+      val fmt = SimpleDateFormat("HH:mm", Locale.US)
+      val longest = mine.maxByOrNull { it[1] - it[0] }
+      if (longest != null && longest[1] - longest[0] >= 60_000L) {
+        day["longest"] = mapOf(
+          "minutes" to ((longest[1] - longest[0]) / 60000).toInt(),
+          "start" to fmt.format(longest[0]),
+          "end" to fmt.format(longest[1]),
+        )
+      }
+      day["sessions"] = mine.count { it[1] - it[0] >= 60_000L }
+      day["longStretches"] = mine.count { it[1] - it[0] >= 30 * 60_000L }
       val sleep = estimateSleep(points, i, end)
       if (sleep != null) day["sleep"] = sleep
       out.add(day)
     }
     return mapOf("usageAccess" to hasUsage, "reelsAccess" to reelsAccess(), "days" to out)
+  }
+
+  // Joins app use into sittings: a gap of under 2 minutes (switching apps,
+  // a quick glance away) doesn't count as a break.
+  private fun mergeSessions(spans: List<LongArray>): List<LongArray> {
+    if (spans.isEmpty()) return emptyList()
+    val sorted = spans.sortedBy { it[0] }
+    val out = ArrayList<LongArray>()
+    var cur = longArrayOf(sorted[0][0], sorted[0][1])
+    for (s in sorted.drop(1)) {
+      if (s[0] - cur[1] <= 120_000L) {
+        if (s[1] > cur[1]) cur[1] = s[1]
+      } else {
+        out.add(cur)
+        cur = longArrayOf(s[0], s[1])
+      }
+    }
+    out.add(cur)
+    return out
   }
 
   // Sleep is estimated as the longest stretch with no phone use between

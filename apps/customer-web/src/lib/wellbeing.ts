@@ -14,6 +14,18 @@ export interface WellbeingDay {
   night?: number; // minutes on the phone between 11 pm and 5 am
   unlocks?: number;
   sleep?: { bed: string; wake: string; minutes: number }; // estimated from when the phone went quiet
+  charges?: ChargeSession[]; // times the phone went on charge that day (app 1.12.2+)
+  longest?: { minutes: number; start: string; end: string }; // longest use without a break
+  sessions?: number; // sittings of a minute or more
+  longStretches?: number; // sittings of 30 minutes or more
+}
+export interface ChargeSession {
+  start: string;
+  end: string;
+  minutes: number;
+  from: number; // battery % when plugged in (-1 unknown)
+  to: number;
+  now?: boolean; // still charging
 }
 export type Category = 'social' | 'messaging' | 'video' | 'calls' | 'other';
 export const CATEGORIES: Array<{ key: Category; label: string; color: string }> = [
@@ -86,12 +98,13 @@ export function fmtMinutes(min: number): string {
 
 // 0–100: full marks well inside the daily goal, falling as screen time passes
 // it; a long reels binge costs a little more.
-export function wellbeingScore(minutes: number, goal: number, reels: number, night = 0, sleepMin?: number): number {
+export function wellbeingScore(minutes: number, goal: number, reels: number, night = 0, sleepMin?: number, longest?: number): number {
   const ratio = minutes / Math.max(goal, 1);
   let s = ratio <= 1 ? 100 - ratio * 25 : 75 - (ratio - 1) * 50;
   s -= Math.min(15, reels / 8);
   s -= Math.min(12, night / 5); // late-night scrolling
   if (sleepMin !== undefined && sleepMin < 360) s -= Math.min(12, (360 - sleepMin) / 15);
+  if (longest !== undefined && longest > 60) s -= Math.min(8, (longest - 60) / 10); // long sittings without a break
   return Math.round(Math.min(100, Math.max(5, s)));
 }
 
@@ -125,6 +138,14 @@ export function sampleData(): WellbeingData {
       night: [12, 38, 5, 64, 22, 0, 9][i],
       unlocks: [74, 96, 61, 118, 83, 69, 52][i],
       sleep: { bed: hm(bedMin), wake: hm(wakeMin), minutes: sleepMin },
+      charges: [
+        { start: '07:05', end: '08:10', minutes: 65, from: 18, to: 96 },
+        { start: '14:40', end: '15:05', minutes: 25, from: 41, to: 63 },
+        ...(i % 2 ? [{ start: '22:30', end: '23:15', minutes: 45, from: 22, to: 78 }] : []),
+      ],
+      longest: { minutes: [74, 102, 48, 131, 88, 66, 57][i], start: '21:10', end: hm(21 * 60 + 10 + [74, 102, 48, 131, 88, 66, 57][i]) },
+      sessions: [58, 71, 49, 83, 64, 55, 41][i],
+      longStretches: [3, 4, 2, 5, 3, 2, 2][i],
       date,
       total,
       apps: {
