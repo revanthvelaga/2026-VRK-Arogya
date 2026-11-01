@@ -1,4 +1,4 @@
-// The Arogya logo: the doctor goddess of health standing inside a bold plus.
+// The Arogya logo: the doctor goddess of health standing inside a plus.
 export function ArogyaLogo({ size = 36, className, title = 'Arogya' }: { size?: number; className?: string; title?: string }) {
   return (
     <img
