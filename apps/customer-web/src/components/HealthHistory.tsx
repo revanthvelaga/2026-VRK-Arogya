@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Booking, MyReportValue, Package, RetestItem, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { formatCurrency, formatDateTime } from '../lib/format';
-import { IconCalendar, IconClock } from './Icons';
+import { IconCalendar, IconChevronDown, IconClock } from './Icons';
 
 const STATUS_TEXT: Record<RetestItem['status'], string> = {
   OVERDUE: 'Overdue',
@@ -27,6 +27,8 @@ export function RetestCard({ patientId }: { patientId: string }) {
   const items = data ?? [];
   const due = items.filter((i) => i.status === 'OVERDUE' || i.status === 'DUE_SOON');
   const later = items.filter((i) => i.status === 'OK' || i.status === 'BOOKED');
+  // Minimized by default; the list opens only when expanded.
+  const [open, setOpen] = useState(false);
   if (items.length === 0) return null;
 
   const rebook = (list: RetestItem[]) => {
@@ -38,10 +40,16 @@ export function RetestCard({ patientId }: { patientId: string }) {
 
   return (
     <div className={`card retest-card${due.length ? ' has-due' : ''}`}>
-      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: open ? undefined : 0 }}>
         <IconClock size={16} /> {due.length ? `${due.length} recheck${due.length === 1 ? '' : 's'} due` : 'Rechecks'}
+        <button type="button" className="link-btn" style={{ marginLeft: 'auto' }} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          {open ? 'Minimize' : 'Expand'}
+          <IconChevronDown size={14} className={`system-chevron${open ? ' up' : ''}`} />
+        </button>
       </div>
-      {due.length === 0 && <p className="page-sub" style={{ margin: '-4px 0 10px' }}>You're up to date. Next rechecks below.</p>}
+      <div className={`collapse-wrap${open ? ' open' : ''}`}>
+      <div className="collapse-inner">
+      {due.length === 0 && <p className="page-sub" style={{ margin: '6px 0 10px' }}>You're up to date. Next rechecks below.</p>}
       <div className="retest-list">
         {[...due, ...later].map((i) => (
           <div className="retest-row" key={i.testId}>
@@ -63,6 +71,8 @@ export function RetestCard({ patientId }: { patientId: string }) {
           </button>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
