@@ -12,8 +12,16 @@ adb logcat -c || true
 adb install -r "$APK"
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 
-alive=1
+# On a slow emulator the process can take several seconds to appear after
+# launch; give it up to 30s to start before watching that it stays up.
+started=0
 for i in $(seq 1 30); do
+  sleep 1
+  if adb shell pidof "$PKG" >/dev/null; then started=1; break; fi
+done
+alive=$started
+for i in $(seq 1 30); do
+  [ "$alive" = 1 ] || break
   sleep 1
   if ! adb shell pidof "$PKG" >/dev/null; then alive=0; break; fi
 done
