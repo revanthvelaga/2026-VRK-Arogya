@@ -56,7 +56,7 @@ export function WelcomeSplash() {
       }}
     >
       <div className="wow-center">
-        <ArogyaIntro size={320} className="wow-intro" />
+        <ArogyaIntro size={320} sound className="wow-intro" />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 // The Arogya intro film: two doctors walk in to the glowing plus, golden
-// light swirls around it and they strike a pose. Plays once, muted, then
+// light swirls around it and they strike a pose. Plays once (with sound when asked), then
 // holds on the last frame where the heart keeps glowing and sparkles twinkle.
 // Under reduced motion (or if the device blocks autoplay) the final frame
 // is shown instead.
@@ -16,8 +16,11 @@ const SPARKS = Array.from({ length: 14 }, (_, i) => ({
 export function ArogyaIntro({
   size = 300,
   startAt = 0,
+  sound = false,
   className,
 }: {
+  /** Play with sound (falls back to muted + a "tap for sound" chip if blocked). */
+  sound?: boolean;
   size?: number;
   /** Seconds into the film to start from (the welcome screen shows the glow part). */
   startAt?: number;
@@ -25,6 +28,7 @@ export function ArogyaIntro({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [ended, setEnded] = useState(false);
+  const [needTap, setNeedTap] = useState(false);
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
@@ -32,11 +36,18 @@ export function ArogyaIntro({
     if (!v || reduced) return;
     const start = () => {
       if (startAt) v.currentTime = startAt;
-      v.play().catch(() => setEnded(true));
+      v.muted = !sound;
+      v.play().catch(() => {
+        if (!sound) return setEnded(true);
+        // Sound blocked: play muted and offer a tap to turn sound on.
+        v.muted = true;
+        setNeedTap(true);
+        v.play().catch(() => setEnded(true));
+      });
     };
     if (v.readyState >= 1) start();
     else v.addEventListener('loadedmetadata', start, { once: true });
-  }, [startAt, reduced]);
+  }, [startAt, reduced, sound]);
 
   return (
     <div className={`ai-stage${ended || reduced ? ' ai-done' : ''}${className ? ` ${className}` : ''}`} style={{ width: size, height: size }}>
@@ -55,6 +66,23 @@ export function ArogyaIntro({
           onEnded={() => setEnded(true)}
           aria-label="Arogya"
         />
+      )}
+      {needTap && !ended && (
+        <button
+          type="button"
+          className="ai-sound"
+          onClick={(e) => {
+            e.stopPropagation();
+            const v = ref.current;
+            if (v) {
+              v.muted = false;
+              v.play().catch(() => undefined);
+            }
+            setNeedTap(false);
+          }}
+        >
+          🔊 Tap for sound
+        </button>
       )}
       <span className="ai-heartglow" aria-hidden />
       {SPARKS.map((s, i) => (

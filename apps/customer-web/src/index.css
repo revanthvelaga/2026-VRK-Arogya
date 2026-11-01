@@ -9362,3 +9362,11 @@ a.suggest-name:hover {
   mask-composite: intersect;
 }
 .wow-splash.wow-film { background: radial-gradient(120% 90% at 50% 42%, #f9f6f1 0%, #fbf8f4 55%, #fdf3ea 100%); }
+
+.ai-sound {
+  position: absolute; left: 50%; bottom: 10px; translate: -50% 0; z-index: 3;
+  padding: 7px 14px; border: 0; border-radius: 999px; cursor: pointer;
+  font: 600 13px/1 inherit; color: #fff; background: rgba(40, 24, 20, 0.62);
+  backdrop-filter: blur(6px); box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.4);
+  animation: textRise 0.4s ease both;
+}
