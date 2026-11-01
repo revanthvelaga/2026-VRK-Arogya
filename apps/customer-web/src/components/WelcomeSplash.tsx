@@ -7,8 +7,8 @@ import { useAuth } from '../auth/AuthContext';
 
 const MAX_MS = 7500;
 
-// Dhanvantari mantra, the prayer to the god of medicine and Ayurveda.
-const MANTRA = ['Om Namo Bhagavate Vasudevaya Dhanvantaraye', 'Amrita Kalasha Hastaya Sarvamaya Vinashanaya', 'Trailokya Nathaya Shri Mahavishnave Namaha']; // safety net if the film never starts or ends
+// First line of the Dhanvantari mantra, the prayer to the god of medicine.
+const MANTRA = ['Om Namo Bhagavate Vasudevaya Dhanvantaraye']; // safety net if the film never starts or ends
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
@@ -66,7 +66,7 @@ export function WelcomeSplash() {
       onClick={close}
     >
       <div className="wow-center">
-        <ArogyaPulse sound className="wow-pulse" onEnd={() => setTimeout(close, 1500)} />
+        <ArogyaPulse sound className="wow-pulse" onEnd={() => setTimeout(close, 1200)} />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
