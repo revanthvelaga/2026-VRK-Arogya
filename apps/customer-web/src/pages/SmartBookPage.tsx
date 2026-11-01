@@ -13,7 +13,6 @@ import {
   IconSparkle,
   IconStethoscope,
   IconUpload,
-  IconX,
 } from '../components/Icons';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
@@ -35,11 +34,11 @@ function AddButton({ kind, id, name, price }: { kind: 'test' | 'package'; id: st
         'In package'
       ) : added ? (
         <>
-          <IconX size={13} /> Remove
+          <IconPlus size={13} className="add-btn-icon" /> Remove
         </>
       ) : (
         <>
-          <IconPlus size={13} /> Add
+          <IconPlus size={13} className="add-btn-icon" /> Add
         </>
       )}
     </button>

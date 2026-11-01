@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { StatusBadge } from '../components/StatusBadge';
 import { SampleProgress } from '../components/SampleProgress';
+import { BookingPlaced } from '../components/BookingPlaced';
 import { LoadingLine } from '../components/Spinner';
 import { GuaranteeNote, PreparationCard, RateAgentCard, VisitStatusCard } from '../components/VisitCards';
 import {
@@ -447,6 +448,8 @@ export function BookingDetailPage() {
         </div>
         <StatusBadge status={booking.status} variant={bookingStatusVariant(booking.status)} />
       </div>
+
+      <BookingPlaced booking={booking} />
 
       {actionError && <div className="error-banner">{actionError}</div>}
 

@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
-import { LoadingLine } from '../components/Spinner';
+import { CardSkeletons } from '../components/Skeleton';
 import { CompareToggle } from '../components/CompareToggle';
 import { SEGMENTS } from '../lib/segments';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
@@ -25,7 +25,6 @@ import {
   IconShieldCheck,
   IconStethoscope,
   IconUpload,
-  IconX,
 } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 
@@ -84,11 +83,11 @@ function TestTile({ test, index }: { test: Test; index: number }) {
           >
             {inPackage ? 'In package' : added ? (
               <>
-                <IconX size={13} /> Remove
+                <IconPlus size={13} className="add-btn-icon" /> Remove
               </>
             ) : (
               <>
-                <IconPlus size={13} /> Add
+                <IconPlus size={13} className="add-btn-icon" /> Add
               </>
             )}
           </button>
@@ -126,11 +125,11 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
           >
             {added ? (
               <>
-                <IconX size={13} /> Remove
+                <IconPlus size={13} className="add-btn-icon" /> Remove
               </>
             ) : (
               <>
-                <IconPlus size={13} /> Add
+                <IconPlus size={13} className="add-btn-icon" /> Add
               </>
             )}
           </button>
@@ -251,7 +250,7 @@ export function HomePage() {
 
       <div className="section-title">Recommended tests</div>
       {testsLoading ? (
-        <LoadingLine label="Loading…" />
+        <CardSkeletons layout="carousel" count={2} />
       ) : (
         <div className="carousel">
           {recommendedTests.map((t, i) => (
@@ -262,7 +261,7 @@ export function HomePage() {
 
       <div className="section-title">Popular packages</div>
       {packagesLoading ? (
-        <LoadingLine label="Loading…" />
+        <CardSkeletons layout="carousel" count={2} />
       ) : featuredPackages.length === 0 ? (
         <p className="page-sub">No packages published yet — check back soon.</p>
       ) : (

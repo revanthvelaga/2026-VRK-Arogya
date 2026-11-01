@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { useCart } from '../context/CartContext';
 import { LoadingLine } from '../components/Spinner';
 import { EmptyState } from '../components/EmptyState';
-import { IconBox, IconCheckCircle, IconPlus, IconX } from '../components/Icons';
+import { IconBox, IconCheckCircle, IconPlus } from '../components/Icons';
 import { formatCurrency } from '../lib/format';
 import { buildVisitPlan, TIER_LABEL } from '../lib/visitPlan';
 
@@ -27,11 +27,11 @@ function AddCell({ pkg }: { pkg: Package }) {
     >
       {added ? (
         <>
-          <IconX size={13} /> Remove
+          <IconPlus size={13} className="add-btn-icon" /> Remove
         </>
       ) : (
         <>
-          <IconPlus size={13} /> Add
+          <IconPlus size={13} className="add-btn-icon" /> Add
         </>
       )}
     </button>

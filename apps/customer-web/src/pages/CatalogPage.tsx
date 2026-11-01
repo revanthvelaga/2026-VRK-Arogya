@@ -5,7 +5,7 @@ import type { Audience, Package, Test } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { TIER_LABEL } from '../lib/visitPlan';
 import { useCart } from '../context/CartContext';
-import { LoadingLine } from '../components/Spinner';
+import { CardSkeletons } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import { CompareToggle } from '../components/CompareToggle';
 import {
@@ -116,11 +116,11 @@ function TestCard({ test, index }: { test: Test; index: number }) {
           >
             {inPackage ? 'In package' : added ? (
               <>
-                <IconX size={13} /> Remove
+                <IconPlus size={13} className="add-btn-icon" /> Remove
               </>
             ) : (
               <>
-                <IconPlus size={13} /> Add
+                <IconPlus size={13} className="add-btn-icon" /> Add
               </>
             )}
           </button>
@@ -170,11 +170,11 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
           >
             {added ? (
               <>
-                <IconX size={13} /> Remove
+                <IconPlus size={13} className="add-btn-icon" /> Remove
               </>
             ) : (
               <>
-                <IconPlus size={13} /> Add
+                <IconPlus size={13} className="add-btn-icon" /> Add
               </>
             )}
           </button>
@@ -207,7 +207,7 @@ function TestsSection({ audience }: { audience: Audience | null }) {
     });
   }, [tests, sampleType, query, audience]);
 
-  if (loading) return <LoadingLine label="Loading tests…" />;
+  if (loading) return <CardSkeletons count={4} />;
   if (error) return <div className="error-banner">{error}</div>;
 
   return (
@@ -269,7 +269,7 @@ function PackagesSection({ audience }: { audience: Audience | null }) {
     [packages, audience],
   );
 
-  if (loading) return <LoadingLine label="Loading packages…" />;
+  if (loading) return <CardSkeletons count={3} />;
   if (error) return <div className="error-banner">{error}</div>;
   if (filtered.length === 0) {
     return (

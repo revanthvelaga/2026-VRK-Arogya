@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import type { Booking, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
-import { LoadingLine } from '../components/Spinner';
+import { RowSkeletons } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import { IconArrowRight, IconCalendar } from '../components/Icons';
 import { bookingStatusVariant, formatCurrency, formatDateTime, statusLabel } from '../lib/format';
@@ -57,7 +57,7 @@ export function MyBookingsPage() {
 
       {error && <div className="error-banner">{error}</div>}
       {loading ? (
-        <LoadingLine label="Loading your bookings…" />
+        <RowSkeletons count={3} />
       ) : sorted.length === 0 ? (
         <EmptyState
           icon={<IconCalendar size={20} />}

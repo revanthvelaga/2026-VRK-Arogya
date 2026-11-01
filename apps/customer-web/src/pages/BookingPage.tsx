@@ -410,7 +410,7 @@ export function BookingPage() {
         useWallet: walletUsed > 0 ? true : undefined,
       });
       cart.clear();
-      navigate(`/bookings/${booking.id}`);
+      navigate(`/bookings/${booking.id}`, { state: { justBooked: true } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the booking');
     } finally {

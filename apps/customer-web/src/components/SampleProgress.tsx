@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Sample, SampleStatus } from '../api/types';
 import { IconBuilding, IconCheckCircle, IconClock, IconFlask, IconTruck } from './Icons';
 
@@ -36,22 +37,42 @@ function steps(sample: Sample) {
   ];
 }
 
+// On a phone the steps run top to bottom like a courier timeline; on wider
+// screens, left to right. When the page opens, the line fills from
+// "Booked" up to where the sample is now, so the customer sees how far it
+// has come; the current step keeps a slow pulse, and while the sample is
+// on the road the truck rocks gently.
 export function SampleProgress({ sample }: { sample: Sample }) {
   const current = STATUS_TO_STEP[sample.status];
   const items = steps(sample);
+  const finished = sample.status === 'DELIVERED';
 
   return (
-    <div className="progress-stepper" role="list">
+    <div className="progress-stepper" role="list" aria-label="Sample progress">
       {items.map((step, i) => {
-        const state = i < current ? 'done' : i === current ? 'active' : 'todo';
+        const state = i < current || (finished && i === current) ? 'done' : i === current ? 'active' : 'todo';
         const Icon = step.icon;
+        const moving = state === 'active' && sample.status === 'IN_TRANSIT_TO_CENTER';
         return (
-          <div className={`progress-step progress-step--${state}`} role="listitem" key={step.label + i}>
-            {i > 0 && <div className="progress-connector" />}
+          <div
+            className={`progress-step progress-step--${state}${moving ? ' progress-step--moving' : ''}`}
+            role="listitem"
+            aria-current={state === 'active' ? 'step' : undefined}
+            key={step.label + i}
+            style={{ '--i': i } as CSSProperties}
+          >
+            {i > 0 && (
+              <div className="progress-connector">
+                <span className="progress-connector-fill" />
+              </div>
+            )}
             <div className="progress-dot">
               <Icon size={13} />
             </div>
-            <div className="progress-label">{step.label}</div>
+            <div className="progress-label">
+              {step.label}
+              {state === 'active' && <span className="progress-now">Now</span>}
+            </div>
           </div>
         );
       })}

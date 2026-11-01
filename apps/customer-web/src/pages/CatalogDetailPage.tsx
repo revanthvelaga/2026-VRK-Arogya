@@ -14,7 +14,6 @@ import {
   IconFileText,
   IconFlask,
   IconPlus,
-  IconX,
 } from '../components/Icons';
 import { audienceLabel } from '../lib/segments';
 import { formatCurrency } from '../lib/format';
@@ -108,11 +107,11 @@ function DetailHeader({
             `In ${inPackage}`
           ) : added ? (
             <>
-              <IconX size={13} /> Remove
+              <IconPlus size={13} className="add-btn-icon" /> Remove
             </>
           ) : (
             <>
-              <IconPlus size={13} /> Add
+              <IconPlus size={13} className="add-btn-icon" /> Add
             </>
           )}
         </button>
