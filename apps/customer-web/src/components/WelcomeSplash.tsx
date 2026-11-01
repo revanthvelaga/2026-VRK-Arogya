@@ -4,12 +4,12 @@ import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const MAX_MS = 16000; // safety net if the film never starts or ends
+const MAX_MS = 9000; // safety net if the film never starts or ends
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
-// The moment after signing in: the Arogya film plays — two doctors walk in
-// to the glowing plus, golden light swirls and sparkles, they strike a pose —
+// The moment after signing in: the short Arogya film plays — golden light
+// swirls around the glowing plus and sparkles, the doctors strike a pose —
 // then the name and greeting rise under it and the screen closes into a
 // circle to reveal Home. Tap anywhere to skip.
 // Shown once per sign-in, never on reload; a plain fade under reduced motion.
@@ -63,11 +63,11 @@ export function WelcomeSplash() {
       onClick={close}
     >
       <div className="wow-center">
-        <ArogyaIntro size={320} sound className="wow-intro" onStart={() => setGo(true)} onEnd={() => setTimeout(close, 900)} />
+        <ArogyaIntro size={320} sound className="wow-intro" onStart={() => setGo(true)} onEnd={() => setTimeout(close, 1100)} />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${6.15 + i * 0.07}s` }}>
+            <span key={i} style={{ animationDelay: `${2.2 + i * 0.06}s` }}>
               {ch}
             </span>
           ))}

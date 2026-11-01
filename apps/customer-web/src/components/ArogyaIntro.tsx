@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-// The Arogya intro film: two doctors walk in to the glowing plus, golden
-// light swirls around it and they strike a pose. A warm glow breathes around
+// The Arogya intro film (about 4 s): the doctors beside the glowing plus,
+// golden light swirls around it and they strike a pose. Over it: a burst of
+// light from the heart, sparkles around the plus and the doctors, embers
+// drifting up, two sparks orbiting and a shimmer sweeping across. A warm glow breathes around
 // the plus the whole time and sparkles twinkle; after the last frame the
 // heart keeps glowing. Under reduced motion the final frame is shown instead.
 
@@ -23,18 +25,48 @@ export function preloadIntro(): Promise<string> {
   return filmUrl;
 }
 
-const SPARKS = Array.from({ length: 18 }, (_, i) => {
-  // Sparkles sit in a ring around the plus.
-  const a = (i / 18) * Math.PI * 2 + (i % 3) * 0.3;
-  const r = 24 + ((i * 7) % 9);
+// Fixed pseudo-random numbers so the sparkle layout is the same every time.
+const rnd = (i: number, k: number) => {
+  const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+// A ring of twinkles around the plus.
+const RING = Array.from({ length: 22 }, (_, i) => {
+  const a = (i / 22) * Math.PI * 2 + rnd(i, 1) * 0.4;
+  const r = 23 + rnd(i, 2) * 10;
   return {
     left: `${50 + Math.cos(a) * r}%`,
     top: `${49 + Math.sin(a) * r * 0.95}%`,
-    size: 3 + ((i * 5) % 4),
-    delay: `${((i * 9) % 25) / 10}s`,
-    dur: `${2 + ((i * 7) % 8) / 4}s`,
+    size: 3 + Math.round(rnd(i, 3) * 4),
+    delay: `${(rnd(i, 4) * 2.4).toFixed(2)}s`,
+    dur: `${(1.6 + rnd(i, 5) * 1.6).toFixed(2)}s`,
   };
 });
+
+// Sparkles shimmering around each doctor.
+const AROUND = Array.from({ length: 16 }, (_, i) => {
+  const left = i < 8 ? 9 + rnd(i, 6) * 22 : 69 + rnd(i, 6) * 22;
+  return {
+    left: `${left}%`,
+    top: `${24 + rnd(i, 7) * 62}%`,
+    size: 2 + Math.round(rnd(i, 8) * 4),
+    delay: `${(0.3 + rnd(i, 9) * 2.6).toFixed(2)}s`,
+    dur: `${(1.4 + rnd(i, 10) * 1.4).toFixed(2)}s`,
+  };
+});
+
+// Golden embers drifting up from the floor.
+const EMBERS = Array.from({ length: 16 }, (_, i) => ({
+  left: `${8 + rnd(i, 11) * 84}%`,
+  size: 2 + Math.round(rnd(i, 12) * 3),
+  delay: `${(rnd(i, 13) * 3).toFixed(2)}s`,
+  dur: `${(2.6 + rnd(i, 14) * 2).toFixed(2)}s`,
+  drift: `${Math.round((rnd(i, 15) - 0.5) * 60)}px`,
+}));
+
+// A burst of light streaks from the heart when the film starts.
+const BURST = Array.from({ length: 14 }, (_, i) => ({ rot: `${(i / 14) * 360 + rnd(i, 16) * 10}deg`, len: `${Math.round(48 + rnd(i, 17) * 44)}px` }));
 
 export function ArogyaIntro({
   size = 300,
@@ -154,12 +186,30 @@ export function ArogyaIntro({
       <span className="ai-plusglow" aria-hidden />
       <span className="ai-plusring" aria-hidden />
       <span className="ai-heartglow" aria-hidden />
-      {SPARKS.map((s, i) => (
+      <span className="ai-shimmer" aria-hidden />
+      <span className="ai-orbit" aria-hidden>
+        <i />
+        <i />
+      </span>
+      <span className="ai-burst" aria-hidden>
+        {BURST.map((b, i) => (
+          <i key={i} style={{ rotate: b.rot, height: b.len }} />
+        ))}
+      </span>
+      {[...RING, ...AROUND].map((s, i) => (
         <span
           key={i}
-          className="ai-spark"
+          className={`ai-spark${i >= RING.length ? ' ai-spark-doc' : ''}`}
           aria-hidden
           style={{ left: s.left, top: s.top, width: s.size, height: s.size, animationDelay: s.delay, animationDuration: s.dur }}
+        />
+      ))}
+      {EMBERS.map((e, i) => (
+        <span
+          key={`e${i}`}
+          className="ai-ember"
+          aria-hidden
+          style={{ left: e.left, width: e.size, height: e.size, animationDelay: e.delay, animationDuration: e.dur, ['--drift' as string]: e.drift }}
         />
       ))}
     </div>
