@@ -9595,3 +9595,19 @@ button.trends-toggle .system-chevron { margin-left: auto; }
 @media (max-width: 380px) {
   .results-switch button { padding: 7px 9px; font-size: 12.5px; }
 }
+
+/* ---------- Galaxy health score ---------- */
+.galaxy-score { position: relative; flex: none; margin: 0 auto; border-radius: 50%; }
+.galaxy-score::before {
+  content: ''; position: absolute; inset: -14px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0) 70%);
+}
+.galaxy-score canvas { display: block; }
+.galaxy-label { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+.galaxy-number { font-size: 54px; font-weight: 900; line-height: 1; color: #fff; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.galaxy-unit { margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(226, 232, 240, 0.85); }
+.health-score-body:has(.galaxy-score) { flex-wrap: wrap; justify-content: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .galaxy-label { animation: galaxyIn 1s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.4s both; }
+}
+@keyframes galaxyIn { from { opacity: 0; transform: scale(0.6); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }

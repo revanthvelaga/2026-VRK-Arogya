@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { api, downloadFile, viewFile } from '../api/client';
 import type { Gender, MyReportValue, Patient, Relationship } from '../api/types';
+import { GalaxyScore } from '../components/GalaxyScore';
 import { ResultsViewSwitch, type ResultsView } from '../components/ResultsViewSwitch';
 import { useApi } from '../lib/useApi';
 import { LoadingLine } from '../components/Spinner';
@@ -273,19 +274,9 @@ function groupByReport(values: MyReportValue[]): ReportGroup[] {
 // motion the user asked for. The number and the stroke animate together
 // off the same `animated` state so they never drift out of sync.
 function HealthScoreGauge({ score, normal, total }: { score: number; normal: number; total: number }) {
-  const [animated, setAnimated] = useState(0);
-
-  useEffect(() => {
-    setAnimated(0);
-    const raf = requestAnimationFrame(() => setAnimated(score));
-    return () => cancelAnimationFrame(raf);
-  }, [score, total]);
-
-  const radius = 62;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (animated / 100) * circumference;
   const color = total === 0 ? 'var(--ink-faint)' : score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : 'var(--red)';
   const soft = total === 0 ? 'var(--grey-soft)' : score >= 80 ? 'var(--green-soft)' : score >= 50 ? 'var(--amber-soft)' : 'var(--red-soft)';
+  const toneHex = total === 0 ? '#94a3b8' : score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
   const Icon = total === 0 ? IconActivity : score >= 80 ? IconShieldCheck : IconAlertTriangle;
   const headline =
     total === 0
@@ -305,35 +296,7 @@ function HealthScoreGauge({ score, normal, total }: { score: number; normal: num
           Overall body health score
         </div>
         <div className="health-score-body">
-          <div className="health-score-ring-wrap">
-            <svg width={156} height={156} viewBox="0 0 156 156">
-              <circle cx={78} cy={78} r={radius} fill="none" stroke="var(--line)" strokeWidth={14} />
-              {total > 0 && (
-                <circle
-                  cx={78}
-                  cy={78}
-                  r={radius}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={14}
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={offset}
-                  transform="rotate(-90 78 78)"
-                  style={{
-                    transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease',
-                    filter: total > 0 ? `drop-shadow(0 2px 9px ${color})` : undefined,
-                  }}
-                />
-              )}
-            </svg>
-            <div className="health-score-ring-label">
-              <div className="health-score-number" style={{ color }}>
-                {total === 0 ? '–' : animated}
-              </div>
-              {total > 0 && <div className="health-score-unit">out of 100</div>}
-            </div>
-          </div>
+          <GalaxyScore score={score} tone={toneHex} empty={total === 0} size={230} />
           <div className="health-score-meta">
             <div className="health-score-badge" style={{ background: soft, color }}>
               <Icon size={13} />
