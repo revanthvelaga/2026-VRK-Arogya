@@ -12,7 +12,19 @@ import { VitalReading } from './entities/vital-reading.entity';
 import { HealthGoal } from './entities/health-goal.entity';
 import { Medicine } from './entities/medicine.entity';
 import { RetestReminder } from './entities/retest-reminder.entity';
-import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateGoalDto, UpdateMedicineDto } from './dto/health.dto';
+import { CreateGoalDto, CreateMedicineDto, CreateMedicinesDto, CreateVitalDto, UpdateGoalDto, UpdateMedicineDto } from './dto/health.dto';
+import type { AiContentBlock } from '../ai/ai.service';
+
+export interface ScannedMedicine {
+  name: string;
+  genericName?: string;
+  brand?: string;
+  dosage?: string;
+  form?: string;
+  photo: number;
+  timings: string[];
+  confidence: 'high' | 'medium' | 'low';
+}
 import { AiService } from '../ai/ai.service';
 import { goalTargetProblem } from './goal-limits';
 import { PatientsService } from '../patients/patients.service';
@@ -210,14 +222,80 @@ export class HealthService implements OnModuleInit, OnModuleDestroy {
 
   async addMedicine(dto: CreateMedicineDto, userId: string) {
     await this.assertPatient(dto.patientId, userId);
-    return this.medicinesRepo.save(
-      this.medicinesRepo.create({
-        patientId: dto.patientId,
-        name: dto.name.trim(),
-        dosage: dto.dosage?.trim() || null,
-        schedule: dto.schedule?.trim() || null,
-      }),
-    );
+    return this.medicinesRepo.save(this.medicinesRepo.create(this.medicineRow(dto.patientId, dto)));
+  }
+
+  // Several at once (after reviewing a strip scan).
+  async addMedicines(dto: CreateMedicinesDto, userId: string) {
+    await this.assertPatient(dto.patientId, userId);
+    return this.medicinesRepo.save(dto.items.map((item) => this.medicinesRepo.create(this.medicineRow(dto.patientId, item))));
+  }
+
+  private medicineRow(patientId: string, item: Omit<CreateMedicineDto, 'patientId'>) {
+    const order = ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'];
+    return {
+      patientId,
+      name: item.name.trim(),
+      brand: item.brand?.trim() || null,
+      dosage: item.dosage?.trim() || null,
+      schedule: item.schedule?.trim() || null,
+      timings: item.timings?.length ? [...new Set(item.timings)].sort((a, b) => order.indexOf(a) - order.indexOf(b)) : null,
+      food: item.food ?? null,
+    };
+  }
+
+  // Reads medicine strips from up to 5 photos in one go: name, brand and
+  // strength as printed. Nothing is saved — the customer checks the list,
+  // picks morning / afternoon / evening / night, then saves.
+  async scanMedicines(files: Express.Multer.File[]): Promise<{ medicines: ScannedMedicine[] }> {
+    if (!files.length) throw new BadRequestException('Add at least one photo of a medicine strip.');
+    const content: AiContentBlock[] = [];
+    files.forEach((f, i) => {
+      content.push({ type: 'text', text: `Photo ${i + 1}:` });
+      content.push({ type: 'image', mimeType: f.mimetype, data: f.buffer.toString('base64') });
+    });
+    const result = await this.ai.json<{ medicines: ScannedMedicine[] }>({
+      system:
+        'You read photos of medicine strips, bottles and boxes from India. For every distinct medicine you can see, ' +
+        'return: name (the medicine as a patient would say it, usually the brand name printed largest, e.g. "Glycomet GP 1"), ' +
+        'genericName (the salt / active ingredient with strength, e.g. "Metformin 500 mg + Glimepiride 1 mg"), ' +
+        'brand (the manufacturer or company, e.g. "USV", "Cipla"), dosage (strength per unit, e.g. "500 mg" or "5 ml"), ' +
+        'form (tablet, capsule, syrup, injection, drops, cream or other), photo (the photo number it was in), ' +
+        'and confidence (high, medium or low). Only include timings if a dosing time is actually printed or handwritten ' +
+        'on the pack (MORNING, AFTERNOON, EVENING, NIGHT); otherwise leave timings empty — never guess how often to take it. ' +
+        'If a photo shows no medicine or is unreadable, skip it. Do not give medical advice.',
+      content,
+      schema: {
+        type: 'object',
+        properties: {
+          medicines: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                genericName: { type: 'string' },
+                brand: { type: 'string' },
+                dosage: { type: 'string' },
+                form: { type: 'string', enum: ['tablet', 'capsule', 'syrup', 'injection', 'drops', 'cream', 'other'] },
+                photo: { type: 'integer' },
+                timings: { type: 'array', items: { type: 'string', enum: ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'] } },
+                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+              },
+              required: ['name', 'photo', 'confidence'],
+            },
+          },
+        },
+        required: ['medicines'],
+      },
+      maxTokens: 2000,
+    });
+    return {
+      medicines: (result.medicines ?? [])
+        .filter((m) => m.name?.trim())
+        .slice(0, 15)
+        .map((m) => ({ ...m, name: m.name.trim().slice(0, 120), timings: m.timings ?? [] })),
+    };
   }
 
   async updateMedicine(id: string, dto: UpdateMedicineDto, userId: string) {

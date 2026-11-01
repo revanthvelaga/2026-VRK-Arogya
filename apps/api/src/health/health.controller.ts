@@ -1,6 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { HealthService } from './health.service';
-import { CreateGoalDto, CreateMedicineDto, CreateVitalDto, UpdateMedicineDto, UpdateGoalDto } from './dto/health.dto';
+import { CreateGoalDto, CreateMedicineDto, CreateMedicinesDto, CreateVitalDto, UpdateMedicineDto, UpdateGoalDto } from './dto/health.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+
+const medicinePhotoOptions = {
+  storage: memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, files: 5 },
+  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (error: Error | null, accept: boolean) => void) => {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(file.mimetype)) {
+      cb(new BadRequestException('Use photos (JPG, PNG or WebP) of the medicine strips'), false);
+      return;
+    }
+    cb(null, true);
+  },
+};
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/authenticated-user';
@@ -60,6 +74,18 @@ export class HealthTrackingController {
   @Post('medicines')
   addMedicine(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateMedicineDto) {
     return this.healthService.addMedicine(dto, user.userId);
+  }
+
+  // Up to 5 photos of strips / bottles → what's printed on them, for review.
+  @Post('medicines/scan')
+  @UseInterceptors(FilesInterceptor('photos', 5, medicinePhotoOptions))
+  scanMedicines(@UploadedFiles() files: Express.Multer.File[] = []) {
+    return this.healthService.scanMedicines(files);
+  }
+
+  @Post('medicines/bulk')
+  addMedicines(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateMedicinesDto) {
+    return this.healthService.addMedicines(dto, user.userId);
   }
 
   @Patch('medicines/:id')

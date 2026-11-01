@@ -17,6 +17,18 @@ export class Medicine {
   @Column({ type: 'varchar', length: 80, nullable: true })
   dosage?: string | null;
 
+  // The brand / company on the strip, e.g. "Glycomet" or "Cipla".
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  brand?: string | null;
+
+  // When it's taken: any of MORNING, AFTERNOON, EVENING, NIGHT.
+  @Column({ type: 'simple-array', nullable: true })
+  timings?: string[] | null;
+
+  // BEFORE or AFTER food, when it matters.
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  food?: string | null;
+
   // Free text: "Once daily after breakfast", "Twice a day".
   @Column({ type: 'varchar', length: 120, nullable: true })
   schedule?: string | null;

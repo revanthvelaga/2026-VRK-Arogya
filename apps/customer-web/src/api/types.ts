@@ -460,10 +460,15 @@ export interface HealthGoal {
   createdAt: string;
 }
 
+export type MedicineTiming = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
+
 export interface Medicine {
   id: string;
   patientId: string;
   name: string;
+  brand?: string | null;
+  timings?: MedicineTiming[] | null;
+  food?: 'BEFORE' | 'AFTER' | null;
   dosage?: string | null;
   schedule?: string | null;
   isActive: boolean;

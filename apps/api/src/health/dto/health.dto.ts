@@ -1,4 +1,6 @@
-import { IsBoolean, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min, ValidateIf, ValidateNested } from 'class-validator';
+import { OmitType } from '@nestjs/mapped-types';
+import { Type } from 'class-transformer';
 import { VITAL_TYPES } from '../entities/vital-reading.entity';
 
 export class CreateVitalDto {
@@ -80,6 +82,8 @@ export class UpdateGoalDto {
   targetDate?: string | null;
 }
 
+export const MEDICINE_TIMINGS = ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'];
+
 export class CreateMedicineDto {
   @IsUUID()
   patientId: string;
@@ -97,9 +101,37 @@ export class CreateMedicineDto {
   @IsString()
   @MaxLength(120)
   schedule?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  brand?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(MEDICINE_TIMINGS, { each: true })
+  timings?: string[];
+
+  @IsOptional()
+  @IsIn(['BEFORE', 'AFTER'])
+  food?: string;
 }
 
 export class UpdateMedicineDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  brand?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(MEDICINE_TIMINGS, { each: true })
+  timings?: string[];
+
+  @IsOptional()
+  @IsIn(['BEFORE', 'AFTER'])
+  food?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(120)
@@ -118,4 +150,19 @@ export class UpdateMedicineDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+// Several medicines at once — what a strip scan hands back after review.
+export class MedicineItemDto extends OmitType(CreateMedicineDto, ['patientId'] as const) {}
+
+export class CreateMedicinesDto {
+  @IsUUID()
+  patientId: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => MedicineItemDto)
+  items: MedicineItemDto[];
 }

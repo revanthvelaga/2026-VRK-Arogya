@@ -8244,3 +8244,321 @@ a.suggest-name:hover {
 .patient-card .person-avatar {
   margin-right: 2px;
 }
+
+/* ---------- Medicines: scan strips / add by hand ---------- */
+.meds-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.meds-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.meds-add-btn > svg {
+  flex: none;
+  color: var(--accent-ink);
+}
+
+.meds-add-btn span {
+  display: grid;
+  line-height: 1.25;
+}
+
+.meds-add-btn b {
+  font-size: 14px;
+}
+
+.meds-add-btn small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.meds-add-btn--scan {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+}
+
+.scan-box {
+  margin-top: 12px;
+}
+
+.scan-hint,
+.scan-found {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.scan-found {
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.scan-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.scan-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.scan-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-thumb > button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(16, 24, 44, 0.65);
+  color: #fff;
+  cursor: pointer;
+}
+
+.scan-thumb-add {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  border: 1.5px dashed var(--accent-a);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* While reading: a light line sweeps down each photo. */
+.scan-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(14, 165, 160, 0.35) 48%, rgba(255, 255, 255, 0.9) 50%, transparent 52%);
+  background-size: 100% 220%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scan-sweep {
+    animation: scanSweep 1.4s ease-in-out infinite;
+  }
+  .med-draft {
+    animation: riseIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .timing-btn.on svg {
+    animation: addPop 0.32s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+}
+
+@keyframes scanSweep {
+  from { background-position: 0 100%; }
+  to { background-position: 0 0%; }
+}
+
+.scan-go {
+  width: 100%;
+  justify-content: center;
+}
+
+.med-review {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.med-draft {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.med-draft.unsure {
+  border-color: var(--amber);
+}
+
+.med-draft-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.med-draft-name {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  border: 0;
+  border-bottom: 1.5px solid var(--line-strong);
+  padding: 6px 2px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.med-draft-name:focus {
+  outline: none;
+  border-bottom-color: var(--accent-a);
+}
+
+.med-generic {
+  margin: 6px 0 0 42px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.med-unsure {
+  margin: 6px 0 0 42px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.med-draft-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.med-draft-fields .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.med-draft-fields input {
+  width: 100%;
+  min-width: 0;
+}
+
+.timing-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.timing-btn {
+  --t: var(--accent-a);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 8px 2px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.timing-btn--morning { --t: #f59e0b; }
+.timing-btn--afternoon { --t: #ea580c; }
+.timing-btn--evening { --t: #db2777; }
+.timing-btn--night { --t: #4f46e5; }
+
+.timing-btn svg {
+  color: var(--t);
+}
+
+.timing-btn.on {
+  border-color: var(--t);
+  background: color-mix(in srgb, var(--t) 12%, var(--surface));
+  color: var(--ink);
+}
+
+.food-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.food-btn {
+  flex: 1;
+  padding: 7px 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.food-btn.on {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.med-review-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.med-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.med-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+
+.med-time--morning svg { color: #f59e0b; }
+.med-time--afternoon svg { color: #ea580c; }
+.med-time--evening svg { color: #db2777; }
+.med-time--night svg { color: #4f46e5; }
+
+.med-time--food {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}

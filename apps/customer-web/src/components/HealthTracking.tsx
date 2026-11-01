@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../api/client';
-import type { Medicine, VitalReading, VitalType } from '../api/types';
+import type { VitalReading, VitalType } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { formatDateTime } from '../lib/format';
 import { formatVital, VITAL_BY_TYPE, VITALS, vitalOutOfRange } from '../lib/vitals';
 import { TrendChart } from './TrendChart';
 import { VITALS_CHANGED } from './Goals';
 import { LoadingLine } from './Spinner';
-import { IconHeart, IconPill, IconPlus, IconX } from './Icons';
+import { IconHeart, IconPlus, IconX } from './Icons';
 
 function nowLocalInput(): string {
   const d = new Date();
@@ -199,111 +199,5 @@ export function VitalsCard({ patientId }: { patientId: string }) {
 // Goals live in ./Goals — re-exported so pages keep one import.
 export { GoalsCard } from './Goals';
 
-// ---------------------------------------------------------------------
-// Medicines
-// ---------------------------------------------------------------------
-
-export function MedicinesCard({ patientId }: { patientId: string }) {
-  const medsApi = useApi<Medicine[]>(() => api.get(`/health/medicines?patientId=${patientId}`), [patientId]);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState('');
-  const [dosage, setDosage] = useState('');
-  const [schedule, setSchedule] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const add = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await api.post('/health/medicines', {
-        patientId,
-        name,
-        dosage: dosage || undefined,
-        schedule: schedule || undefined,
-      });
-      setName('');
-      setDosage('');
-      setSchedule('');
-      setAdding(false);
-      medsApi.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add');
-    }
-  };
-
-  const toggle = async (m: Medicine) => {
-    await api.patch(`/health/medicines/${m.id}`, { isActive: !m.isActive });
-    medsApi.reload();
-  };
-
-  const remove = async (id: string) => {
-    await api.delete(`/health/medicines/${id}`);
-    medsApi.reload();
-  };
-
-  const meds = medsApi.data ?? [];
-
-  return (
-    <div className="card">
-      <div className="card-head-row">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 0 }}>
-          <IconPill size={16} style={{ color: 'var(--accent-ink)' }} /> Medicines
-        </div>
-        <button type="button" className="btn btn-small" onClick={() => setAdding((v) => !v)}>
-          {adding ? <IconX size={13} /> : <IconPlus size={13} />} {adding ? 'Close' : 'Add'}
-        </button>
-      </div>
-
-      {adding && (
-        <form className="inline-form" onSubmit={add} style={{ marginTop: 12 }}>
-          <label className="field">
-            <span>Medicine</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Metformin" required maxLength={120} />
-          </label>
-          <label className="field">
-            <span>Dose</span>
-            <input value={dosage} onChange={(e) => setDosage(e.target.value)} placeholder="500 mg" maxLength={80} />
-          </label>
-          <label className="field">
-            <span>When</span>
-            <input
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
-              placeholder="Twice daily after meals"
-              maxLength={120}
-            />
-          </label>
-          <button className="btn btn-primary">Save</button>
-          {error && <div className="error-banner" style={{ gridColumn: '1 / -1' }}>{error}</div>}
-        </form>
-      )}
-
-      {meds.length === 0 && !adding ? (
-        <p className="page-sub" style={{ margin: '8px 0 0' }}>
-          Keep a list of what you take — handy when going through results with your doctor.
-        </p>
-      ) : (
-        <div className="med-list">
-          {meds.map((m) => (
-            <div className={`med${m.isActive ? '' : ' stopped'}`} key={m.id}>
-              <span className="med-icon">
-                <IconPill size={15} />
-              </span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <b>{m.name}</b>
-                {m.dosage && <span className="med-dose"> · {m.dosage}</span>}
-                {m.schedule && <div className="med-sub">{m.schedule}</div>}
-              </div>
-              <button type="button" className="btn btn-small" onClick={() => toggle(m)}>
-                {m.isActive ? 'Mark stopped' : 'Taking again'}
-              </button>
-              <button type="button" className="med-remove" aria-label={`Remove ${m.name}`} onClick={() => remove(m.id)}>
-                <IconX size={12} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// Medicines live in ./Medicines (strip scanning + manual add).
+export { MedicinesCard } from './Medicines';
