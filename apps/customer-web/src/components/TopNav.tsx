@@ -1,8 +1,9 @@
+import { ArogyaLogo } from './ArogyaLogo';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { NotificationBell } from './NotificationBell';
-import { IconActivity, IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconPlus, IconUser } from './Icons';
+import { IconActivity, IconBag, IconBox, IconCalendar, IconHome, IconLogout, IconMapPin, IconUser } from './Icons';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
@@ -18,9 +19,7 @@ export function TopNav() {
     <header className="site-header">
       <div className="site-header-inner">
         <Link to="/" className="site-brand">
-          <div className="brand-mark">
-            <IconPlus size={17} />
-          </div>
+          <ArogyaLogo size={38} className="brand-mark" />
           <span className="site-brand-text">Arogya</span>
         </Link>
 

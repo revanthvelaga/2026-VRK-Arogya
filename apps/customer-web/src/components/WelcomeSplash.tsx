@@ -1,3 +1,4 @@
+import { ArogyaLogo } from './ArogyaLogo';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
@@ -94,10 +95,7 @@ export function WelcomeSplash() {
         <div className="wow-burst" aria-hidden />
         <div className="wow-burst b2" aria-hidden />
         <div className="wow-tile">
-          <svg viewBox="0 0 48 48" className="wow-plus" aria-hidden>
-            <line x1="24" y1="11" x2="24" y2="37" pathLength={1} />
-            <line x1="11" y1="24" x2="37" y2="24" pathLength={1} />
-          </svg>
+          <ArogyaLogo size={84} className="wow-logo" />
           <span className="wow-shine" aria-hidden />
         </div>
 

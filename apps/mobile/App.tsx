@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
@@ -450,9 +450,7 @@ function ArogyaWebApp() {
       />
       {loading && !failed ? (
         <View style={[StyleSheet.absoluteFill, styles.center, styles.splash]}>
-          <View style={styles.logo}>
-            <Text style={styles.logoPlus}>+</Text>
-          </View>
+          <Image source={require('./assets/splash-icon.png')} style={styles.logo} accessibilityLabel="Arogya" />
           <Text style={styles.brand}>Arogya</Text>
           <ActivityIndicator color="#0c9490" style={{ marginTop: 18 }} />
           <Text style={styles.sub}>Loading… this can take a few seconds the first time.</Text>
@@ -476,15 +474,8 @@ const styles = StyleSheet.create({
   hidden: { flex: 0, height: 0 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   splash: { backgroundColor: '#f5f7fb' },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: '#0ea5a0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoPlus: { color: '#fff', fontSize: 38, fontWeight: '800', marginTop: -4 },
+  // splash-icon.png has the tile at 62.5% with transparent margin.
+  logo: { width: 120, height: 120, marginVertical: -22 },
   brand: { marginTop: 12, fontSize: 26, fontWeight: '800', color: '#067571' },
   title: { fontSize: 20, fontWeight: '800', color: '#10182c' },
   sub: { marginTop: 8, fontSize: 14, color: '#5b6478', textAlign: 'center' },

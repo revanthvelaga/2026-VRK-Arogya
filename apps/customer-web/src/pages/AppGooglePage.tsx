@@ -1,7 +1,7 @@
+import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
-import { IconPlus } from '../components/Icons';
 import { googleClientId } from '../lib/googleAuth';
 
 // Opened by the Arogya app in a Chrome tab: Google won't sign in inside the
@@ -26,9 +26,7 @@ export function AppGooglePage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <div className="auth-logo">
-            <IconPlus size={22} />
-          </div>
+          <ArogyaLogo size={60} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Continue with Google</h1>
           <p>{sent ? 'Going back to the Arogya app…' : 'Pick your Google account to sign in to the Arogya app.'}</p>

@@ -1,8 +1,8 @@
+import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconPlus } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { googleSignInAvailable } from '../lib/googleAuth';
 
@@ -77,9 +77,7 @@ export function RegisterPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <div className="auth-logo">
-            <IconPlus size={22} />
-          </div>
+          <ArogyaLogo size={60} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Create your account</h1>
           <p>Book tests, track samples, and keep every report in one place.</p>

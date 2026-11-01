@@ -1,9 +1,10 @@
+import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { clearSignOutMessage, peekSignOutMessage } from '../api/client';
-import { IconFingerprint, IconPlus } from '../components/Icons';
+import { IconFingerprint } from '../components/Icons';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PhoneOtpSignIn } from '../components/PhoneOtpSignIn';
 import { googleSignInAvailable } from '../lib/googleAuth';
@@ -114,9 +115,7 @@ export function LoginPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <div className="auth-logo">
-            <IconPlus size={22} />
-          </div>
+          <ArogyaLogo size={60} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Welcome back</h1>
           <p>
