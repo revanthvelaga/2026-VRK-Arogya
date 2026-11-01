@@ -44,7 +44,7 @@ function TestCard({ test, index }: { test: Test; index: number }) {
         <IconFlask size={30} />
       </div>
       <div className="rich-card-body">
-        <Link to={`/catalog/tests/${test.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+        <Link to={`/catalog/tests/${test.id}`} className="card-link">
           <h3>{test.name}</h3>
         </Link>
         <div className="rich-card-meta">
@@ -145,7 +145,7 @@ function PackageCard({ pkg, index }: { pkg: Package; index: number }) {
         {pkg.tier && <span className={`tier-ribbon tier-${pkg.tier.toLowerCase()}`}>{TIER_LABEL[pkg.tier]}</span>}
       </div>
       <div className="rich-card-body">
-        <Link to={`/catalog/packages/${pkg.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+        <Link to={`/catalog/packages/${pkg.id}`} className="card-link">
           <h3>{pkg.name}</h3>
         </Link>
         <div className="rich-card-meta">

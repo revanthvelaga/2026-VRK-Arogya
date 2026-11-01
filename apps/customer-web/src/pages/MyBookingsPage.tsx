@@ -5,12 +5,13 @@ import type { Booking, Patient } from '../api/types';
 import { useApi } from '../lib/useApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { RowSkeletons } from '../components/Skeleton';
+import { FamilyBooked } from '../components/FamilyBooked';
 import { EmptyState } from '../components/EmptyState';
 import { IconArrowRight, IconCalendar } from '../components/Icons';
 import { bookingStatusVariant, formatCurrency, formatDateTime, statusLabel } from '../lib/format';
 
 export function MyBookingsPage() {
-  const { data: bookings, loading, error } = useApi<Booking[]>(() => api.get('/bookings/mine'), []);
+  const { data: bookings, loading, error, reload } = useApi<Booking[]>(() => api.get('/bookings/mine'), []);
   const { data: patients } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientFilter, setPatientFilter] = useState<string | 'ALL'>('ALL');
 
@@ -34,6 +35,8 @@ export function MyBookingsPage() {
           Book a test
         </Link>
       </div>
+
+      <FamilyBooked onPaid={reload} />
 
       {(patients?.length ?? 0) > 1 && (
         <div className="chip-row">

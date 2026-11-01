@@ -88,6 +88,40 @@ export class PaymentsService {
     };
   }
 
+  // One payment for every unpaid booking of a family checkout.
+  async createGroupOrder(groupId: string, user: AuthenticatedUser): Promise<{
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+  }> {
+    if (!this.razorpay) {
+      throw new BadRequestException('Payments are not configured on this server (missing RAZORPAY_KEY_ID/SECRET)');
+    }
+    const bookings = (await this.bookingsService.findGroupForUser(groupId, user)).filter(
+      (b) => b.paymentStatus !== PaymentStatus.PAID,
+    );
+    if (bookings.length === 0) throw new BadRequestException('These bookings are already paid');
+    const amount = Math.round(bookings.reduce((sum, b) => sum + Number(b.totalAmount), 0) * 100) / 100;
+    const amountPaise = Math.round(amount * 100);
+    const order = await this.razorpay.orders.create({
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `family_${groupId.slice(0, 8)}_${Date.now()}`,
+    });
+    await this.paymentsRepo.save(
+      this.paymentsRepo.create({
+        bookingId: bookings[0].id,
+        groupId,
+        razorpayOrderId: order.id,
+        amount,
+        currency: 'INR',
+        status: PaymentStatus.PENDING,
+      }),
+    );
+    return { orderId: order.id, amount: amountPaise, currency: 'INR', keyId: this.config.get<string>('RAZORPAY_KEY_ID') as string };
+  }
+
   async verify(dto: VerifyPaymentDto, user: AuthenticatedUser): Promise<Payment> {
     const payment = await this.paymentsRepo.findOne({
       where: { razorpayOrderId: dto.razorpayOrderId },
@@ -118,7 +152,14 @@ export class PaymentsService {
     payment.status = PaymentStatus.PAID;
     await this.paymentsRepo.save(payment);
 
-    await this.bookingsService.setPaymentStatus(payment.bookingId, PaymentStatus.PAID);
+    if (payment.groupId) {
+      const group = await this.bookingsService.findGroupForUser(payment.groupId, user);
+      for (const b of group) {
+        if (b.paymentStatus !== PaymentStatus.PAID) await this.bookingsService.setPaymentStatus(b.id, PaymentStatus.PAID);
+      }
+    } else {
+      await this.bookingsService.setPaymentStatus(payment.bookingId, PaymentStatus.PAID);
+    }
 
     return payment;
   }

@@ -7,6 +7,7 @@ import { TIER_LABEL } from '../lib/visitPlan';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../context/CartContext';
 import { CardSkeletons } from '../components/Skeleton';
+import { WomenWellness } from '../components/WomenWellness';
 import { CompareToggle } from '../components/CompareToggle';
 import { SEGMENTS } from '../lib/segments';
 import { supportPhoneConfigured, telHref, whatsappHref } from '../lib/support';
@@ -63,7 +64,9 @@ function TestTile({ test, index }: { test: Test; index: number }) {
         <IconFlask size={28} />
       </div>
       <div className="rich-card-body">
-        <h3>{test.name}</h3>
+        <Link to={`/catalog/tests/${test.id}`} className="card-link">
+          <h3>{test.name}</h3>
+        </Link>
         <div className="rich-card-meta">
           {test.sampleType && <span>{test.sampleType}</span>}
           <span className="dot" />
@@ -108,7 +111,9 @@ function PackageTile({ pkg, index }: { pkg: Package; index: number }) {
         {pkg.tier && <span className={`tier-ribbon tier-${pkg.tier.toLowerCase()}`}>{TIER_LABEL[pkg.tier]}</span>}
       </div>
       <div className="rich-card-body">
-        <h3>{pkg.name}</h3>
+        <Link to={`/catalog/packages/${pkg.id}`} className="card-link">
+          <h3>{pkg.name}</h3>
+        </Link>
         <div className="rich-card-meta">
           <span>Contains {testCount} test{testCount === 1 ? '' : 's'}</span>
         </div>
@@ -237,6 +242,8 @@ export function HomePage() {
           </Link>
         ))}
       </div>
+
+      <WomenWellness />
 
       <div className="promo-banner">
         <div>

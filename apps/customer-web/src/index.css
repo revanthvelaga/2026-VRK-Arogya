@@ -7182,3 +7182,499 @@ a.suggest-name:hover {
 @keyframes shimmer {
   to { transform: translateX(100%); }
 }
+
+/* ---------- Family booking: who gets each test + savings ladder ---------- */
+.who-card {
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.who-card > .select-row {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.who-price {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.who-price s {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.who-price small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.who-nudge {
+  margin: 0;
+  padding: 10px 14px 12px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--line-strong);
+}
+
+.family-picker {
+  border-top: 1px dashed var(--line-strong);
+  padding: 12px 14px 14px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--accent-soft) 160%);
+}
+
+.family-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+
+.family-chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.family-chip.on {
+  border-color: var(--accent-a);
+  background: var(--accent-soft);
+}
+
+.family-avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--tone);
+  filter: saturate(0.35) opacity(0.75);
+  transition: filter 0.25s ease;
+}
+
+.family-chip.on .family-avatar {
+  filter: none;
+}
+
+.family-avatar-check {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-a);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: scale(0);
+  transition: transform 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.family-chip.on .family-avatar-check {
+  transform: scale(1);
+}
+
+.family-chip-text {
+  display: grid;
+  line-height: 1.15;
+}
+
+.family-chip-text b {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.family-chip-text small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.family-ladder {
+  margin-top: 8px;
+}
+
+.family-ladder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+}
+
+.family-saved {
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent-soft-strong);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.family-nudge {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.family-next {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.family-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* The line runs between the first and last node centres. */
+.family-track-line {
+  position: absolute;
+  top: 8px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 3px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 10px);
+}
+
+.family-track-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: var(--accent-a);
+  transform: scaleX(var(--fill));
+  transform-origin: left center;
+  transition: transform 0.55s cubic-bezier(0.5, 0, 0.2, 1);
+}
+
+.family-step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.family-node {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+  color: var(--ink-faint);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.family-step--done .family-node,
+.family-step--current .family-node {
+  background: var(--accent-a);
+  border-color: var(--accent-a);
+}
+
+.family-step--current .family-node {
+  box-shadow: 0 0 0 4px var(--accent-soft-strong);
+}
+
+.family-step-price {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-faint);
+  transition: color 0.3s ease;
+}
+
+.family-step--done .family-step-price,
+.family-step--current .family-step-price {
+  color: var(--ink);
+}
+
+.family-step-people {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.summary-times {
+  margin-left: 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.family-offer-note {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .family-chip:active {
+    transform: scale(0.96);
+  }
+  .family-step--current .family-node {
+    animation: familyNodeIn 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .family-saved {
+    animation: familySaved 0.5s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+}
+
+@keyframes familyNodeIn {
+  0% { transform: scale(0.5); }
+  100% { transform: scale(1); }
+}
+@keyframes familySaved {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .family-track-fill,
+  .family-avatar-check,
+  .family-node {
+    transition: none;
+  }
+}
+
+/* Whole test/package card opens its detail page (the title link stretches
+   over the card); buttons and expanders inside stay tappable on top. */
+.rich-card {
+  position: relative;
+}
+
+.card-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.rich-card button,
+.rich-card details,
+.rich-card summary,
+.rich-card label,
+.rich-card a:not(.card-link) {
+  position: relative;
+  z-index: 1;
+}
+
+.card-link:focus-visible {
+  outline: none;
+}
+
+.rich-card:has(.card-link:focus-visible) {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rich-card:has(.card-link) {
+    transition: transform 0.18s ease;
+  }
+  .rich-card:has(.card-link:active) {
+    transform: scale(0.985);
+  }
+}
+
+/* Package page: what the tests would cost one by one. */
+.package-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-strong);
+  font-size: 13.5px;
+}
+
+.package-value span {
+  color: var(--ink-soft);
+  margin-right: 8px;
+}
+
+.package-value s {
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.package-value b {
+  color: var(--accent-ink);
+  font-size: 15px;
+}
+
+/* ---------- Women's wellness (home) ---------- */
+.wellness {
+  --rose: #fdf1ec;
+  --rose-strong: #f6dccf;
+  --rose-ink: #9a3b2a;
+  margin: 8px 0 28px;
+  border-radius: 20px;
+  background: var(--rose);
+  overflow: hidden;
+}
+
+.wellness-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: end;
+  min-height: 170px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.wellness-hero-text {
+  padding: 20px 0 20px 20px;
+  align-self: center;
+}
+
+.wellness-hero h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.wellness-hero p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.wellness-hero-cta {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--rose-ink);
+  border-bottom: 2px solid var(--rose-strong);
+}
+
+.wellness-hero-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  object-fit: cover;
+  /* Fades into the rose background on its left edge. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 28%);
+}
+
+.wellness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px 14px 16px;
+}
+
+.wellness-tile {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 2px;
+  padding: 0 0 10px;
+  border-radius: 16px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  box-shadow: 0 1px 0 var(--rose-strong);
+}
+
+.wellness-tile-photo {
+  width: 100%;
+  aspect-ratio: 1 / 0.86;
+  object-fit: cover;
+  margin-bottom: 6px;
+  background: var(--rose-strong);
+}
+
+.wellness-photo-fallback {
+  display: block;
+  background: linear-gradient(135deg, var(--rose-strong), var(--rose));
+}
+
+.wellness-tile b {
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--ink);
+  padding: 0 6px;
+}
+
+.wellness-tile small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 861px) {
+  .wellness-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .wellness-hero {
+    min-height: 220px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wellness-tile,
+  .wellness-hero {
+    transition: transform 0.18s ease;
+  }
+  .wellness-tile:active {
+    transform: scale(0.96);
+  }
+}
+
+.wellness-tile:focus-visible,
+.wellness-hero:focus-visible {
+  outline: 2px solid var(--rose-ink);
+  outline-offset: 2px;
+}

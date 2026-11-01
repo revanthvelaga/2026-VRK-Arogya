@@ -25,6 +25,12 @@ export class Booking {
   @Column({ name: 'patient_id', nullable: true })
   patientId?: string;
 
+  // Set when one checkout booked the same visit for several family
+  // members: one booking per person, all sharing this id so they can be
+  // paid for together.
+  @Column({ name: 'group_id', type: 'uuid', nullable: true })
+  groupId?: string | null;
+
   @Column({ name: 'center_id' })
   centerId: string;
 

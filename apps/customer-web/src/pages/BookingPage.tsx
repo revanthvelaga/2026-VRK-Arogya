@@ -19,6 +19,9 @@ import { LoadingLine } from '../components/Spinner';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PickupPointPicker } from '../components/PickupPointPicker';
 import { PatientPicker } from '../components/PatientPicker';
+import { FamilyPicker } from '../components/FamilyPicker';
+import { AnimatedAmount } from '../components/AnimatedNumber';
+import { familyPercentOff, MAX_FAMILY_DISCOUNT } from '../lib/familyPricing';
 import { OffersBox } from '../components/OffersBox';
 import { IconAlertTriangle, IconCheckCircle, IconMapPin, IconPlus, IconX } from '../components/Icons';
 import { formatCurrency, statusLabel } from '../lib/format';
@@ -71,6 +74,9 @@ export function BookingPage() {
     reload: reloadPatients,
   } = useApi<Patient[]>(() => api.get('/patients/mine'), []);
   const [patientId, setPatientId] = useState('');
+  // Who gets each test/package (by cart key). Unset means just the main
+  // person picked in step 1.
+  const [whoFor, setWhoFor] = useState<Record<string, string[]>>({});
   const [coupon, setCoupon] = useState<CouponQuote | null>(null);
   const [useWallet, setUseWallet] = useState(false);
   const walletApi = useApi<WalletSummary>(() => api.get('/wallet/mine'), []);
@@ -347,18 +353,33 @@ export function BookingPage() {
 
     return [...packageItems, ...testItems].slice(0, 4);
   }, [tests, packages, selectedTestIds, selectedPackageIds]);
-  const subtotal = selected.reduce((sum, i) => sum + i.price, 0);
+  const peopleFor = (key: string): string[] => {
+    const known = new Set((patients ?? []).map((p) => p.id));
+    const list = (whoFor[key] ?? []).filter((id) => known.has(id));
+    return list.length ? list : patientId ? [patientId] : [];
+  };
+  // Every person getting at least one test. More than one = a family
+  // checkout: a booking each, family deal instead of coupon / wallet.
+  const everyone = Array.from(new Set(selected.flatMap((i) => peopleFor(i.key))));
+  const familyMode = everyone.length > 1;
+  const lines = selected.map((i) => {
+    const people = Math.max(1, peopleFor(i.key).length);
+    const pct = familyPercentOff(people);
+    return { item: i, people, pct, full: i.price * people, saving: round2(i.price * people * (pct / 100)) };
+  });
+  const familySavings = round2(lines.reduce((sum, l) => sum + l.saving, 0));
+  const subtotal = round2(lines.reduce((sum, l) => sum + l.full, 0));
   // Illustrative rate — swap for whatever the real invoicing/tax setup
   // turns out to be; the point here is showing the breakdown, not the
   // exact figure.
   // Mirrors the server's pricing exactly: offer off the subtotal, GST on
   // what's left, then wallet credit off the total.
-  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
+  const discount = familyMode ? familySavings : coupon ? Math.min(coupon.discount, subtotal) + familySavings : familySavings;
   const taxable = round2(subtotal - discount);
   const gst = round2(taxable * GST_RATE);
   const gross = round2(taxable + gst);
   const walletBalance = walletApi.data?.balance ?? 0;
-  const walletUsed = useWallet ? round2(Math.min(walletBalance, gross)) : 0;
+  const walletUsed = useWallet && !familyMode ? round2(Math.min(walletBalance, gross)) : 0;
   const total = round2(gross - walletUsed);
 
   const submit = async (e: FormEvent) => {
@@ -394,6 +415,41 @@ export function BookingPage() {
     }
     const iso = new Date(`${scheduledDate}T${scheduledSlot}:00`).toISOString();
     setSubmitting(true);
+    const logistics = {
+      centerId,
+      collectionMode,
+      pickupPointId: collectionMode === 'PICKUP_POINT' ? pickupPointId : undefined,
+      homeAddressLine: collectionMode === 'HOME_VISIT' ? homeAddress?.displayName : undefined,
+      homeAddressPincode: collectionMode === 'HOME_VISIT' ? homeAddressPincode.trim() : undefined,
+      homeLatitude: collectionMode === 'HOME_VISIT' ? homeAddress?.lat : undefined,
+      homeLongitude: collectionMode === 'HOME_VISIT' ? homeAddress?.lng : undefined,
+      scheduledAt: iso,
+    };
+    if (familyMode) {
+      try {
+        const res = await api.post<{ groupId: string; bookings: Array<{ id: string }>; totalAmount: number; familySavings: number }>(
+          '/bookings/family',
+          {
+            ...logistics,
+            members: everyone.map((pid) => ({
+              patientId: pid,
+              items: selected
+                .filter((i) => peopleFor(i.key).includes(pid))
+                .map((i) => (i.kind === 'test' ? { testId: i.id } : { packageId: i.id })),
+            })),
+          },
+        );
+        cart.clear();
+        navigate('/bookings', {
+          state: { familyBooked: { groupId: res.groupId, count: res.bookings.length, total: res.totalAmount, saved: res.familySavings } },
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not create the bookings');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     try {
       const booking = await api.post<{ id: string }>('/bookings', {
         patientId,
@@ -434,6 +490,11 @@ export function BookingPage() {
 
             <div className="card">
               <div className="card-title">1. Who is this for?</div>
+              {patients && patients.length > 1 && (
+                <p className="field-hint" style={{ marginTop: -4 }}>
+                  Booking for family too? Pick everyone under each test below — {MAX_FAMILY_DISCOUNT}% off each for 4 or more.
+                </p>
+              )}
               {patientsLoading ? (
                 <LoadingLine label="Loading patients…" />
               ) : patientsError ? (
@@ -470,19 +531,37 @@ export function BookingPage() {
                   </Link>
                 </div>
               ) : (
-                selected.map((i) => (
-                  <label key={i.key} className="select-row selected">
-                    <input
-                      type="checkbox"
-                      checked
-                      onChange={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
-                    />
-                    <div className="select-row-label">
-                      <div className="name">{i.name}</div>
-                      {i.meta && <div className="meta">{i.meta}</div>}
-                    </div>
-                    <div className="select-row-price">{formatCurrency(i.price)}</div>
-                  </label>
+                lines.map(({ item: i, people, pct, full, saving }) => (
+                  <div key={i.key} className="who-card">
+                    <label className="select-row selected">
+                      <input
+                        type="checkbox"
+                        checked
+                        onChange={() => (i.kind === 'test' ? toggleTest(i.id) : togglePackage(i.id))}
+                      />
+                      <div className="select-row-label">
+                        <div className="name">{i.name}</div>
+                        {i.meta && <div className="meta">{i.meta}</div>}
+                      </div>
+                      <div className="select-row-price who-price">
+                        {pct > 0 && <s>{formatCurrency(full)}</s>}
+                        <AnimatedAmount value={round2(full - saving)} />
+                        {people > 1 && <small>for {people} people</small>}
+                      </div>
+                    </label>
+                    {patients && patients.length > 1 ? (
+                      <FamilyPicker
+                        patients={patients}
+                        price={i.price}
+                        selected={peopleFor(i.key)}
+                        onChange={(ids) => setWhoFor((prev) => ({ ...prev, [i.key]: ids }))}
+                      />
+                    ) : (
+                      <p className="who-nudge">
+                        Add a family member in step 1 to book this for them too — up to {MAX_FAMILY_DISCOUNT}% off each.
+                      </p>
+                    )}
+                  </div>
                 ))
               )}
 
@@ -827,29 +906,42 @@ export function BookingPage() {
                       <IconX size={10} />
                     </button>
                     {i.name}
+                    {peopleFor(i.key).length > 1 && <span className="summary-times">×{peopleFor(i.key).length}</span>}
                   </span>
-                  <span>{formatCurrency(i.price)}</span>
+                  <span>{formatCurrency(i.price * Math.max(1, peopleFor(i.key).length))}</span>
                 </div>
               ))
             )}
             {selected.length > 0 && (
               <>
-                <OffersBox
-                  subtotal={subtotal}
-                  applied={coupon}
-                  onApply={setCoupon}
-                  walletBalance={walletBalance}
-                  useWallet={useWallet}
-                  onUseWallet={setUseWallet}
-                />
+                {familyMode ? (
+                  <p className="family-offer-note">
+                    Family deal applied for {everyone.length} people. Coupons and wallet credit can't be combined with it.
+                  </p>
+                ) : (
+                  <OffersBox
+                    subtotal={subtotal}
+                    applied={coupon}
+                    onApply={setCoupon}
+                    walletBalance={walletBalance}
+                    useWallet={useWallet}
+                    onUseWallet={setUseWallet}
+                  />
+                )}
                 <div className="summary-line">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                {discount > 0 && (
+                {familySavings > 0 && (
+                  <div className="summary-line saving">
+                    <span>Family deal</span>
+                    <span>−{formatCurrency(familySavings)}</span>
+                  </div>
+                )}
+                {!familyMode && coupon && discount - familySavings > 0 && (
                   <div className="summary-line saving">
                     <span>Offer {coupon?.code}</span>
-                    <span>−{formatCurrency(discount)}</span>
+                    <span>−{formatCurrency(discount - familySavings)}</span>
                   </div>
                 )}
                 <div className="summary-line">
@@ -866,7 +958,7 @@ export function BookingPage() {
             )}
             <div className="summary-total">
               <span>Total</span>
-              <span>{formatCurrency(total)}</span>
+              <AnimatedAmount value={total} />
             </div>
             {collectionMode && (
               <p className="field-hint" style={{ marginTop: 10 }}>
@@ -879,7 +971,7 @@ export function BookingPage() {
               disabled={submitting || !patientId || selected.length === 0 || !locationReady || !scheduledDate || !scheduledSlot}
               style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
             >
-              {submitting ? 'Booking…' : 'Confirm booking'}
+              {submitting ? 'Booking…' : familyMode ? `Confirm ${everyone.length} bookings` : 'Confirm booking'}
             </button>
           </div>
         </div>

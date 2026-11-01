@@ -382,3 +382,10 @@ export const IconFingerprint = icon(
     <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
   </>,
 );
+
+export const IconLock = icon(
+  <>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+    <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+  </>,
+);

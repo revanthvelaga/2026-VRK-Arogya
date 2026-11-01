@@ -9,6 +9,11 @@ export class Payment {
   @Column({ name: 'booking_id' })
   bookingId: string;
 
+  // A family checkout paid in one go: every booking with this group id is
+  // marked paid when this payment succeeds (bookingId is the first of them).
+  @Column({ name: 'group_id', type: 'uuid', nullable: true })
+  groupId?: string | null;
+
   @Column({ name: 'razorpay_order_id' })
   razorpayOrderId: string;
 

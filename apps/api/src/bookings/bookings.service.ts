@@ -10,6 +10,9 @@ import { DataSource, FindOptionsWhere, In, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { BookingItem } from './entities/booking-item.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateFamilyBookingDto } from './dto/create-family-booking.dto';
+import { familyPercentOff } from './family-pricing';
+import { randomUUID } from 'crypto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { CollectionMode } from '../common/enums/collection-mode.enum';
 import { BookingStatus } from '../common/enums/booking-status.enum';
@@ -90,7 +93,13 @@ export class BookingsService {
     private readonly walletService: WalletService,
   ) {}
 
-  async create(customerId: string, dto: CreateBookingDto): Promise<Booking> {
+  async create(
+    customerId: string,
+    dto: CreateBookingDto,
+    // Family checkout: shared group id, and % off per catalog item key
+    // ("t:<id>" / "p:<id>") from how many people are getting it.
+    family?: { groupId: string; percentOffByKey: Map<string, number> },
+  ): Promise<Booking> {
     // Ownership check — a customer can only book for their own patient
     // profiles (themselves or a family member they added), never someone
     // else's.
@@ -149,16 +158,24 @@ export class BookingsService {
     // Offer first (GST is charged on the discounted amount), then wallet
     // credit comes off the final total like a partial payment. Every
     // figure is recomputed here — the checkout preview is only a preview.
-    const coupon = dto.couponCode?.trim()
+    const coupon = dto.couponCode?.trim() && !family
       ? await this.couponsService.quote(dto.couponCode, subtotal, customerId)
       : null;
-    const discountAmount = coupon?.discount ?? 0;
+    const familySavings = family
+      ? round2(
+          items.reduce((sum, item) => {
+            const key = item.testId ? `t:${item.testId}` : `p:${item.packageId}`;
+            return sum + item.price * ((family.percentOffByKey.get(key) ?? 0) / 100);
+          }, 0),
+        )
+      : 0;
+    const discountAmount = round2((coupon?.discount ?? 0) + familySavings);
     const taxable = round2(subtotal - discountAmount);
     // Rounded to paise — GST_RATE is illustrative; swap for the real
     // invoicing rules whenever those land.
     const gstAmount = round2(taxable * GST_RATE);
     const gross = round2(taxable + gstAmount);
-    const walletUsed = dto.useWallet
+    const walletUsed = dto.useWallet && !family
       ? round2(Math.min(await this.walletService.balanceOf(customerId), gross))
       : 0;
     const totalAmount = round2(gross - walletUsed);
@@ -180,8 +197,9 @@ export class BookingsService {
         scheduledAt,
         status: BookingStatus.PENDING,
         subtotal,
-        couponCode: coupon?.code ?? null,
+        couponCode: coupon?.code ?? (familySavings > 0 ? 'FAMILY' : null),
         discountAmount,
+        groupId: family?.groupId ?? null,
         walletUsed,
         gstAmount,
         totalAmount,
@@ -217,6 +235,58 @@ export class BookingsService {
 
   // Prices are always looked up server-side from the current catalog —
   // never trusted from the client.
+  // One checkout for several family members: a booking each (so every
+  // person keeps their own samples and reports), same visit, sharing a
+  // group id so they can be paid for together. The family deal is worked
+  // out here from how many people get each test or package.
+  async createFamily(customerId: string, dto: CreateFamilyBookingDto) {
+    const ids = dto.members.map((m) => m.patientId);
+    if (new Set(ids).size !== ids.length) {
+      throw new BadRequestException('Each family member can only appear once — add all their tests under their name');
+    }
+    // Check everything before creating anything, so a bad entry doesn't
+    // leave half the family booked.
+    for (const m of dto.members) {
+      await this.patientsService.findOneForAccount(m.patientId, customerId);
+      await this.priceItems(m.items);
+    }
+
+    const peopleByKey = new Map<string, number>();
+    for (const m of dto.members) {
+      for (const item of m.items) {
+        const key = item.testId ? `t:${item.testId}` : `p:${item.packageId}`;
+        peopleByKey.set(key, (peopleByKey.get(key) ?? 0) + 1);
+      }
+    }
+    const percentOffByKey = new Map([...peopleByKey].map(([k, n]) => [k, familyPercentOff(n)]));
+
+    const groupId = randomUUID();
+    const { members, ...shared } = dto;
+    const bookings: Booking[] = [];
+    for (const m of members) {
+      bookings.push(
+        await this.create(customerId, { ...shared, patientId: m.patientId, items: m.items } as CreateBookingDto, {
+          groupId,
+          percentOffByKey,
+        }),
+      );
+    }
+    return {
+      groupId,
+      bookings,
+      totalAmount: round2(bookings.reduce((sum, b) => sum + Number(b.totalAmount), 0)),
+      familySavings: round2(bookings.reduce((sum, b) => sum + Number(b.discountAmount ?? 0), 0)),
+    };
+  }
+
+  // The bookings of one family checkout, if they're this customer's.
+  async findGroupForUser(groupId: string, user: AuthenticatedUser): Promise<Booking[]> {
+    const rows = await this.bookingsRepo.find({ where: { groupId } });
+    if (rows.length === 0) throw new NotFoundException('Booking group not found');
+    for (const b of rows) await this.findOneForUser(b.id, user);
+    return rows;
+  }
+
   private async priceItems(dtoItems: CreateBookingDto['items']): Promise<PricedItem[]> {
     const items: PricedItem[] = [];
     // Tests each chosen package already covers — the same test can't also

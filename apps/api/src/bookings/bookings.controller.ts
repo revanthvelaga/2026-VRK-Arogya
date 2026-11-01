@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateFamilyBookingDto } from './dto/create-family-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { AssignAgentDto } from './dto/assign-agent.dto';
 import { EnRouteDto, RateAgentDto, VerifyDoorOtpDto } from './dto/visit.dto';
@@ -30,6 +31,12 @@ export class BookingsController {
     private readonly visitService: VisitService,
     private readonly staffAlerts: StaffAlertsService,
   ) {}
+
+  // Same visit for several family members (one booking each, family deal applied).
+  @Post('family')
+  createFamily(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFamilyBookingDto) {
+    return this.bookingsService.createFamily(user.userId, dto);
+  }
 
   @Post()
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBookingDto) {

@@ -255,6 +255,10 @@ export function PackageDetailPage() {
   const tests = pkg.tests ?? [];
   const maxTurnaround = tests.length ? Math.max(...tests.map((t) => t.turnaroundHours)) : undefined;
   const sampleTypes = Array.from(new Set(tests.map((t) => t.sampleType).filter(Boolean))) as string[];
+  // What the same tests cost one by one — the package's real value.
+  const separately = tests.reduce((sum, t) => sum + Number(t.price), 0);
+  const saving = separately - Number(pkg.price);
+  const needsFasting = tests.some((t) => /fasting (required|recommended)|hours fasting/i.test(t.preparationInstructions ?? ''));
 
   return (
     <>
@@ -287,7 +291,20 @@ export function PackageDetailPage() {
         {sampleTypes.length > 0 && (
           <InfoCard icon={<IconFlask size={18} />} label="Samples required" value={sampleTypes.join(' & ')} />
         )}
+        <InfoCard icon={<IconClock size={18} />} label="Fasting" value={needsFasting ? 'Needed — see prep below' : 'Not needed'} />
       </div>
+
+      {saving > 0 && (
+        <div className="package-value">
+          <div>
+            <span>Booked one by one, these {tests.length} tests cost</span>
+            <s>{formatCurrency(separately)}</s>
+          </div>
+          <b>
+            You save {formatCurrency(saving)} ({Math.round((saving / separately) * 100)}%)
+          </b>
+        </div>
+      )}
 
       {pkg.description && (
         <div className="card">

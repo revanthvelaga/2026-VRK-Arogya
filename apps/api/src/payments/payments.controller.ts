@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -13,6 +13,11 @@ export class PaymentsController {
   @Post('bookings/:bookingId/payment/order')
   createOrder(@CurrentUser() user: AuthenticatedUser, @Param('bookingId') bookingId: string) {
     return this.paymentsService.createOrder(bookingId, user);
+  }
+
+  @Post('bookings/group/:groupId/payment/order')
+  createGroupOrder(@CurrentUser() user: AuthenticatedUser, @Param('groupId', ParseUUIDPipe) groupId: string) {
+    return this.paymentsService.createGroupOrder(groupId, user);
   }
 
   @Get('bookings/:bookingId/payments')
