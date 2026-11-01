@@ -445,7 +445,8 @@ function ArogyaWebApp() {
         setBuiltInZoomControls={false}
         setDisplayZoomControls={false}
         textZoom={100}
-        mediaPlaybackRequiresUserAction
+        mediaPlaybackRequiresUserAction={false}
+        allowsInlineMediaPlayback
         originWhitelist={['*']}
       />
       {loading && !failed ? (

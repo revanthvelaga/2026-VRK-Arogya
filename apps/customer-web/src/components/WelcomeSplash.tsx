@@ -1,37 +1,23 @@
-import { ArogyaScene } from './ArogyaScene';
-import { useEffect, useMemo, useState } from 'react';
+import { ArogyaIntro } from './ArogyaIntro';
+import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { ProfileResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-const SHOW_MS = 3600;
+const SHOW_MS = 10300;
 const EXIT_MS = 650;
 const REDUCED_MS = 700;
 
-// The moment after signing in: a heartbeat line draws across a softly
-// glowing sky, bursts into light at its peak, and the Arogya mark rises
-// out of it — the plus draws itself, a shine sweeps the glass tile, the
-// name assembles letter by letter while sparks drift up — then the whole
-// screen closes into a circle to reveal Home. Tap anywhere to skip.
+// The moment after signing in: the Arogya film plays — two doctors walk in
+// to the glowing plus, golden light swirls and sparkles, they strike a pose —
+// then the name and greeting rise under it and the screen closes into a
+// circle to reveal Home. Tap anywhere to skip.
 // Shown once per sign-in, never on reload; a plain fade under reduced motion.
 export function WelcomeSplash() {
   const { welcome, clearWelcome } = useAuth();
   const [name, setName] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-  // Sparks: fixed per mount so they don't jump on re-render.
-  const sparks = useMemo(
-    () =>
-      Array.from({ length: 22 }, (_, i) => ({
-        left: `${(i * 37 + 11) % 100}%`,
-        size: 3 + ((i * 7) % 5),
-        delay: `${0.9 + ((i * 13) % 17) / 10}s`,
-        duration: `${2.2 + ((i * 11) % 9) / 5}s`,
-        drift: `${((i % 5) - 2) * 14}px`,
-      })),
-    [],
-  );
 
   useEffect(() => {
     if (!welcome) return;
@@ -60,7 +46,7 @@ export function WelcomeSplash() {
 
   return (
     <div
-      className={`wow-splash${leaving ? ' leaving' : ''}`}
+      className={`wow-splash wow-film${leaving ? ' leaving' : ''}`}
       role="status"
       aria-live="polite"
       aria-label={greeting}
@@ -69,36 +55,12 @@ export function WelcomeSplash() {
         setTimeout(clearWelcome, EXIT_MS);
       }}
     >
-      <div className="wow-aurora" aria-hidden>
-        <span className="a1" />
-        <span className="a2" />
-        <span className="a3" />
-      </div>
-      <div className="wow-grid" aria-hidden />
-
-      <svg className="wow-ecg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden>
-        <defs>
-          <linearGradient id="ecgGrad" x1="0" x2="1">
-            <stop offset="0" stopColor="#45c4b6" stopOpacity="0" />
-            <stop offset="0.35" stopColor="#45c4b6" />
-            <stop offset="0.65" stopColor="#7fa6ec" />
-            <stop offset="1" stopColor="#7fa6ec" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path
-          pathLength={1}
-          d="M0 60 H150 L162 60 L170 44 L178 60 L186 60 L194 8 L204 108 L214 34 L222 60 L232 60 L240 50 L248 60 H400"
-        />
-      </svg>
-
       <div className="wow-center">
-        <div className="wow-burst" aria-hidden />
-        <div className="wow-burst b2" aria-hidden />
-        <ArogyaScene size={230} glow warm className="wow-scene" />
+        <ArogyaIntro size={320} className="wow-intro" />
 
         <div className="wow-word" aria-hidden>
           {'Arogya'.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${1.05 + i * 0.07}s` }}>
+            <span key={i} style={{ animationDelay: `${7.4 + i * 0.07}s` }}>
               {ch}
             </span>
           ))}
@@ -107,23 +69,6 @@ export function WelcomeSplash() {
         <div className="wow-tagline">Your health, beautifully in one place</div>
       </div>
 
-      <div className="wow-sparks" aria-hidden>
-        {sparks.map((s, i) => (
-          <span
-            key={i}
-            style={
-              {
-                left: s.left,
-                width: s.size,
-                height: s.size,
-                animationDelay: s.delay,
-                animationDuration: s.duration,
-                '--drift': s.drift,
-              } as React.CSSProperties
-            }
-          />
-        ))}
-      </div>
     </div>
   );
 }

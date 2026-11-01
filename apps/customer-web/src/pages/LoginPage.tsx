@@ -1,4 +1,4 @@
-import { ArogyaScene } from '../components/ArogyaScene';
+import { ArogyaLogo } from '../components/ArogyaLogo';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -115,7 +115,7 @@ export function LoginPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="auth-hero">
-          <ArogyaScene size={190} glow warm className="auth-scene" />
+          <ArogyaLogo size={84} className="auth-logo" />
           <div className="login-eyebrow">Arogya</div>
           <h1>Welcome back</h1>
           <p>
