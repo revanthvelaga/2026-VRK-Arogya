@@ -37,9 +37,11 @@ render_header('Appointment #' . $id, $u);
   <?php if ($a['tech_name']): ?><p><strong>Technician:</strong> <?= h($a['tech_name']) ?> (<?= h($a['tech_phone']) ?>)</p><?php endif; ?>
   <table><tr><th>Test</th><th>Price</th></tr>
   <?php foreach ($items->fetchAll() as $i): ?><tr><td><?= h($i['name']) ?></td><td>₹<?= number_format((float)$i['price'], 2) ?></td></tr><?php endforeach; ?>
+  <?php if ((float)$a['wallet_used'] > 0): ?><tr><td>Paid from wallet</td><td>−₹<?= number_format((float)$a['wallet_used'], 2) ?></td></tr><?php endif; ?>
   <?php if ((float)$a['discount_amount'] > 0): ?><tr><td>Offer <?= h($a['coupon_code']) ?></td><td>−₹<?= number_format((float)$a['discount_amount'], 2) ?></td></tr><?php endif; ?>
   <tr><th>Total</th><th>₹<?= number_format((float)$a['total_amount'], 2) ?></th></tr></table>
   <p><strong>Payment:</strong> <?= h($a['payment_status']) ?>
+    · <a href="/invoice.php?id=<?= $id ?>" target="_blank">Invoice</a>
     <?php if ($receipt): ?> · <a href="/receipt.php?id=<?= $id ?>" target="_blank">Receipt <?= h($receipt) ?></a><?php endif; ?></p>
 </div>
 <h3>Live status</h3>

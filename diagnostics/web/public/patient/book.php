@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'collection_mode' => $_POST['collection_mode'] ?? 'HOME_VISIT',
             'pickup_point_id' => $_POST['pickup_point_id'] ?? null,
             'coupon_code' => trim($_POST['coupon_code'] ?? ''),
+            'member_id' => $_POST['member_id'] ?? null,
+            'use_wallet' => !empty($_POST['use_wallet']),
         ]);
         flash("Appointment #$id booked.");
         redirect('/patient/appointment.php?id=' . $id);
@@ -24,6 +26,9 @@ $points = $pdo->query('SELECT pp.id, pp.name, pp.village_name, pp.distance_km FR
 $offers = $pdo->query("SELECT code, description FROM coupons WHERE is_active=1 AND (valid_until IS NULL OR valid_until > NOW()) ORDER BY created_at DESC LIMIT 5")->fetchAll();
 $sel = fn($k, $v) => in_array((string)$v, array_map('strval', (array)($_POST[$k] ?? [])), true) ? 'checked' : '';
 $mode = $_POST['collection_mode'] ?? 'HOME_VISIT';
+$mm = $pdo->prepare('SELECT id, full_name, relation FROM family_members WHERE owner_id=? AND is_active=1 ORDER BY full_name'); $mm->execute([$u['id']]);
+$members = $mm->fetchAll();
+$walletBal = wallet_balance((int)$u['id']);
 
 render_header('Book a Test', $u);
 ?>
@@ -45,6 +50,9 @@ render_header('Book a Test', $u);
       <?php if (!$t['is_in_house']): ?><br><small>Processed at <?= h($t['lab_name'] ?: 'partner lab') ?> · result in about <?= (int)$t['turnaround_hours'] ?> h</small><?php endif; ?></span></span></label>
     <?php endforeach; ?></div>
 
+  <?php if ($members): ?><div class="card"><h3>Who is this test for?</h3><label><select name="member_id"><option value="">Myself</option>
+    <?php foreach ($members as $m): ?><option value="<?= (int)$m['id'] ?>" <?= ($_POST['member_id'] ?? '') == $m['id'] ? 'selected' : '' ?>><?= h($m['full_name']) ?> (<?= h($m['relation']) ?>)</option><?php endforeach; ?></select></label></div><?php endif; ?>
+
   <div class="card"><h3>How should we collect your sample?</h3>
     <label><select name="collection_mode" id="mode">
       <option value="HOME_VISIT" <?= $mode === 'HOME_VISIT' ? 'selected' : '' ?>>Technician visits my address</option>
@@ -62,6 +70,8 @@ render_header('Book a Test', $u);
     <p id="couponmsg" class="page-sub"></p>
     <?php foreach ($offers as $o): ?><span class="hero-chip" style="cursor:pointer;margin:4px 6px 0 0" onclick="document.getElementById('coupon').value='<?= h($o['code']) ?>';document.getElementById('apply').click()"><b><?= h($o['code']) ?></b> · <?= h($o['description']) ?></span><?php endforeach; ?></div>
 
+  <?php if ($walletBal > 0): ?><div class="card"><label style="margin:0"><span style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="use_wallet" value="1" id="usewallet" <?= !empty($_POST['use_wallet']) ? 'checked' : '' ?>> Use my wallet balance (₹<?= number_format($walletBal, 0) ?> available)</span></label></div><?php endif; ?>
+
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div><div class="hero-label" style="margin:0">Estimated total</div><div class="hero-figure" id="total" style="font-size:34px">₹0</div></div>
     <button class="btn">Confirm booking</button></div>
@@ -69,13 +79,15 @@ render_header('Book a Test', $u);
 <script>
 const f = document.getElementById('bookform'), mode = document.getElementById('mode');
 let discount = 0;
-function sub(){ let s = 0; f.querySelectorAll('input[type=checkbox]:checked').forEach(c => s += parseFloat(c.closest('label').dataset.price || 0)); return s; }
+function sub(){ let s = 0; f.querySelectorAll('label[data-price] input[type=checkbox]:checked').forEach(c => s += parseFloat(c.closest('label').dataset.price || 0)); return s; }
 function refresh(){
   document.getElementById('m-home').style.display = mode.value === 'HOME_VISIT' ? '' : 'none';
   document.getElementById('m-pickup').style.display = mode.value === 'PICKUP_POINT' ? '' : 'none';
-  document.getElementById('total').textContent = '₹' + Math.max(0, sub() - discount).toLocaleString('en-IN');
+  let t = Math.max(0, sub() - discount); const w = document.getElementById('usewallet');
+  if (w && w.checked) t = Math.max(0, t - <?= (float)$walletBal ?>); 
+  document.getElementById('total').textContent = '₹' + t.toLocaleString('en-IN');
 }
-f.addEventListener('change', e => { if (e.target.type === 'checkbox') { discount = 0; document.getElementById('couponmsg').textContent = ''; } refresh(); });
+f.addEventListener('change', e => { if (e.target.type === 'checkbox' && e.target.id !== 'usewallet') { discount = 0; document.getElementById('couponmsg').textContent = ''; } refresh(); });
 document.getElementById('apply').onclick = async () => {
   const code = document.getElementById('coupon').value.trim(), msg = document.getElementById('couponmsg');
   if (!code) return;

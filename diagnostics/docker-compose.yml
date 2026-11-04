@@ -10,6 +10,7 @@ services:
       - dbdata:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./database/migrations/002_arogya_features.sql:/docker-entrypoint-initdb.d/02-arogya-features.sql:ro
+      - ./database/migrations/003_phase2_wallet_family_support.sql:/docker-entrypoint-initdb.d/03-phase2.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -29,6 +30,7 @@ services:
       SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-}
     volumes:
       - reports:/var/www/html/storage/reports
+      - documents:/var/www/html/storage/documents
     depends_on:
       db:
         condition: service_healthy
@@ -36,3 +38,4 @@ services:
 volumes:
   dbdata:
   reports:
+  documents:

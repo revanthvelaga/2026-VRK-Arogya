@@ -14,6 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             db()->prepare("INSERT INTO users (role,full_name,phone,email,password_hash) VALUES ('PATIENT',?,?,?,?)")
                 ->execute([$name, $phone, $email, password_hash($pass, PASSWORD_DEFAULT)]);
+            $newId = (int)db()->lastInsertId();
+            ensure_referral_code($newId);
+            if (trim($_POST['referral'] ?? '') !== '') {
+                try { apply_referral($newId, $_POST['referral']); } catch (InvalidArgumentException $e) { /* bad code must not block sign-up */ }
+            }
             flash('Registration successful. Please login.');
             redirect('/login.php');
         } catch (PDOException $e) {
@@ -31,6 +36,7 @@ render_header('Register', null);
   <label>Phone <input name="phone" required></label>
   <label>Email (optional) <input type="email" name="email"></label>
   <label>Password <input type="password" name="password" minlength="8" required></label>
+  <label>Referral code (optional) <input name="referral" style="text-transform:uppercase"></label>
   <button class="btn">Register</button>
 </form>
 <?php render_footer();

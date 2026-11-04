@@ -14,6 +14,7 @@ define('SMS_GATEWAY_URL', getenv('SMS_GATEWAY_URL') ?: '');
 define('MAIL_FROM', getenv('MAIL_FROM') ?: 'noreply@example.com');
 
 require_once __DIR__ . '/catalog.php';
+require_once __DIR__ . '/rewards.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
@@ -111,6 +112,11 @@ function set_status(int $apptId, string $new, ?int $byUser): bool {
     if (!$a || !in_array($new, STATUS_FLOW[$a['status']] ?? [], true)) return false;
     $pdo->prepare('UPDATE appointments SET status=? WHERE id=?')->execute([$new, $apptId]);
     $pdo->prepare('INSERT INTO appointment_status_log (appointment_id,status,changed_by) VALUES (?,?,?)')->execute([$apptId, $new, $byUser]);
+    if ($new === 'CANCELLED') {
+        // Give back any wallet credit that was spent on this booking
+        $w = $pdo->prepare('SELECT wallet_used FROM appointments WHERE id=?'); $w->execute([$apptId]);
+        wallet_credit((int)$a['patient_id'], (float)$w->fetchColumn(), 'Refund — appointment cancelled', $apptId);
+    }
     notify((int)$a['patient_id'], 'Appointment #' . $apptId, 'Status: ' . STATUS_LABELS[$new]);
     return true;
 }
@@ -149,17 +155,34 @@ function create_appointment(int $patientId, array $testIds, string $when, string
     }
     $total = round($subtotal - $discount, 2);
 
+    // Family member the test is for (must belong to this account)
+    $memberId = null;
+    if (!empty($opts['member_id'])) {
+        $m = $pdo->prepare('SELECT id FROM family_members WHERE id=? AND owner_id=? AND is_active=1');
+        $m->execute([(int)$opts['member_id'], $patientId]);
+        $memberId = $m->fetchColumn() ?: throw new InvalidArgumentException('Family member not found.');
+    }
+    // Optional wallet credit; what remains is the amount payable
+    $walletUsed = 0.0;
+    if (!empty($opts['use_wallet'])) {
+        $walletUsed = round(min(wallet_balance($patientId), $total), 2);
+        $total = round($total - $walletUsed, 2);
+    }
+    $paidNow = $total <= 0;
+
     $pdo->beginTransaction();
     try {
-        $pdo->prepare('INSERT INTO appointments (patient_id,scheduled_at,address,latitude,longitude,collection_mode,pickup_point_id,subtotal,discount_amount,coupon_code,total_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-            ->execute([$patientId, date('Y-m-d H:i:00', $ts), $address, $lat, $lng, $mode, $pickupId, $subtotal, $discount, $coupon, $total]);
+        $pdo->prepare('INSERT INTO appointments (patient_id,member_id,scheduled_at,address,latitude,longitude,collection_mode,pickup_point_id,subtotal,discount_amount,coupon_code,wallet_used,total_amount,payment_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            ->execute([$patientId, $memberId, date('Y-m-d H:i:00', $ts), $address, $lat, $lng, $mode, $pickupId, $subtotal, $discount, $coupon, $walletUsed, $total, $paidNow ? 'PAID' : 'PENDING']);
         $id = (int)$pdo->lastInsertId();
+        if ($walletUsed > 0) wallet_debit($patientId, $walletUsed, "Used on appointment #$id", $id);
         $ins = $pdo->prepare('INSERT INTO appointment_items (appointment_id,test_id,package_id,price) VALUES (?,?,?,?)');
         foreach ($items as $it) $ins->execute([$id, $it['test_id'], $it['package_id'], $it['price']]);
         $pdo->prepare('INSERT INTO appointment_status_log (appointment_id,status,changed_by) VALUES (?,?,?)')->execute([$id, 'BOOKED', $patientId]);
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
-    notify($patientId, 'Appointment booked', "Appointment #$id on " . date('d M Y H:i', $ts) . ' is booked. Total ₹' . number_format($total, 2) . ($discount > 0 ? " (saved ₹" . number_format($discount, 2) . " with $coupon)" : ''));
+    if ($paidNow) reward_referral_if_due($patientId, $id);
+    notify($patientId, 'Appointment booked', "Appointment #$id on " . date('d M Y H:i', $ts) . ' is booked. Total ₹' . number_format($total, 2) . ($discount > 0 ? " (saved ₹" . number_format($discount, 2) . " with $coupon)" : '') . ($walletUsed > 0 ? ' — ₹' . number_format($walletUsed, 2) . ' paid from wallet.' : ''));
     return $id;
 }
 
@@ -170,6 +193,8 @@ function record_payment(int $apptId, float $amount, string $method, ?string $ord
     $pdo->prepare("INSERT INTO payments (appointment_id,amount,method,gateway_order_id,gateway_payment_id,status,receipt_no,paid_at) VALUES (?,?,?,?,?,'PAID',?,NOW())")
         ->execute([$apptId, $amount, $method, $orderId, $paymentId, $receipt]);
     $pdo->prepare("UPDATE appointments SET payment_status='PAID' WHERE id=?")->execute([$apptId]);
+    $pid = $pdo->prepare('SELECT patient_id FROM appointments WHERE id=?'); $pid->execute([$apptId]);
+    reward_referral_if_due((int)$pid->fetchColumn(), $apptId);
     return $receipt;
 }
 
@@ -235,8 +260,8 @@ function render_header(string $title, ?array $user = null): void {
         return;
     }
     $links = [
-        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/packages.php', 'Packages', 'inbox'], ['/admin/centers.php', 'Centres & Pickups', 'truck'], ['/admin/partner_labs.php', 'Partner Labs', 'users'], ['/admin/coupons.php', 'Offers', 'wallet'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
-        'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/profile.php', 'Profile', 'user']],
+        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/packages.php', 'Packages', 'inbox'], ['/admin/centers.php', 'Centres & Pickups', 'truck'], ['/admin/partner_labs.php', 'Partner Labs', 'users'], ['/admin/coupons.php', 'Offers', 'wallet'], ['/admin/support.php', 'Support', 'inbox'], ['/admin/documents.php', 'Prescriptions', 'file'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
+        'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/family.php', 'Family', 'users'], ['/patient/documents.php', 'Prescriptions', 'file'], ['/patient/support.php', 'Support', 'inbox'], ['/patient/wallet.php', 'Wallet & Refer', 'wallet'], ['/patient/profile.php', 'Profile', 'user']],
         'TECHNICIAN' => [['/technician/', 'My Jobs', 'truck']],
     ][$user['role']] ?? [];
     $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
@@ -247,7 +272,7 @@ function render_header(string $title, ?array $user = null): void {
     }
     $tabsHtml = '';
     if ($user['role'] === 'PATIENT') {
-        foreach ($links as [$href, $label, $icon]) $tabsHtml .= '<a href="' . h($href) . '" class="' . ($cur === $href ? 'on' : '') . '">' . nav_icon($icon, 20) . '<span>' . h(explode(' ', $label)[0] === 'My' ? 'Home' : explode(' ', $label)[0]) . '</span></a>';
+        foreach (array_filter($links, fn($l) => in_array($l[0], ['/patient/', '/patient/book.php', '/patient/wallet.php', '/patient/profile.php'], true)) as [$href, $label, $icon]) $tabsHtml .= '<a href="' . h($href) . '" class="' . ($cur === $href ? 'on' : '') . '">' . nav_icon($icon, 20) . '<span>' . h(explode(' ', $label)[0] === 'My' ? 'Home' : explode(' ', $label)[0]) . '</span></a>';
         $GLOBALS['__tabs'] = '<nav class="tabbar">' . $tabsHtml . '</nav>';
     }
     echo '<div class="sidebar-footer"><div class="sidebar-user"><b>' . h($user['full_name']) . '</b>' . h($user['phone']) . '</div><a class="nav-link" href="/logout.php">' . nav_icon('logout') . 'Logout</a></div></aside><main class="main">';

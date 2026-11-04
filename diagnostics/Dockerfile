@@ -7,6 +7,6 @@ RUN docker-php-ext-install pdo_mysql \
  && printf "upload_max_filesize=10M\npost_max_size=12M\nexpose_php=Off\n" > /usr/local/etc/php/conf.d/app.ini
 
 COPY web/ /var/www/html/
-RUN mkdir -p /var/www/html/storage/reports && chown -R www-data:www-data /var/www/html/storage
+RUN mkdir -p /var/www/html/storage/reports /var/www/html/storage/documents && chown -R www-data:www-data /var/www/html/storage
 
 EXPOSE 80

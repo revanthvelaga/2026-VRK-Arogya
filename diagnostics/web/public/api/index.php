@@ -42,6 +42,8 @@ try {
             $pdo->prepare("INSERT INTO users (role,full_name,phone,email,password_hash) VALUES ('PATIENT',?,?,?,?)")->execute([$name, $phone, $email, password_hash($pass, PASSWORD_DEFAULT)]);
         } catch (PDOException $e) { fail('Phone or email already registered', 409); }
         $id = (int)$pdo->lastInsertId();
+        ensure_referral_code($id);
+        if (!empty($b['referral_code'])) { try { apply_referral($id, (string)$b['referral_code']); } catch (InvalidArgumentException $e) { /* ignore bad code */ } }
         $s = $pdo->prepare('SELECT * FROM users WHERE id=?'); $s->execute([$id]);
         out(['token' => issue_token($id), 'user' => public_user($s->fetch())], 201);
     }
@@ -97,6 +99,46 @@ try {
     if ($path === 'coupons' && $method === 'GET') {
         out($pdo->query("SELECT code, description FROM coupons WHERE is_active=1 AND (valid_until IS NULL OR valid_until > NOW()) ORDER BY created_at DESC")->fetchAll());
     }
+    if ($path === 'wallet' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $t = $pdo->prepare('SELECT id, amount, reason, created_at FROM wallet_transactions WHERE user_id=? ORDER BY id DESC LIMIT 30'); $t->execute([$u['id']]);
+        out(['balance' => wallet_balance((int)$u['id']), 'referral_code' => ensure_referral_code((int)$u['id']), 'referral_reward' => REFERRAL_REWARD, 'can_apply_referral' => can_apply_referral((int)$u['id']), 'transactions' => $t->fetchAll()]);
+    }
+    if ($path === 'wallet/referral' && $method === 'POST') {
+        need($u, 'PATIENT');
+        try { apply_referral((int)$u['id'], (string)(body()['code'] ?? '')); } catch (InvalidArgumentException $e) { fail($e->getMessage()); }
+        out(['ok' => true]);
+    }
+    if ($path === 'family' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $s = $pdo->prepare('SELECT id, full_name, relation, dob, gender, phone FROM family_members WHERE owner_id=? AND is_active=1 ORDER BY full_name'); $s->execute([$u['id']]);
+        out($s->fetchAll());
+    }
+    if ($path === 'family' && $method === 'POST') {
+        need($u, 'PATIENT'); $b = body();
+        $name = trim($b['full_name'] ?? ''); $rel = trim($b['relation'] ?? '');
+        if ($name === '' || $rel === '') fail('Name and relation are required');
+        $pdo->prepare('INSERT INTO family_members (owner_id,full_name,relation,dob,gender,phone) VALUES (?,?,?,?,?,?)')
+            ->execute([$u['id'], $name, $rel, ($b['dob'] ?? '') ?: null, in_array($b['gender'] ?? '', ['M', 'F', 'O'], true) ? $b['gender'] : null, preg_replace('/\D/', '', (string)($b['phone'] ?? '')) ?: null]);
+        out(['id' => (int)$pdo->lastInsertId()], 201);
+    }
+    if (preg_match('#^family/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        need($u, 'PATIENT');
+        $pdo->prepare('UPDATE family_members SET is_active=0 WHERE id=? AND owner_id=?')->execute([$m[1], $u['id']]);
+        out(['ok' => true]);
+    }
+    if ($path === 'tickets' && $method === 'POST') {
+        need($u, 'PATIENT'); $b = body();
+        $sub = trim($b['subject'] ?? ''); $desc = trim($b['description'] ?? '');
+        if ($sub === '' || $desc === '') fail('Subject and description are required');
+        $pdo->prepare('INSERT INTO tickets (raised_by,subject,description) VALUES (?,?,?)')->execute([$u['id'], $sub, $desc]);
+        out(['id' => (int)$pdo->lastInsertId()], 201);
+    }
+    if ($path === 'tickets' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $s = $pdo->prepare('SELECT id, subject, status, updated_at FROM tickets WHERE raised_by=? ORDER BY updated_at DESC'); $s->execute([$u['id']]);
+        out($s->fetchAll());
+    }
     if ($path === 'notifications' && $method === 'GET') {
         $s = $pdo->prepare('SELECT id,title,body,created_at FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50'); $s->execute([$u['id']]);
         out($s->fetchAll());
@@ -109,7 +151,8 @@ try {
             $id = create_appointment((int)$u['id'], (array)($b['test_ids'] ?? []), (string)($b['scheduled_at'] ?? ''), (string)($b['address'] ?? ''),
                 isset($b['latitude']) ? (float)$b['latitude'] : null, isset($b['longitude']) ? (float)$b['longitude'] : null, [
                 'package_ids' => (array)($b['package_ids'] ?? []), 'collection_mode' => $b['collection_mode'] ?? 'HOME_VISIT',
-                'pickup_point_id' => $b['pickup_point_id'] ?? null, 'coupon_code' => $b['coupon_code'] ?? '']);
+                'pickup_point_id' => $b['pickup_point_id'] ?? null, 'coupon_code' => $b['coupon_code'] ?? '',
+                'member_id' => $b['member_id'] ?? null, 'use_wallet' => !empty($b['use_wallet'])]);
         } catch (InvalidArgumentException $e) { fail($e->getMessage()); }
         out(['id' => $id], 201);
     }
