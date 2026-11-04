@@ -13,6 +13,8 @@ define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: '');
 define('SMS_GATEWAY_URL', getenv('SMS_GATEWAY_URL') ?: '');
 define('MAIL_FROM', getenv('MAIL_FROM') ?: 'noreply@example.com');
 
+require_once __DIR__ . '/catalog.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
     session_start();
@@ -113,30 +115,51 @@ function set_status(int $apptId, string $new, ?int $byUser): bool {
     return true;
 }
 
-function create_appointment(int $patientId, array $testIds, string $when, string $address, ?float $lat = null, ?float $lng = null): int {
+/**
+ * Creates an appointment. $opts: package_ids[], collection_mode (HOME_VISIT|PICKUP_POINT|WALK_IN),
+ * pickup_point_id, coupon_code. Prices and discounts are always computed server-side.
+ */
+function create_appointment(int $patientId, array $testIds, string $when, string $address, ?float $lat = null, ?float $lng = null, array $opts = []): int {
     $pdo = db();
-    $testIds = array_values(array_unique(array_map('intval', $testIds)));
-    if (!$testIds) throw new InvalidArgumentException('Select at least one test.');
     $ts = strtotime($when);
     if (!$ts || $ts < time()) throw new InvalidArgumentException('Choose a future date and time.');
-    if (trim($address) === '') throw new InvalidArgumentException('Address is required.');
-    $in = implode(',', array_fill(0, count($testIds), '?'));
-    $s = $pdo->prepare("SELECT id, price FROM tests WHERE is_active=1 AND id IN ($in)");
-    $s->execute($testIds);
-    $rows = $s->fetchAll();
-    if (count($rows) !== count($testIds)) throw new InvalidArgumentException('Invalid test selection.');
-    $total = array_sum(array_column($rows, 'price'));
+
+    $mode = $opts['collection_mode'] ?? 'HOME_VISIT';
+    if (!in_array($mode, ['HOME_VISIT', 'PICKUP_POINT', 'WALK_IN'], true)) throw new InvalidArgumentException('Invalid collection mode.');
+    $pickupId = null;
+    if ($mode === 'PICKUP_POINT') {
+        $s = $pdo->prepare('SELECT pp.*, c.is_active AS c_active FROM pickup_points pp JOIN centers c ON c.id=pp.center_id WHERE pp.id=? AND pp.is_active=1');
+        $s->execute([(int)($opts['pickup_point_id'] ?? 0)]);
+        $pp = $s->fetch();
+        if (!$pp || !$pp['c_active']) throw new InvalidArgumentException('Pickup point not found.');
+        $pickupId = (int)$pp['id'];
+        $address = trim($pp['name'] . ($pp['village_name'] ? ', ' . $pp['village_name'] : ''));
+        $lat = (float)$pp['latitude']; $lng = (float)$pp['longitude'];
+    } elseif ($mode === 'WALK_IN') {
+        $address = 'Walk-in at the diagnostic centre';
+    } elseif (trim($address) === '') {
+        throw new InvalidArgumentException('Address is required for home collection.');
+    }
+
+    [$items, $subtotal] = price_items($testIds, (array)($opts['package_ids'] ?? []));
+    $coupon = null; $discount = 0.0;
+    if (!empty($opts['coupon_code'])) {
+        $q = quote_coupon((string)$opts['coupon_code'], $subtotal, $patientId);
+        $coupon = $q['code']; $discount = $q['discount'];
+    }
+    $total = round($subtotal - $discount, 2);
+
     $pdo->beginTransaction();
     try {
-        $pdo->prepare('INSERT INTO appointments (patient_id,scheduled_at,address,latitude,longitude,total_amount) VALUES (?,?,?,?,?,?)')
-            ->execute([$patientId, date('Y-m-d H:i:00', $ts), $address, $lat, $lng, $total]);
+        $pdo->prepare('INSERT INTO appointments (patient_id,scheduled_at,address,latitude,longitude,collection_mode,pickup_point_id,subtotal,discount_amount,coupon_code,total_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+            ->execute([$patientId, date('Y-m-d H:i:00', $ts), $address, $lat, $lng, $mode, $pickupId, $subtotal, $discount, $coupon, $total]);
         $id = (int)$pdo->lastInsertId();
-        $ins = $pdo->prepare('INSERT INTO appointment_items (appointment_id,test_id,price) VALUES (?,?,?)');
-        foreach ($rows as $r) $ins->execute([$id, $r['id'], $r['price']]);
+        $ins = $pdo->prepare('INSERT INTO appointment_items (appointment_id,test_id,package_id,price) VALUES (?,?,?,?)');
+        foreach ($items as $it) $ins->execute([$id, $it['test_id'], $it['package_id'], $it['price']]);
         $pdo->prepare('INSERT INTO appointment_status_log (appointment_id,status,changed_by) VALUES (?,?,?)')->execute([$id, 'BOOKED', $patientId]);
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
-    notify($patientId, 'Appointment booked', "Appointment #$id on " . date('d M Y H:i', $ts) . ' is booked. Total ₹' . number_format((float)$total, 2));
+    notify($patientId, 'Appointment booked', "Appointment #$id on " . date('d M Y H:i', $ts) . ' is booked. Total ₹' . number_format($total, 2) . ($discount > 0 ? " (saved ₹" . number_format($discount, 2) . " with $coupon)" : ''));
     return $id;
 }
 
@@ -212,7 +235,7 @@ function render_header(string $title, ?array $user = null): void {
         return;
     }
     $links = [
-        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
+        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/packages.php', 'Packages', 'inbox'], ['/admin/centers.php', 'Centres & Pickups', 'truck'], ['/admin/partner_labs.php', 'Partner Labs', 'users'], ['/admin/coupons.php', 'Offers', 'wallet'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
         'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/profile.php', 'Profile', 'user']],
         'TECHNICIAN' => [['/technician/', 'My Jobs', 'truck']],
     ][$user['role']] ?? [];
