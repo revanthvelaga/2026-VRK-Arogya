@@ -94,6 +94,7 @@ render_header('Appointments', $u);
       <button class="btn small <?= $n === 'CANCELLED' ? 'danger' : '' ?>"><?= h(STATUS_LABELS[$n]) ?></button></form>
     <?php endforeach; ?>
     <?php if (in_array($a['status'], ['SAMPLE_COLLECTED', 'REPORT_READY'], true)): ?>
+    <a class="btn small secondary" href="/admin/results.php?id=<?= (int)$a['id'] ?>">Enter results</a>
     <form method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="action" value="upload_report"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
       <input type="file" name="report" accept="application/pdf" required><button class="btn small">Upload PDF</button></form>
     <?php endif; ?>

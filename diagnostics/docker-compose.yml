@@ -11,6 +11,7 @@ services:
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./database/migrations/002_arogya_features.sql:/docker-entrypoint-initdb.d/02-arogya-features.sql:ro
       - ./database/migrations/003_phase2_wallet_family_support.sql:/docker-entrypoint-initdb.d/03-phase2.sql:ro
+      - ./database/migrations/004_phase3_health_staff_auth.sql:/docker-entrypoint-initdb.d/04-phase3.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -28,6 +29,11 @@ services:
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Kolkata}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
     volumes:
       - reports:/var/www/html/storage/reports
       - documents:/var/www/html/storage/documents

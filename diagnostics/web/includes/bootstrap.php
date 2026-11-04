@@ -12,12 +12,15 @@ define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: '');
 define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: '');
 define('SMS_GATEWAY_URL', getenv('SMS_GATEWAY_URL') ?: '');
 define('MAIL_FROM', getenv('MAIL_FROM') ?: 'noreply@example.com');
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'Asia/Kolkata');
 
 require_once __DIR__ . '/catalog.php';
 require_once __DIR__ . '/rewards.php';
+require_once __DIR__ . '/health.php';
+require_once __DIR__ . '/auth_extra.php';
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
+    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => (($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')]);
     session_start();
 }
 
@@ -31,6 +34,8 @@ function db(): PDO {
              PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
              PDO::ATTR_EMULATE_PREPARES => false]
         );
+        // Keep MySQL NOW() in the same zone as PHP date()
+        $pdo->exec("SET time_zone = '" . date('P') . "'");
     }
     return $pdo;
 }
@@ -67,6 +72,17 @@ function require_role(string $role): array {
 
 function redirect(string $to): never { header('Location: ' . $to); exit; }
 
+function home_for(string $role): string { return ['ADMIN' => '/admin/', 'TECHNICIAN' => '/technician/', 'PATIENT' => '/patient/'][$role] ?? '/'; }
+
+/** Starts a web session for a user (used by password, OTP, Google and passkey sign-in). */
+function login_user(int $userId): never {
+    $s = db()->prepare('SELECT role FROM users WHERE id=? AND is_active=1'); $s->execute([$userId]);
+    $role = $s->fetchColumn() ?: redirect('/login.php');
+    session_regenerate_id(true);
+    $_SESSION['uid'] = $userId;
+    redirect(home_for($role));
+}
+
 function flash(?string $msg = null): ?string {
     if ($msg !== null) { $_SESSION['flash'] = $msg; return null; }
     $m = $_SESSION['flash'] ?? null; unset($_SESSION['flash']); return $m;
@@ -95,12 +111,13 @@ function notify(int $userId, string $title, string $body): void {
         if (!empty($u['email'])) {
             @mail($u['email'], $title, $body, 'From: ' . MAIL_FROM);
         }
-        if (SMS_GATEWAY_URL !== '') {
+        if (SMS_GATEWAY_URL !== '' && !empty($u['phone'])) {
             // Generic SMS gateway hook: client supplies URL with {phone} and {text} placeholders
             $url = str_replace(['{phone}', '{text}'], [urlencode($u['phone']), urlencode($title . ': ' . $body)], SMS_GATEWAY_URL);
-            @file_get_contents($url);
+            @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 5]]));
         }
     }
+    push_to_user($userId, $title, $body);
 }
 
 /** Change appointment status, validating workflow and logging + notifying the patient. */
@@ -118,6 +135,12 @@ function set_status(int $apptId, string $new, ?int $byUser): bool {
         wallet_credit((int)$a['patient_id'], (float)$w->fetchColumn(), 'Refund — appointment cancelled', $apptId);
     }
     notify((int)$a['patient_id'], 'Appointment #' . $apptId, 'Status: ' . STATUS_LABELS[$new]);
+    if ($byUser) {
+        $r = $pdo->prepare("SELECT u.full_name, u.role, p.full_name AS patient FROM users u, users p WHERE u.id=? AND p.id=?");
+        $r->execute([$byUser, $a['patient_id']]);
+        $who = $r->fetch();
+        if ($who && $who['role'] === 'TECHNICIAN') staff_alert($byUser, 'STATUS', $who['full_name'] . ' marked appointment #' . $apptId . ' (' . $who['patient'] . ') as ' . STATUS_LABELS[$new] . '.', '/admin/appointments.php');
+    }
     return true;
 }
 
@@ -129,6 +152,8 @@ function create_appointment(int $patientId, array $testIds, string $when, string
     $pdo = db();
     $ts = strtotime($when);
     if (!$ts || $ts < time()) throw new InvalidArgumentException('Choose a future date and time.');
+    $ph = $pdo->prepare('SELECT phone FROM users WHERE id=?'); $ph->execute([$patientId]);
+    if (!$ph->fetchColumn()) throw new InvalidArgumentException('Add your phone number in Profile before booking, so the technician can reach you.');
 
     $mode = $opts['collection_mode'] ?? 'HOME_VISIT';
     if (!in_array($mode, ['HOME_VISIT', 'PICKUP_POINT', 'WALK_IN'], true)) throw new InvalidArgumentException('Invalid collection mode.');
@@ -260,9 +285,9 @@ function render_header(string $title, ?array $user = null): void {
         return;
     }
     $links = [
-        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/packages.php', 'Packages', 'inbox'], ['/admin/centers.php', 'Centres & Pickups', 'truck'], ['/admin/partner_labs.php', 'Partner Labs', 'users'], ['/admin/coupons.php', 'Offers', 'wallet'], ['/admin/support.php', 'Support', 'inbox'], ['/admin/documents.php', 'Prescriptions', 'file'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
-        'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/family.php', 'Family', 'users'], ['/patient/documents.php', 'Prescriptions', 'file'], ['/patient/support.php', 'Support', 'inbox'], ['/patient/wallet.php', 'Wallet & Refer', 'wallet'], ['/patient/profile.php', 'Profile', 'user']],
-        'TECHNICIAN' => [['/technician/', 'My Jobs', 'truck']],
+        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/packages.php', 'Packages', 'inbox'], ['/admin/centers.php', 'Centres & Pickups', 'truck'], ['/admin/partner_labs.php', 'Partner Labs', 'users'], ['/admin/coupons.php', 'Offers', 'wallet'], ['/admin/support.php', 'Support', 'inbox'], ['/admin/documents.php', 'Prescriptions', 'file'], ['/admin/alerts.php', 'Field Alerts', 'clock'], ['/admin/leaves.php', 'Leaves & Holidays', 'cal'], ['/admin/salary.php', 'Salary', 'wallet'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
+        'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/insights.php', 'Insights', 'chart'], ['/patient/health.php', 'Health Tracker', 'flask'], ['/patient/finder.php', 'Test Finder', 'inbox'], ['/patient/family.php', 'Family', 'users'], ['/patient/documents.php', 'Prescriptions', 'file'], ['/patient/support.php', 'Support', 'inbox'], ['/patient/wallet.php', 'Wallet & Refer', 'wallet'], ['/patient/profile.php', 'Profile', 'user']],
+        'TECHNICIAN' => [['/technician/', 'My Jobs', 'truck'], ['/technician/leaves.php', 'My Leaves', 'cal']],
     ][$user['role']] ?? [];
     $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     echo '<div class="app-shell"><aside class="sidebar"><a class="sidebar-brand" href="' . h($home) . '">' . $mark . '<div class="sidebar-brand-text">' . h(APP_NAME) . '<span>' . h(ucfirst(strtolower($user['role']))) . '</span></div></a>';

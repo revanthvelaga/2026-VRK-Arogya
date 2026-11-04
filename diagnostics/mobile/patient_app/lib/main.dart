@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:flutter/services.dart';
 import 'api.dart';
+import 'features.dart';
 
 const statusLabels = {
   'BOOKED': 'Booked',
@@ -121,6 +123,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
               }),
         ]),
+        drawer: Drawer(child: ListView(children: [
+          const DrawerHeader(child: Text('Diagnostics', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+          for (final e in <(IconData, String, Widget Function())>[
+            (Icons.insights, 'Health insights', () => const InsightsScreen()),
+            (Icons.search, 'Which test do I need?', () => const FinderScreen()),
+            (Icons.family_restroom, 'My family', () => const FamilyScreen()),
+            (Icons.account_balance_wallet_outlined, 'Wallet & refer', () => const WalletScreen()),
+          ])
+            ListTile(leading: Icon(e.$1), title: Text(e.$2), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => e.$3())); }),
+        ])),
         floatingActionButton: FloatingActionButton.extended(
           icon: const Icon(Icons.add),
           label: const Text('Book test'),
@@ -148,87 +160,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ))
                             .toList()),
               ),
-      );
-}
-
-class BookScreen extends StatefulWidget {
-  const BookScreen({super.key});
-  @override
-  State<BookScreen> createState() => _BookScreenState();
-}
-
-class _BookScreenState extends State<BookScreen> {
-  List<dynamic> tests = [];
-  final selected = <int>{};
-  final address = TextEditingController();
-  DateTime? date;
-  TimeOfDay? time;
-  bool busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    Api.get('tests').then((r) => mounted ? setState(() => tests = r) : null).catchError((e) {
-      if (mounted) snack(context, e.toString());
-    });
-  }
-
-  double get total => tests.where((t) => selected.contains(int.parse(t['id'].toString()))).fold(0.0, (s, t) => s + double.parse(t['price'].toString()));
-
-  String two(int n) => n.toString().padLeft(2, '0');
-
-  Future<void> book() async {
-    if (selected.isEmpty || date == null || time == null || address.text.trim().isEmpty) {
-      snack(context, 'Select tests, date, time and address');
-      return;
-    }
-    setState(() => busy = true);
-    try {
-      final when = '${date!.year}-${two(date!.month)}-${two(date!.day)} ${two(time!.hour)}:${two(time!.minute)}';
-      await Api.post('appointments', {'test_ids': selected.toList(), 'scheduled_at': when, 'address': address.text.trim()});
-      if (!mounted) return;
-      snack(context, 'Appointment booked');
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) snack(context, e.toString());
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Book appointment')),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
-          ...tests.map((t) {
-            final tid = int.parse(t['id'].toString());
-            return CheckboxListTile(
-              value: selected.contains(tid),
-              title: Text(t['name']),
-              subtitle: Text('₹${t['price']}'),
-              onChanged: (v) => setState(() => v == true ? selected.add(tid) : selected.remove(tid)),
-            );
-          }),
-          ListTile(
-              title: Text(date == null ? 'Pick date' : '${date!.day}/${date!.month}/${date!.year}'),
-              leading: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final d = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 1)), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 90)));
-                if (d != null) setState(() => date = d);
-              }),
-          ListTile(
-              title: Text(time == null ? 'Pick time' : time!.format(context)),
-              leading: const Icon(Icons.access_time),
-              onTap: () async {
-                final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
-                if (t != null) setState(() => time = t);
-              }),
-          TextField(controller: address, maxLines: 3, decoration: const InputDecoration(labelText: 'Collection address')),
-          const SizedBox(height: 12),
-          Text('Total: ₹${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: busy ? null : book, child: const Text('Confirm booking')),
-        ]),
       );
 }
 
@@ -309,6 +240,22 @@ class _DetailScreenState extends State<DetailScreen> {
               Text('Timeline', style: Theme.of(context).textTheme.titleMedium),
               ...(d['timeline'] as List).map((t) => ListTile(dense: true, leading: const Icon(Icons.check_circle_outline), title: Text(statusLabels[t['status']] ?? t['status']), subtitle: Text(t['changed_at']))),
               const Divider(),
+              if ((d['results'] as List? ?? []).isNotEmpty) ...[
+                Text('Results', style: Theme.of(context).textTheme.titleMedium),
+                ...(d['results'] as List).map((r) => ListTile(dense: true, title: Text(r['test_name'].toString()),
+                    subtitle: Text('Normal ${r['normal_low'] ?? '–'} – ${r['normal_high'] ?? '–'}'),
+                    trailing: Text('${r['value']} ${r['unit'] ?? ''}', style: TextStyle(fontWeight: FontWeight.bold, color: r['is_abnormal'].toString() == '1' ? Colors.red : null)))),
+                OutlinedButton.icon(icon: const Icon(Icons.share), label: const Text('Share with my doctor (7 days)'), onPressed: () async {
+                  try {
+                    final r = await Api.post('appointments/${widget.id}/share', {'days': 7});
+                    await Clipboard.setData(ClipboardData(text: r['url'].toString()));
+                    if (context.mounted) snack(context, 'Link copied. Paste it in WhatsApp or SMS to your doctor.');
+                  } catch (e) {
+                    if (context.mounted) snack(context, e.toString());
+                  }
+                }),
+                const Divider(),
+              ],
               Text('Reports', style: Theme.of(context).textTheme.titleMedium),
               if ((d['reports'] as List).isEmpty) const Text('Report will appear here when ready.'),
               ...(d['reports'] as List).map((r) => ListTile(

@@ -2,7 +2,8 @@
 require __DIR__ . '/../../includes/bootstrap.php';
 $u = require_role('PATIENT');
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// prefill=1 comes from the Test Finder: just pre-select the suggested items
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['prefill'])) {
     csrf_check();
     try {
         $id = create_appointment((int)$u['id'], (array)($_POST['tests'] ?? []), ($_POST['date'] ?? '') . ' ' . ($_POST['time'] ?? ''), (string)($_POST['address'] ?? ''), null, null, [
@@ -47,6 +48,7 @@ render_header('Book a Test', $u);
     <?php foreach ($tests as $t): ?>
     <label data-price="<?= h($t['price']) ?>"><span style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="tests[]" value="<?= (int)$t['id'] ?>" <?= $sel('tests', $t['id']) ?>>
       <span><?= h($t['name']) ?> — ₹<?= number_format((float)$t['price'], 0) ?>
+      <?php if (!empty($t['preparation_instructions'])): ?><br><small>Before the test: <?= h($t['preparation_instructions']) ?></small><?php endif; ?>
       <?php if (!$t['is_in_house']): ?><br><small>Processed at <?= h($t['lab_name'] ?: 'partner lab') ?> · result in about <?= (int)$t['turnaround_hours'] ?> h</small><?php endif; ?></span></span></label>
     <?php endforeach; ?></div>
 

@@ -49,10 +49,31 @@ try {
     }
     if ($path === 'auth/login' && $method === 'POST') {
         $b = body(); $id = trim($b['identifier'] ?? '');
-        $s = $pdo->prepare('SELECT * FROM users WHERE (phone=? OR email=?) AND is_active=1'); $s->execute([$id, $id]);
+        $s = $pdo->prepare('SELECT * FROM users WHERE (phone=? OR email=?) AND is_active=1'); $s->execute([normalize_phone($id) ?: $id, strtolower($id)]);
         $u = $s->fetch();
         if (!$u || !password_verify((string)($b['password'] ?? ''), $u['password_hash'])) fail('Invalid credentials', 401);
         out(['token' => issue_token((int)$u['id']), 'user' => public_user($u)]);
+    }
+
+    if ($path === 'auth/otp/send' && $method === 'POST') {
+        try { otp_send((string)(body()['phone'] ?? '')); } catch (InvalidArgumentException $e) { fail($e->getMessage()); }
+        out(['ok' => true]);
+    }
+    if ($path === 'auth/otp/verify' && $method === 'POST') {
+        $b = body();
+        try { $uid = otp_verify((string)($b['phone'] ?? ''), (string)($b['code'] ?? '')); } catch (InvalidArgumentException $e) { fail($e->getMessage(), 401); }
+        $s = $pdo->prepare('SELECT * FROM users WHERE id=?'); $s->execute([$uid]);
+        out(['token' => issue_token($uid), 'user' => public_user($s->fetch())]);
+    }
+    if ($path === 'auth/google' && $method === 'POST') {
+        try { $uid = google_login((string)(body()['id_token'] ?? '')); } catch (InvalidArgumentException $e) { fail($e->getMessage(), 401); }
+        $s = $pdo->prepare('SELECT * FROM users WHERE id=?'); $s->execute([$uid]);
+        out(['token' => issue_token($uid), 'user' => public_user($s->fetch())]);
+    }
+    if (preg_match('#^shared/([A-Za-z0-9_-]{43})$#', $path, $m) && $method === 'GET') {
+        $sh = resolve_share($m[1]) ?: fail('This link has expired', 410);
+        $v = $pdo->prepare('SELECT test_name, value, unit, normal_low, normal_high, is_abnormal FROM report_values WHERE appointment_id=? ORDER BY test_name'); $v->execute([$sh['appointment_id']]);
+        out(['expires_at' => $sh['expires_at'], 'values' => $v->fetchAll()]);
     }
 
     // ---------- Authenticated ----------
@@ -139,6 +160,67 @@ try {
         $s = $pdo->prepare('SELECT id, subject, status, updated_at FROM tickets WHERE raised_by=? ORDER BY updated_at DESC'); $s->execute([$u['id']]);
         out($s->fetchAll());
     }
+    // ---------- Phase 3: push, health, insights, sharing, finder, leaves ----------
+    if ($path === 'devices' && $method === 'POST') {
+        $tok = trim((string)(body()['token'] ?? ''));
+        if ($tok === '' || strlen($tok) > 255) fail('Invalid device token');
+        $pdo->prepare('INSERT INTO device_tokens (user_id,token,platform) VALUES (?,?,?) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)')->execute([$u['id'], $tok, mb_substr((string)(body()['platform'] ?? 'android'), 0, 20)]);
+        out(['ok' => true]);
+    }
+    if ($path === 'insights' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $g = $pdo->prepare('SELECT * FROM health_goals WHERE user_id=?'); $g->execute([$u['id']]);
+        $goals = array_map(function ($go) use ($u) { $c = latest_metric((int)$u['id'], $go['metric']); return $go + ['current' => $c, 'progress' => goal_progress($go, $c)]; }, $g->fetchAll());
+        out(['lab_trends' => lab_trends((int)$u['id']), 'retest' => retest_items((int)$u['id']), 'goals' => $goals]);
+    }
+    if ($path === 'vitals' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $s = $pdo->prepare('SELECT id, type, value, value2, recorded_at, note FROM vital_readings WHERE user_id=? AND member_id IS NULL ORDER BY recorded_at DESC LIMIT 200'); $s->execute([$u['id']]);
+        out($s->fetchAll());
+    }
+    if ($path === 'vitals' && $method === 'POST') {
+        need($u, 'PATIENT'); $b = body(); $type = (string)($b['type'] ?? '');
+        if (!isset(VITAL_TYPES[$type]) || !is_numeric($b['value'] ?? null)) fail('Choose a type and enter a number');
+        if ($type === 'BP' && !is_numeric($b['value2'] ?? null)) fail('Blood pressure needs both numbers');
+        $at = !empty($b['recorded_at']) ? strtotime((string)$b['recorded_at']) : time();
+        if (!$at || $at > time() + 300) fail("A reading can't be in the future");
+        $pdo->prepare('INSERT INTO vital_readings (user_id,type,value,value2,recorded_at,note) VALUES (?,?,?,?,?,?)')
+            ->execute([$u['id'], $type, (float)$b['value'], $type === 'BP' ? (float)$b['value2'] : null, date('Y-m-d H:i:s', $at), mb_substr(trim((string)($b['note'] ?? '')), 0, 200) ?: null]);
+        out(['id' => (int)$pdo->lastInsertId()], 201);
+    }
+    if ($path === 'medicines' && $method === 'GET') {
+        need($u, 'PATIENT');
+        $s = $pdo->prepare('SELECT id, name, dosage, brand, timings, food, reminder FROM medicines WHERE user_id=? AND is_active=1 ORDER BY name'); $s->execute([$u['id']]);
+        out($s->fetchAll());
+    }
+    if (preg_match('#^appointments/(\d+)/share$#', $path, $m) && $method === 'POST') {
+        need($u, 'PATIENT');
+        $own = $pdo->prepare('SELECT 1 FROM appointments WHERE id=? AND patient_id=?'); $own->execute([$m[1], $u['id']]);
+        if (!$own->fetchColumn()) fail('Not found', 404);
+        $tok = create_share((int)$m[1], (int)$u['id'], (int)(body()['days'] ?? 7));
+        out(['url' => base_url() . '/share.php?t=' . $tok], 201);
+    }
+    if ($path === 'finder' && $method === 'POST') {
+        need($u, 'PATIENT');
+        require_once __DIR__ . '/../../includes/finder.php';
+        try { out(find_tests((string)(body()['query'] ?? ''))); } catch (InvalidArgumentException $e) { fail($e->getMessage()); }
+    }
+    if ($path === 'tech/leaves' && $method === 'GET') {
+        need($u, 'TECHNICIAN');
+        $s = $pdo->prepare('SELECT id, start_date, end_date, leave_type, reason, status FROM leaves WHERE user_id=? ORDER BY start_date DESC'); $s->execute([$u['id']]);
+        out($s->fetchAll());
+    }
+    if ($path === 'tech/leaves' && $method === 'POST') {
+        need($u, 'TECHNICIAN'); $b = body();
+        $st = (string)($b['start_date'] ?? ''); $en = (string)($b['end_date'] ?? ''); $type = trim((string)($b['leave_type'] ?? ''));
+        if (!strtotime($st) || !strtotime($en) || $en < $st || $st < date('Y-m-d') || $type === '') fail('Choose valid future dates and a leave type');
+        $pdo->prepare('INSERT INTO leaves (user_id,start_date,end_date,leave_type,reason) VALUES (?,?,?,?,?)')->execute([$u['id'], $st, $en, mb_substr($type, 0, 50), trim((string)($b['reason'] ?? '')) ?: null]);
+        staff_alert((int)$u['id'], 'LEAVE', $u['full_name'] . " requested $type leave from " . date('d M', strtotime($st)) . ' to ' . date('d M', strtotime($en)) . '.', '/admin/leaves.php');
+        out(['id' => (int)$pdo->lastInsertId()], 201);
+    }
+    if ($path === 'holidays' && $method === 'GET') {
+        out($pdo->query('SELECT holiday_date, name FROM holidays WHERE holiday_date >= CURDATE() ORDER BY holiday_date LIMIT 30')->fetchAll());
+    }
     if ($path === 'notifications' && $method === 'GET') {
         $s = $pdo->prepare('SELECT id,title,body,created_at FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50'); $s->execute([$u['id']]);
         out($s->fetchAll());
@@ -169,7 +251,8 @@ try {
         $i = $pdo->prepare('SELECT COALESCE(t.name, pk.name) AS name, i.price FROM appointment_items i LEFT JOIN tests t ON t.id=i.test_id LEFT JOIN packages pk ON pk.id=i.package_id WHERE i.appointment_id=?'); $i->execute([$m[1]]);
         $l = $pdo->prepare('SELECT status, changed_at FROM appointment_status_log WHERE appointment_id=? ORDER BY id'); $l->execute([$m[1]]);
         $r = $pdo->prepare('SELECT id, original_name, uploaded_at FROM reports WHERE appointment_id=? ORDER BY id DESC'); $r->execute([$m[1]]);
-        out($a + ['items' => $i->fetchAll(), 'timeline' => $l->fetchAll(), 'reports' => $r->fetchAll()]);
+        $rv = $pdo->prepare('SELECT test_name, value, unit, normal_low, normal_high, is_abnormal FROM report_values WHERE appointment_id=? ORDER BY test_name'); $rv->execute([$m[1]]);
+        out($a + ['items' => $i->fetchAll(), 'timeline' => $l->fetchAll(), 'reports' => $r->fetchAll(), 'results' => $rv->fetchAll()]);
     }
     if (preg_match('#^appointments/(\d+)/cancel$#', $path, $m) && $method === 'POST') {
         need($u, 'PATIENT');

@@ -143,6 +143,7 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('My Jobs'), actions: [
+          IconButton(icon: const Icon(Icons.event_busy), tooltip: 'Leaves', onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeavesScreen()))),
           IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
@@ -180,5 +181,60 @@ class _JobsScreenState extends State<JobsScreen> {
                   }),
                 ]),
               ),
+      );
+}
+
+
+class LeavesScreen extends StatefulWidget {
+  const LeavesScreen({super.key});
+  @override
+  State<LeavesScreen> createState() => _LeavesScreenState();
+}
+
+class _LeavesScreenState extends State<LeavesScreen> {
+  Future<List<dynamic>> data = Future.wait([call('GET', 'tech/leaves'), call('GET', 'holidays')]);
+  DateTimeRange? range;
+  String type = 'Casual';
+  final reason = TextEditingController();
+
+  String _d(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _request() async {
+    if (range == null) { snack(context, 'Choose the dates'); return; }
+    try {
+      await call('POST', 'tech/leaves', {'start_date': _d(range!.start), 'end_date': _d(range!.end), 'leave_type': type, 'reason': reason.text});
+      setState(() { range = null; reason.clear(); data = Future.wait([call('GET', 'tech/leaves'), call('GET', 'holidays')]); });
+      if (mounted) snack(context, 'Leave requested');
+    } catch (e) {
+      if (mounted) snack(context, e.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('My leaves')),
+        body: ListView(padding: const EdgeInsets.all(12), children: [
+          Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            OutlinedButton.icon(icon: const Icon(Icons.date_range), label: Text(range == null ? 'Choose dates' : '${_d(range!.start)} → ${_d(range!.end)}'),
+                onPressed: () async {
+                  final r = await showDateRangePicker(context: context, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 180)));
+                  if (r != null) setState(() => range = r);
+                }),
+            DropdownButtonFormField<String>(value: type, items: ['Casual', 'Sick', 'Emergency', 'Other'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => type = v!)),
+            TextField(controller: reason, decoration: const InputDecoration(labelText: 'Reason')),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: _request, child: const Text('Request leave')),
+          ]))),
+          FutureBuilder<List<dynamic>>(future: data, builder: (c, s) {
+            if (s.hasError) return Text(s.error.toString());
+            if (!s.hasData) return const Center(child: CircularProgressIndicator());
+            final leaves = s.data![0] as List, hols = s.data![1] as List;
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ...leaves.map((l) => ListTile(title: Text('${l['start_date']} → ${l['end_date']} · ${l['leave_type']}'), trailing: Text(l['status'].toString()))),
+              if (hols.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text('Upcoming holidays', style: Theme.of(context).textTheme.titleMedium)),
+              ...hols.map((h) => ListTile(dense: true, leading: const Icon(Icons.celebration_outlined), title: Text(h['name'].toString()), subtitle: Text(h['holiday_date'].toString()))),
+            ]);
+          }),
+        ]),
       );
 }
