@@ -67,6 +67,25 @@ Any PHP 8.1+ / MySQL 8 host works: point the document root to `web/public`, impo
 `database/schema.sql`, set the env vars, make `web/storage/reports` writable, and serve
 over HTTPS (the mobile apps send bearer tokens).
 
+## Arogya feature port (you asked for everything, to remove later)
+
+Arogya's full app lives on the `claude/shared-session-continuation-5vfqik` branch (NestJS + React).
+Its features are being ported to this PHP + MySQL stack in phases. Existing databases: run
+`database/migrations/002_arogya_features.sql` once (docker-compose does it on a fresh install).
+
+| Phase | Feature | Status |
+|---|---|---|
+| 1 | Test packages (BASIC/STANDARD/PREMIUM), admin + booking | Done |
+| 1 | Diagnostic centres, 20 km service radius, pickup points + visit schedules, collection modes (home / pickup point / walk-in) | Done |
+| 1 | Partner labs and per-test routing with turnaround | Done |
+| 1 | Offers/coupons (percent/flat, caps, limits, per-customer), checkout preview + server-side recheck | Done |
+| 2 | Family members / patients under one account, care links | Planned |
+| 2 | Support tickets (issues + comments), prescriptions upload, documents | Planned |
+| 2 | Wallet and referral rewards, invoices | Planned |
+| 3 | Health tracking: vitals, goals, medicines, retest reminders, insights, report values and trends | Planned |
+| 3 | Sign-in options: Google, phone OTP, passkeys; report sharing links | Planned |
+| 3 | Agent leaves/salary, staff alerts, push notifications, holidays, AI test finder | Planned |
+
 ## Not covered / notes
 
 - Push notifications (FCM) are not included; in-app, email (`mail()`) and SMS (gateway URL) are.

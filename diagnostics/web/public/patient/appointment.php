@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('/patient/appointment.php?id=' . $id);
 }
 
-$items = db()->prepare('SELECT t.name, i.price FROM appointment_items i JOIN tests t ON t.id=i.test_id WHERE i.appointment_id=?');
+$items = db()->prepare('SELECT COALESCE(t.name, pk.name) AS name, i.price FROM appointment_items i LEFT JOIN tests t ON t.id=i.test_id LEFT JOIN packages pk ON pk.id=i.package_id WHERE i.appointment_id=?');
 $items->execute([$id]);
 $log = db()->prepare('SELECT status, changed_at FROM appointment_status_log WHERE appointment_id=? ORDER BY id');
 $log->execute([$id]);
@@ -32,10 +32,12 @@ render_header('Appointment #' . $id, $u);
 <div class="card"><?= stepper($a['status']) ?></div>
 <div class="card">
   <p><strong>When:</strong> <?= h(date('d M Y H:i', strtotime($a['scheduled_at']))) ?></p>
+  <p><strong>Collection:</strong> <?= h(['HOME_VISIT' => 'Technician visits you', 'PICKUP_POINT' => 'Village pickup point', 'WALK_IN' => 'Walk-in at the centre'][$a['collection_mode']] ?? $a['collection_mode']) ?></p>
   <p><strong>Address:</strong> <?= nl2br(h($a['address'])) ?></p>
   <?php if ($a['tech_name']): ?><p><strong>Technician:</strong> <?= h($a['tech_name']) ?> (<?= h($a['tech_phone']) ?>)</p><?php endif; ?>
   <table><tr><th>Test</th><th>Price</th></tr>
   <?php foreach ($items->fetchAll() as $i): ?><tr><td><?= h($i['name']) ?></td><td>₹<?= number_format((float)$i['price'], 2) ?></td></tr><?php endforeach; ?>
+  <?php if ((float)$a['discount_amount'] > 0): ?><tr><td>Offer <?= h($a['coupon_code']) ?></td><td>−₹<?= number_format((float)$a['discount_amount'], 2) ?></td></tr><?php endif; ?>
   <tr><th>Total</th><th>₹<?= number_format((float)$a['total_amount'], 2) ?></th></tr></table>
   <p><strong>Payment:</strong> <?= h($a['payment_status']) ?>
     <?php if ($receipt): ?> · <a href="/receipt.php?id=<?= $id ?>" target="_blank">Receipt <?= h($receipt) ?></a><?php endif; ?></p>

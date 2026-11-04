@@ -6,7 +6,7 @@ $s = db()->prepare("SELECT p.*, a.patient_id, a.scheduled_at, u.full_name, u.pho
 $s->execute([(int)($_GET['id'] ?? 0)]);
 $p = $s->fetch();
 if (!$p || ($u['role'] !== 'ADMIN' && (int)$p['patient_id'] !== (int)$u['id'])) { http_response_code(404); exit('Not found'); }
-$items = db()->prepare('SELECT t.name, i.price FROM appointment_items i JOIN tests t ON t.id=i.test_id WHERE i.appointment_id=?');
+$items = db()->prepare('SELECT COALESCE(t.name, pk.name) AS name, i.price FROM appointment_items i LEFT JOIN tests t ON t.id=i.test_id LEFT JOIN packages pk ON pk.id=i.package_id WHERE i.appointment_id=?');
 $items->execute([$p['appointment_id']]);
 ?><!doctype html><html><head><meta charset="utf-8"><title>Receipt <?= h($p['receipt_no']) ?></title>
 <style>body{font-family:sans-serif;max-width:600px;margin:30px auto}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ccc;padding:6px;text-align:left}@media print{button{display:none}}</style></head><body>

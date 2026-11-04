@@ -70,6 +70,33 @@ try {
     if ($path === 'tests' && $method === 'GET') {
         out($pdo->query('SELECT id, code, name, sample_type, price FROM tests WHERE is_active=1 ORDER BY name')->fetchAll());
     }
+    if ($path === 'packages' && $method === 'GET') {
+        $pk = $pdo->query('SELECT id, name, description, price, tier FROM packages WHERE is_active=1 ORDER BY price')->fetchAll();
+        $tn = [];
+        foreach ($pdo->query('SELECT pt.package_id, t.name FROM package_tests pt JOIN tests t ON t.id=pt.test_id')->fetchAll() as $r) $tn[$r['package_id']][] = $r['name'];
+        foreach ($pk as &$p) $p['tests'] = $tn[$p['id']] ?? [];
+        out($pk);
+    }
+    if ($path === 'pickup-points' && $method === 'GET') {
+        // ?lat=&lng=&radius_km= returns points near the caller (nearest first); otherwise all active points
+        if (isset($_GET['lat'], $_GET['lng'])) {
+            out(array_map(fn($r) => ['id' => (int)$r['id'], 'name' => $r['name'], 'village_name' => $r['village_name'], 'distance_km' => $r['distance_km_from_you']],
+                nearby_pickup_points((float)$_GET['lat'], (float)$_GET['lng'], (float)($_GET['radius_km'] ?? 20))));
+        }
+        out($pdo->query('SELECT pp.id, pp.name, pp.village_name, pp.distance_km FROM pickup_points pp JOIN centers c ON c.id=pp.center_id WHERE pp.is_active=1 AND c.is_active=1 ORDER BY pp.distance_km')->fetchAll());
+    }
+    if (preg_match('#^pickup-points/(\d+)/schedule$#', $path, $m) && $method === 'GET') {
+        $s = $pdo->prepare('SELECT day_of_week, start_time, end_time FROM pickup_point_schedules WHERE pickup_point_id=? ORDER BY day_of_week, start_time'); $s->execute([$m[1]]);
+        out($s->fetchAll());
+    }
+    if ($path === 'coupons/quote' && $method === 'POST') {
+        need($u, 'PATIENT'); $b = body();
+        try { out(quote_coupon((string)($b['code'] ?? ''), max(0.0, (float)($b['subtotal'] ?? 0)), (int)$u['id'])); }
+        catch (InvalidArgumentException $e) { fail($e->getMessage()); }
+    }
+    if ($path === 'coupons' && $method === 'GET') {
+        out($pdo->query("SELECT code, description FROM coupons WHERE is_active=1 AND (valid_until IS NULL OR valid_until > NOW()) ORDER BY created_at DESC")->fetchAll());
+    }
     if ($path === 'notifications' && $method === 'GET') {
         $s = $pdo->prepare('SELECT id,title,body,created_at FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50'); $s->execute([$u['id']]);
         out($s->fetchAll());
@@ -80,7 +107,9 @@ try {
         need($u, 'PATIENT'); $b = body();
         try {
             $id = create_appointment((int)$u['id'], (array)($b['test_ids'] ?? []), (string)($b['scheduled_at'] ?? ''), (string)($b['address'] ?? ''),
-                isset($b['latitude']) ? (float)$b['latitude'] : null, isset($b['longitude']) ? (float)$b['longitude'] : null);
+                isset($b['latitude']) ? (float)$b['latitude'] : null, isset($b['longitude']) ? (float)$b['longitude'] : null, [
+                'package_ids' => (array)($b['package_ids'] ?? []), 'collection_mode' => $b['collection_mode'] ?? 'HOME_VISIT',
+                'pickup_point_id' => $b['pickup_point_id'] ?? null, 'coupon_code' => $b['coupon_code'] ?? '']);
         } catch (InvalidArgumentException $e) { fail($e->getMessage()); }
         out(['id' => $id], 201);
     }
@@ -91,10 +120,10 @@ try {
     }
     if (preg_match('#^appointments/(\d+)$#', $path, $m) && $method === 'GET') {
         need($u, 'PATIENT');
-        $s = $pdo->prepare('SELECT a.id,a.scheduled_at,a.address,a.status,a.total_amount,a.payment_status,t.full_name AS technician_name,t.phone AS technician_phone FROM appointments a LEFT JOIN users t ON t.id=a.technician_id WHERE a.id=? AND a.patient_id=?');
+        $s = $pdo->prepare('SELECT a.id,a.scheduled_at,a.address,a.status,a.total_amount,a.subtotal,a.discount_amount,a.coupon_code,a.collection_mode,a.payment_status,t.full_name AS technician_name,t.phone AS technician_phone FROM appointments a LEFT JOIN users t ON t.id=a.technician_id WHERE a.id=? AND a.patient_id=?');
         $s->execute([$m[1], $u['id']]);
         $a = $s->fetch() ?: fail('Not found', 404);
-        $i = $pdo->prepare('SELECT t.name, i.price FROM appointment_items i JOIN tests t ON t.id=i.test_id WHERE i.appointment_id=?'); $i->execute([$m[1]]);
+        $i = $pdo->prepare('SELECT COALESCE(t.name, pk.name) AS name, i.price FROM appointment_items i LEFT JOIN tests t ON t.id=i.test_id LEFT JOIN packages pk ON pk.id=i.package_id WHERE i.appointment_id=?'); $i->execute([$m[1]]);
         $l = $pdo->prepare('SELECT status, changed_at FROM appointment_status_log WHERE appointment_id=? ORDER BY id'); $l->execute([$m[1]]);
         $r = $pdo->prepare('SELECT id, original_name, uploaded_at FROM reports WHERE appointment_id=? ORDER BY id DESC'); $r->execute([$m[1]]);
         out($a + ['items' => $i->fetchAll(), 'timeline' => $l->fetchAll(), 'reports' => $r->fetchAll()]);
