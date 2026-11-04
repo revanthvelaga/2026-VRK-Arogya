@@ -1,0 +1,20 @@
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,sans-serif;margin:0;background:#f5f7fa;color:#1d2733}
+header{background:#0b6e4f;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:12px 20px;flex-wrap:wrap}
+header a{color:#fff;text-decoration:none;margin-left:16px}
+header .brand{font-weight:700;font-size:1.2rem;margin-left:0}
+main{max-width:960px;margin:24px auto;padding:0 16px}
+.card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 1px 3px #0002;margin-bottom:16px}
+label{display:block;margin:10px 0;font-weight:600}
+input,select,textarea{display:block;width:100%;padding:8px;margin-top:4px;border:1px solid #c5ccd6;border-radius:6px;font:inherit}
+input[type=checkbox]{display:inline;width:auto;margin-right:8px}
+.btn{display:inline-block;background:#0b6e4f;color:#fff;border:0;padding:9px 16px;border-radius:6px;cursor:pointer;text-decoration:none;font:inherit}
+.btn.secondary{background:#5b6b7b}.btn.danger{background:#b3261e}.btn.small{padding:4px 10px;font-size:.85rem}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:8px 10px;border-bottom:1px solid #e5e9ef;text-align:left;vertical-align:top}
+th{background:#eef2f6}
+.flash{background:#e1f5ea;padding:10px;border-radius:6px;margin-bottom:12px}.flash.err{background:#fde7e5}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#dde5ee;font-size:.8rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{font-size:1.6rem;font-weight:700}
+@media(max-width:600px){th,td{font-size:.85rem}}

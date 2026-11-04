@@ -1,0 +1,36 @@
+name: Diagnostics APKs
+
+on:
+  push:
+    branches: [feature/diagnostics-appointment-system]
+    paths: ["diagnostics/mobile/**", ".github/workflows/diagnostics-apk.yml"]
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: "Backend API base URL, e.g. https://your-domain.com/api"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [patient_app, technician_app]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - name: Generate Android project and build
+        working-directory: diagnostics/mobile/${{ matrix.app }}
+        run: |
+          flutter create --platforms=android --org com.diagnostics --project-name ${{ matrix.app }} .
+          # Release builds need INTERNET permission (flutter create only adds it to debug)
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+          flutter pub get
+          flutter build apk --release --dart-define=API_BASE=${{ github.event.inputs.api_base || 'http://10.0.2.2:8080/api' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-apk
+          path: diagnostics/mobile/${{ matrix.app }}/build/app/outputs/flutter-apk/app-release.apk

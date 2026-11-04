@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: diagnostics
+      MYSQL_USER: diag
+      MYSQL_PASSWORD: ${DB_PASS:-diagpass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootpass}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 20
+
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: diagnostics
+      DB_USER: diag
+      DB_PASS: ${DB_PASS:-diagpass}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-}
+    volumes:
+      - reports:/var/www/html/storage/reports
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
+  reports:

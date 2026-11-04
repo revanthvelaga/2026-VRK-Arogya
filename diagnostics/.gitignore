@@ -1,0 +1,7 @@
+web/storage/reports/*
+!web/storage/reports/.gitkeep
+mobile/*/android/
+mobile/*/build/
+mobile/*/.dart_tool/
+mobile/*/pubspec.lock
+.env
