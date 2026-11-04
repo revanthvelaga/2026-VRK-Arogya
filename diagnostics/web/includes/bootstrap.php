@@ -150,7 +150,7 @@ function record_payment(int $apptId, float $amount, string $method, ?string $ord
     return $receipt;
 }
 
-function nav_icon(string $name): string {
+function nav_icon(string $name, int $size = 18): string {
     $paths = [
         'grid' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
         'cal' => '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
@@ -160,9 +160,40 @@ function nav_icon(string $name): string {
         'plus' => '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>',
         'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
         'logout' => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+        'check' => '<path d="M20 6L9 17l-5-5"/>',
+        'clock' => '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+        'file' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/>',
+        'inbox' => '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',
+        'wallet' => '<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
         'truck' => '<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
     ];
-    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($paths[$name] ?? '') . '</svg>';
+    return '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($paths[$name] ?? '') . '</svg>';
+}
+
+function greeting(): string {
+    $h = (int)date('G');
+    return $h < 12 ? 'Good morning' : ($h < 17 ? 'Good afternoon' : 'Good evening');
+}
+
+function money($v): string { return '₹' . number_format((float)$v, 0); }
+
+/** Courier-style progress tracker, same idea as Arogya's SampleProgress. */
+function stepper(string $status): string {
+    if ($status === 'CANCELLED') return '<div class="empty-state" style="padding:14px">This appointment was cancelled.</div>';
+    $steps = [['BOOKED', 'Booked', 'file'], ['ASSIGNED', 'Technician assigned', 'users'], ['ON_WAY', 'On the way', 'truck'], ['SAMPLE_COLLECTED', 'Sample collected', 'flask'], ['REPORT_READY', 'Report ready', 'check']];
+    $cur = array_search($status, array_column($steps, 0), true);
+    $out = '<div class="progress-stepper" role="list">';
+    foreach ($steps as $i => [$k, $label, $icon]) {
+        $state = $i < $cur ? 'done' : ($i === $cur ? 'active' : 'todo');
+        if ($status === 'REPORT_READY' && $i === $cur) $state = 'done';
+        $out .= '<div class="progress-step progress-step--' . $state . '" role="listitem">' . ($i ? '<div class="progress-connector"></div>' : '')
+              . '<div class="progress-dot">' . nav_icon($icon, 14) . '</div><div class="progress-label">' . h($label) . '</div></div>';
+    }
+    return $out . '</div>';
+}
+
+function empty_state(string $icon, string $text): string {
+    return '<div class="empty-state"><div class="stat-icon" style="margin:0 auto 10px">' . nav_icon($icon) . '</div>' . h($text) . '</div>';
 }
 
 function render_header(string $title, ?array $user = null): void {
@@ -191,9 +222,14 @@ function render_header(string $title, ?array $user = null): void {
         $active = ($cur === $href || ($href === '/admin/' && $cur === '/admin/index.php') || ($href === '/patient/' && $cur === '/patient/index.php')) ? ' active' : '';
         echo '<a class="nav-link' . $active . '" href="' . h($href) . '">' . nav_icon($icon) . h($label) . '</a>';
     }
+    $tabsHtml = '';
+    if ($user['role'] === 'PATIENT') {
+        foreach ($links as [$href, $label, $icon]) $tabsHtml .= '<a href="' . h($href) . '" class="' . ($cur === $href ? 'on' : '') . '">' . nav_icon($icon, 20) . '<span>' . h(explode(' ', $label)[0] === 'My' ? 'Home' : explode(' ', $label)[0]) . '</span></a>';
+        $GLOBALS['__tabs'] = '<nav class="tabbar">' . $tabsHtml . '</nav>';
+    }
     echo '<div class="sidebar-footer"><div class="sidebar-user"><b>' . h($user['full_name']) . '</b>' . h($user['phone']) . '</div><a class="nav-link" href="/logout.php">' . nav_icon('logout') . 'Logout</a></div></aside><main class="main">';
     if ($m = flash()) echo '<div class="flash">' . h($m) . '</div>';
 }
 function render_footer(): void {
-    echo (($GLOBALS['__shell'] ?? 'app') === 'auth') ? '</div></body></html>' : '</main></div></body></html>';
+    echo (($GLOBALS['__shell'] ?? 'app') === 'auth') ? '</div></body></html>' : '</main></div>' . ($GLOBALS['__tabs'] ?? '') . '</body></html>';
 }
