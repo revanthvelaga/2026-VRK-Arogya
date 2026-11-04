@@ -75,7 +75,7 @@ render_header('Appointments', $u);
   <td><?= (int)$a['id'] ?></td>
   <td><?= h($a['full_name']) ?><br><small><?= h($a['phone']) ?></small></td>
   <td><?= h(date('d M H:i', strtotime($a['scheduled_at']))) ?><br><small><?= h(mb_strimwidth($a['address'], 0, 60, '…')) ?></small></td>
-  <td><span class="badge"><?= h(STATUS_LABELS[$a['status']]) ?></span></td>
+  <td><span class="badge s-<?= h($a['status']) ?>"><?= h(STATUS_LABELS[$a['status']]) ?></span></td>
   <td>
     <?php if (in_array($a['status'], ['BOOKED', 'ASSIGNED'], true)): ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="assign"><input type="hidden" name="id" value="<?= (int)$a['id'] ?>">

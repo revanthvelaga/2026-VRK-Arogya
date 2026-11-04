@@ -24,7 +24,7 @@ render_header('My Jobs', $u);
 <h1>Assigned Jobs</h1>
 <?php foreach ($s->fetchAll() as $a): ?>
 <div class="card">
-  <strong>#<?= (int)$a['id'] ?> — <?= h($a['full_name']) ?></strong> <span class="badge"><?= h(STATUS_LABELS[$a['status']]) ?></span><br>
+  <strong>#<?= (int)$a['id'] ?> — <?= h($a['full_name']) ?></strong> <span class="badge s-<?= h($a['status']) ?>"><?= h(STATUS_LABELS[$a['status']]) ?></span><br>
   <?= h(date('d M Y H:i', strtotime($a['scheduled_at']))) ?> · <a href="tel:<?= h($a['phone']) ?>"><?= h($a['phone']) ?></a><br>
   <?= nl2br(h($a['address'])) ?><br>
   <a href="https://www.google.com/maps/search/?api=1&query=<?= urlencode($a['address']) ?>" target="_blank" rel="noopener">Navigate</a>

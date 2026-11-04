@@ -28,7 +28,7 @@ $receipt = $pay->fetchColumn();
 
 render_header('Appointment #' . $id, $u);
 ?>
-<h1>Appointment #<?= $id ?> <span class="badge"><?= h(STATUS_LABELS[$a['status']]) ?></span></h1>
+<h1>Appointment #<?= $id ?> <span class="badge s-<?= h($a['status']) ?>"><?= h(STATUS_LABELS[$a['status']]) ?></span></h1>
 <div class="card">
   <p><strong>When:</strong> <?= h(date('d M Y H:i', strtotime($a['scheduled_at']))) ?></p>
   <p><strong>Address:</strong> <?= nl2br(h($a['address'])) ?></p>

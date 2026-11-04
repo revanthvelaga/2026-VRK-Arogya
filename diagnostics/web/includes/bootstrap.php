@@ -150,21 +150,50 @@ function record_payment(int $apptId, float $amount, string $method, ?string $ord
     return $receipt;
 }
 
+function nav_icon(string $name): string {
+    $paths = [
+        'grid' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+        'cal' => '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+        'flask' => '<path d="M9 3h6M10 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-6-10V3"/>',
+        'users' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+        'chart' => '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+        'plus' => '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>',
+        'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+        'logout' => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+        'truck' => '<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+    ];
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($paths[$name] ?? '') . '</svg>';
+}
+
 function render_header(string $title, ?array $user = null): void {
     $user = $user ?? current_user();
+    $GLOBALS['__shell'] = $user ? 'app' : 'auth';
     $home = ['ADMIN' => '/admin/', 'TECHNICIAN' => '/technician/', 'PATIENT' => '/patient/'][$user['role'] ?? ''] ?? '/';
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
-    echo '<title>' . h($title) . ' — ' . h(APP_NAME) . '</title><link rel="stylesheet" href="/assets/style.css"></head><body>';
-    echo '<header><a class="brand" href="' . h($home) . '">' . h(APP_NAME) . '</a><nav>';
-    if ($user) {
-        if ($user['role'] === 'ADMIN') {
-            echo '<a href="/admin/appointments.php">Appointments</a><a href="/admin/tests.php">Tests</a><a href="/admin/technicians.php">Technicians</a><a href="/admin/reports.php">Financials</a>';
-        } elseif ($user['role'] === 'PATIENT') {
-            echo '<a href="/patient/book.php">Book</a><a href="/patient/">My Appointments</a><a href="/patient/profile.php">Profile</a>';
-        }
-        echo '<a href="/logout.php">Logout (' . h($user['full_name']) . ')</a>';
+    echo '<title>' . h($title) . ' — ' . h(APP_NAME) . '</title>';
+    echo '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
+    echo '<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">';
+    echo '<link rel="stylesheet" href="/assets/style.css"></head><body>';
+    $mark = '<div class="brand-mark">' . nav_icon('plus') . '</div>';
+    if (!$user) {
+        echo '<div class="auth-wrap"><a class="sidebar-brand" style="padding:0 0 22px" href="/">' . $mark . '<div class="sidebar-brand-text">' . h(APP_NAME) . '</div></a>';
+        if ($m = flash()) echo '<div class="flash">' . h($m) . '</div>';
+        return;
     }
-    echo '</nav></header><main>';
+    $links = [
+        'ADMIN' => [['/admin/', 'Dashboard', 'grid'], ['/admin/appointments.php', 'Appointments', 'cal'], ['/admin/tests.php', 'Tests & Rates', 'flask'], ['/admin/technicians.php', 'Technicians', 'users'], ['/admin/reports.php', 'Financials', 'chart']],
+        'PATIENT' => [['/patient/', 'My Appointments', 'cal'], ['/patient/book.php', 'Book a Test', 'plus'], ['/patient/profile.php', 'Profile', 'user']],
+        'TECHNICIAN' => [['/technician/', 'My Jobs', 'truck']],
+    ][$user['role']] ?? [];
+    $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    echo '<div class="app-shell"><aside class="sidebar"><a class="sidebar-brand" href="' . h($home) . '">' . $mark . '<div class="sidebar-brand-text">' . h(APP_NAME) . '<span>' . h(ucfirst(strtolower($user['role']))) . '</span></div></a>';
+    foreach ($links as [$href, $label, $icon]) {
+        $active = ($cur === $href || ($href === '/admin/' && $cur === '/admin/index.php') || ($href === '/patient/' && $cur === '/patient/index.php')) ? ' active' : '';
+        echo '<a class="nav-link' . $active . '" href="' . h($href) . '">' . nav_icon($icon) . h($label) . '</a>';
+    }
+    echo '<div class="sidebar-footer"><div class="sidebar-user"><b>' . h($user['full_name']) . '</b>' . h($user['phone']) . '</div><a class="nav-link" href="/logout.php">' . nav_icon('logout') . 'Logout</a></div></aside><main class="main">';
     if ($m = flash()) echo '<div class="flash">' . h($m) . '</div>';
 }
-function render_footer(): void { echo '</main></body></html>'; }
+function render_footer(): void {
+    echo (($GLOBALS['__shell'] ?? 'app') === 'auth') ? '</div></body></html>' : '</main></div></body></html>';
+}

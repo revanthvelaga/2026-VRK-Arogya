@@ -16,7 +16,7 @@ render_header('My Appointments', $u);
 <tr>
   <td><?= (int)$a['id'] ?></td>
   <td><?= h(date('d M Y H:i', strtotime($a['scheduled_at']))) ?></td>
-  <td><span class="badge"><?= h(STATUS_LABELS[$a['status']]) ?></span></td>
+  <td><span class="badge s-<?= h($a['status']) ?>"><?= h(STATUS_LABELS[$a['status']]) ?></span></td>
   <td>₹<?= number_format((float)$a['total_amount'], 2) ?></td>
   <td><?= h($a['payment_status']) ?></td>
   <td><a href="/patient/appointment.php?id=<?= (int)$a['id'] ?>">View</a></td>
